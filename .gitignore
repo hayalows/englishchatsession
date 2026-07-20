@@ -6,3 +6,5 @@ coverage/
 .source-page.html
 *.log
 *.tsbuildinfo
+
+.vercel

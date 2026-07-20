@@ -1,6 +1,6 @@
 # English Chat Session Monitor
 
-A private Next.js monitor for the BYU–Pathway English Chat scheduling page. It records published Google Calendar booking links, detects new, reopened, changed, and unavailable listings, and can email alerts through Resend.
+A private Next.js application for manually checking the BYU–Pathway English Chat scheduling page. It stores available appointments and always gives the user the direct booking link inside the dashboard. It does not send Telegram or email messages.
 
 ## What it monitors
 
@@ -11,9 +11,7 @@ The configured source is the public [English Chat Student Center scheduling page
 1. Copy `.env.example` to `.env.local`.
 2. In Supabase, open **Project settings → API** (or the **Connect** dialog) and copy the Project URL and legacy `anon` key into `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 3. In **Project settings → API Keys → Legacy API Keys**, copy `service_role` into `SUPABASE_SERVICE_ROLE_KEY`. Keep this only in `.env.local` and Vercel server-side environment variables.
-4. In Resend, create an API key and verify the domain used by `ALERT_EMAIL_FROM`; set `ALERT_EMAIL_TO` to the inbox that should receive alerts.
-5. Generate a random secret of at least 24 characters for `CRON_SECRET`.
-6. Run `npm run dev`, then open `http://localhost:3000`.
+4. Run `npm run dev`, then open `http://localhost:3000`.
 
 ## Supabase auth setup
 
@@ -21,9 +19,7 @@ The dashboard uses Supabase email magic links. In **Authentication → URL Confi
 
 ## Deployment
 
-`vercel.json` registers `/api/cron/monitor` for `*/15 * * * *`. Add every value from `.env.example` to Vercel before deployment. Vercel secures the cron invocation with `CRON_SECRET` in its `Authorization` header.
-
-Vercel Hobby only permits cron jobs once daily; the 15-minute schedule requires a non-Hobby team. The application lock prevents overlapping monitor invocations regardless of trigger source.
+Vercel hosts only the dashboard and authenticated API routes. There is no Vercel Cron configuration: automatic monitoring is intentionally disabled, so the app works on Vercel Hobby.
 
 ## Commands
 

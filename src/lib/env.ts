@@ -6,12 +6,7 @@ const serverEnvironment = z.object({
   NEXT_PUBLIC_SUPABASE_URL: url,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  RESEND_API_KEY: z.string().min(1),
-  ALERT_EMAIL_FROM: z.string().email(),
-  ALERT_EMAIL_TO: z.string().email(),
-  CRON_SECRET: z.string().min(24),
   MONITORED_PAGE_URL: url,
-  MONITOR_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
 });
 
 const publicEnvironment = serverEnvironment.pick({

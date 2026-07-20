@@ -40,6 +40,7 @@ input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 3p
 .check-action { align-items: center; display: flex; flex-direction: column; gap: .6rem; text-align: right; }
 .check-action button { background: var(--sun); color: var(--ink); }
 .check-action small { max-width: 18rem; color: #dbe7ed; }
+.manual-notice { border-left: .35rem solid var(--sun); color: var(--river-dark); font-weight: 700; margin: 0 0 1.5rem; padding: .85rem 1rem; }
 
 .content-grid { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1.6fr) minmax(19rem, .8fr); }
 .panel { background: var(--surface); border: 1px solid var(--line); padding: 1.5rem; }
@@ -62,15 +63,12 @@ input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 3p
 .login-shell { align-items: center; background: linear-gradient(135deg, var(--mist), #f7fbfb 55%, #d6e8e7); display: grid; min-height: 100vh; padding: 1.5rem; place-items: center; }
 .login-card { background: white; border-top: .45rem solid var(--sun); box-shadow: 1rem 1rem 0 var(--ink); max-width: 31rem; padding: 2.5rem; }
 .login-card .lede { margin: 1.5rem 0 2rem; }
-.stack, .settings-form { display: grid; gap: 1rem; }
-.stack label, .settings-form > label, .time-grid label { display: grid; font-weight: 700; gap: .45rem; }
+.stack { display: grid; gap: 1rem; }
+.stack label { display: grid; font-weight: 700; gap: .45rem; }
 .form-message { color: var(--river-dark); margin: 0; }
-.settings-panel { max-width: 48rem; }
-.settings-form { margin-top: 2rem; }
 .toggle-row { align-items: center; display: flex !important; gap: .6rem; }.toggle-row input { width: auto; }
 fieldset { border: 0; border-top: 1px solid var(--line); margin: .5rem 0; padding: 1.15rem 0 0; } legend { color: var(--muted); font-size: .85rem; font-weight: 700; padding-right: .5rem; }
 .day-grid { display: flex; flex-wrap: wrap; gap: .55rem; }.day-grid label { border: 1px solid var(--line); border-radius: 999px; cursor: pointer; padding: .45rem .65rem; }.day-grid input { width: auto; }
-.time-grid { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }.settings-form span { color: var(--muted); font-size: .8rem; font-weight: 400; }
 
 @media (max-width: 760px) {
   .app-shell { padding-top: 1.5rem; }.topbar, .signal-panel { grid-template-columns: 1fr; }.topbar { gap: 1.25rem; flex-direction: column; }.topbar nav { justify-content: flex-start; }.signal-detail { border-left: 0; border-top: 1px solid #527184; padding: 1rem 0 0; }.check-action { align-items: flex-start; text-align: left; }.content-grid { grid-template-columns: 1fr; }.signal-number { font-size: 5rem; }

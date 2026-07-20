@@ -4,7 +4,6 @@ import { getServerEnvironment } from "@/lib/env";
 import { detectSessionChanges } from "@/lib/monitoring/diff";
 import { parseSchedulingPage } from "@/lib/monitoring/parser";
 import type { DetectedChange, NormalizedSession, StoredSession } from "@/lib/monitoring/types";
-import { sendSessionNotification } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type RunResult = {
@@ -55,61 +54,7 @@ async function fetchSchedulingPage(url: string) {
   return { body, status: response.status };
 }
 
-function matchesPreferences(change: DetectedChange, settings: { notifications_enabled: boolean; preferred_tutors: string[]; preferred_days: string[] } | null) {
-  if (!settings || !settings.notifications_enabled) return settings === null;
-  const tutor = change.current.tutor?.toLocaleLowerCase() ?? "";
-  if (settings.preferred_tutors.length > 0 && !settings.preferred_tutors.some((value) => tutor.includes(value.toLocaleLowerCase()))) return false;
-  if (settings.preferred_days.length > 0 && change.current.sessionDate) {
-    const day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Africa/Accra" }).format(new Date(`${change.current.sessionDate}T12:00:00Z`));
-    if (!settings.preferred_days.includes(day)) return false;
-  }
-  return true;
-}
-
-async function storeNotification(change: DetectedChange, sessionId: string, isBaseline: boolean) {
-  const admin = createAdminClient();
-  const { data: settings } = await admin
-    .from("user_settings")
-    .select("notifications_enabled, preferred_tutors, preferred_days")
-    .limit(1)
-    .maybeSingle();
-
-  const environment = getServerEnvironment();
-  if (isBaseline || !matchesPreferences(change, settings)) {
-    await admin.from("notification_events").insert({
-      session_id: sessionId,
-      notification_type: "email",
-      destination: environment.ALERT_EMAIL_TO,
-      status: "suppressed",
-      error_message: isBaseline ? "Initial baseline is not alerted." : "Does not match notification preferences.",
-    });
-    return;
-  }
-
-  const delivery = await sendSessionNotification(change);
-  if (delivery.error) {
-    await admin.from("notification_events").insert({
-      session_id: sessionId,
-      notification_type: "email",
-      destination: environment.ALERT_EMAIL_TO,
-      status: "failed",
-      error_message: delivery.error.message,
-    });
-    return;
-  }
-
-  await admin.from("notification_events").insert({
-    session_id: sessionId,
-    notification_type: "email",
-    destination: environment.ALERT_EMAIL_TO,
-    provider_message_id: delivery.data?.id ?? null,
-    status: "sent",
-    sent_at: new Date().toISOString(),
-  });
-  await admin.from("sessions").update({ last_notified_at: new Date().toISOString() }).eq("id", sessionId);
-}
-
-async function persistChange(change: DetectedChange, isBaseline: boolean) {
+async function persistChange(change: DetectedChange) {
   const admin = createAdminClient();
   const record = sessionRecord(change.current);
   const result = change.existing
@@ -130,7 +75,7 @@ async function persistChange(change: DetectedChange, isBaseline: boolean) {
   });
   if (changeError) throw new Error(`Unable to record session change: ${changeError.message}`);
 
-  await storeNotification(change, sessionId, isBaseline);
+  // Availability is intentionally surfaced in the dashboard only. Manual checks never send messages.
 }
 
 export async function runMonitoring(): Promise<RunResult> {
@@ -138,7 +83,8 @@ export async function runMonitoring(): Promise<RunResult> {
   const admin = createAdminClient();
   const { data: lockGranted, error: lockError } = await admin.rpc("acquire_monitor_lock", {
     p_lock_name: "english-chat-monitor",
-    p_ttl_seconds: Math.max(environment.MONITOR_INTERVAL_MINUTES * 60 - 10, 60),
+    // This protects one deliberate manual request. It is not a recurring schedule.
+    p_ttl_seconds: 900,
   });
   if (lockError) throw new Error(`Unable to acquire monitoring lock: ${lockError.message}`);
   if (!lockGranted) return { status: "skipped", sessionsFound: 0, changesFound: 0, message: "Another monitor run is active." };
@@ -156,9 +102,8 @@ export async function runMonitoring(): Promise<RunResult> {
     if (persistedError) throw new Error(`Unable to load sessions: ${persistedError.message}`);
 
     const existing = (persisted ?? []) as StoredSession[];
-    const isBaseline = existing.length === 0;
     const changes = detectSessionChanges(existing, sessions);
-    for (const change of changes) await persistChange(change, isBaseline);
+    for (const change of changes) await persistChange(change);
 
     const presentSourceIds = new Set(sessions.map((session) => session.sourceId));
     const unseenIds = existing.filter((session) => session.status === "open" && !presentSourceIds.has(session.source_id)).map((session) => session.id);

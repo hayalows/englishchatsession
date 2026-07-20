@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { CheckNowButton } from "@/components/check-now-button";
 import { requireCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -33,16 +31,15 @@ export default async function DashboardPage() {
           <h1>English Chat Monitor</h1>
         </div>
         <nav aria-label="Main navigation">
-          <Link href="/settings">Alert settings</Link>
           <span>{user.email}</span>
         </nav>
       </header>
 
       <section className="signal-panel">
         <div>
-          <p className="eyebrow">Live booking board</p>
+          <p className="eyebrow">Manual appointment check</p>
           <p className="signal-number">{activeCount ?? 0}</p>
-          <p className="signal-label">booking links currently listed</p>
+          <p className="signal-label">booking pages currently listed</p>
         </div>
         <div className="signal-detail">
           <p>Last check</p>
@@ -51,6 +48,7 @@ export default async function DashboardPage() {
         </div>
         <CheckNowButton />
       </section>
+      <p className="manual-notice">Automatic monitoring is currently disabled. Appointment checks run only when you press the check button.</p>
 
       <section className="content-grid">
         <div className="panel sessions-panel">

@@ -17,7 +17,7 @@ export function CheckNowButton() {
 
   return (
     <div className="check-action">
-      <button disabled={running} onClick={checkNow} type="button">{running ? "Checking…" : "Check now"}</button>
+      <button disabled={running} onClick={checkNow} type="button">{running ? "Checking appointments…" : "Check Available Appointments"}</button>
       {message ? <small aria-live="polite">{message}</small> : null}
     </div>
   );

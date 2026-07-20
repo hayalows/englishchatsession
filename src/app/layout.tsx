@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "English Chat Monitor",
-  description: "Private BYU-Pathway English Chat availability monitor",
+  title: "English Chat Booking Finder",
+  description: "Current BYU-Pathway English Chat booking pages",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

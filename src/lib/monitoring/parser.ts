@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import { load } from "cheerio";
 
-import type { NormalizedSession } from "@/lib/monitoring/types";
+type BookingPage = {
+  sourceId: string;
+  tutor: string | null;
+  bookingUrl: string;
+};
 
 const CALENDAR_HOSTS = new Set(["calendar.app.google", "calendar.google.com"]);
 const SAFE_LINK_HOSTS = new Set(["nam10.safelinks.protection.outlook.com"]);
@@ -45,9 +49,9 @@ function stableSourceId(url: string) {
   return createHash("sha256").update(`booking-link:${url}`).digest("hex");
 }
 
-export function parseSchedulingPage(html: string, sourceUrl: string): NormalizedSession[] {
+export function parseSchedulingPage(html: string, sourceUrl: string): BookingPage[] {
   const $ = load(html);
-  const bySourceId = new Map<string, NormalizedSession>();
+  const bySourceId = new Map<string, BookingPage>();
 
   $("a[href]").each((_, element) => {
     const tutor = cleanText($(element).text());
@@ -57,15 +61,8 @@ export function parseSchedulingPage(html: string, sourceUrl: string): Normalized
     const sourceId = stableSourceId(bookingUrl);
     bySourceId.set(sourceId, {
       sourceId,
-      title: "English Chat booking",
       tutor,
-      sessionDate: null,
-      startTime: null,
-      endTime: null,
-      sourceTimezone: null,
       bookingUrl,
-      status: "open",
-      rawData: { kind: "booking_link", sourceUrl, canonicalBookingUrl: bookingUrl },
     });
   });
 

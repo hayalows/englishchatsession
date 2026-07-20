@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { AvailabilityBoard } from "@/components/availability-board";
 
 export default function HomePage() {
-  redirect("/dashboard");
+  return <AvailabilityBoard />;
 }

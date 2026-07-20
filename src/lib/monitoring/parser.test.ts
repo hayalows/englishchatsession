@@ -13,7 +13,7 @@ describe("parseSchedulingPage", () => {
     `;
     const sessions = parseSchedulingPage(html, source);
     expect(sessions).toHaveLength(1);
-    expect(sessions[0]).toMatchObject({ tutor: "Ada Tutor duplicate", bookingUrl: "https://calendar.app.google/Example123", sessionDate: null, sourceTimezone: null });
+    expect(sessions[0]).toMatchObject({ tutor: "Ada Tutor duplicate", bookingUrl: "https://calendar.app.google/Example123" });
     expect(sessions[0].sourceId).toHaveLength(64);
   });
 

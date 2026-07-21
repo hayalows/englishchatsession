@@ -16,6 +16,8 @@ export function AvailabilityBoard() {
   const [loading, setLoading] = useState(true);
   const [checkingUrl, setCheckingUrl] = useState<string | null>(null);
   const [slotResults, setSlotResults] = useState<Record<string, SlotResult>>({});
+  const [query, setQuery] = useState("");
+  const [scanProgress, setScanProgress] = useState<{ completed: number; total: number } | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -45,6 +47,22 @@ export function AvailabilityBoard() {
     }
   }
 
+  const bookingPages = availability?.bookingPages ?? [];
+  const filteredPages = bookingPages.filter((booking) => (booking.tutor ?? "").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  const availableCount = Object.values(slotResults).filter((result) => result.status === "available").length;
+
+  async function scanAll() {
+    setScanProgress({ completed: 0, total: filteredPages.length });
+    try {
+      for (let index = 0; index < filteredPages.length; index += 1) {
+        await checkTutor(filteredPages[index].bookingUrl);
+        setScanProgress({ completed: index + 1, total: filteredPages.length });
+      }
+    } finally {
+      setScanProgress(null);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -57,8 +75,8 @@ export function AvailabilityBoard() {
       <section className="signal-panel">
         <div>
           <p className="eyebrow">Live source check</p>
-          <p className="signal-number">{availability?.bookingPages.length ?? "–"}</p>
-          <p className="signal-label">current tutor booking pages</p>
+          <p className="signal-number">{availableCount || availability?.bookingPages.length || "–"}</p>
+          <p className="signal-label">{availableCount ? "tutors with dates found" : "current tutor booking pages"}</p>
         </div>
         <div className="signal-detail">
           <p>Checked from the scheduling page</p>
@@ -71,7 +89,7 @@ export function AvailabilityBoard() {
         </div>
       </section>
 
-      <p className="manual-notice">Use “Check availability” for a live Google Calendar scan of one tutor. Results are not saved, and the booking page remains the final source for the exact time.</p>
+      <p className="manual-notice">Each check opens Google Calendar live. It reads the calendar’s currently rendered range, which Google controls and can vary by tutor; it does not guess future availability. Results disappear when you refresh.</p>
 
       <section className="panel sessions-panel">
         <div className="panel-heading">
@@ -79,17 +97,22 @@ export function AvailabilityBoard() {
             <p className="eyebrow">Current booking pages</p>
             <h2>Choose a tutor</h2>
           </div>
-          <span>{availability?.bookingPages.length ?? 0} shown</span>
+          <span>{filteredPages.length} of {bookingPages.length} shown</span>
         </div>
+        <div className="finder-controls">
+          <label className="search-field"><span>Find a tutor</span><input onChange={(event) => setQuery(event.target.value)} placeholder="Type a name" type="search" value={query} /></label>
+          <button disabled={Boolean(scanProgress) || filteredPages.length === 0} onClick={() => void scanAll()} type="button">{scanProgress ? `Checking ${scanProgress.completed}/${scanProgress.total}` : `Check all ${filteredPages.length}`}</button>
+        </div>
+        {scanProgress ? <p className="scan-note" aria-live="polite">Checking one tutor at a time for reliability. You can leave this tab open while the scan runs.</p> : null}
         <div className="session-list">
-          {availability?.bookingPages.map((booking) => (
+          {filteredPages.map((booking) => (
             <div className="session-row" key={booking.bookingUrl}>
               <span>{booking.tutor ?? "English Chat tutor"}</span>
               <span className="slot-actions"><button disabled={checkingUrl === booking.bookingUrl} onClick={() => void checkTutor(booking.bookingUrl)} type="button">{checkingUrl === booking.bookingUrl ? "Checking…" : "Check availability"}</button><a href={booking.bookingUrl} rel="noreferrer" target="_blank">Book ↗</a></span>
               {slotResults[booking.bookingUrl] ? <small className={`slot-result ${slotResults[booking.bookingUrl].status}`}>{slotResults[booking.bookingUrl].message}{slotResults[booking.bookingUrl].dates.length ? ` ${slotResults[booking.bookingUrl].dates.join(", ")}` : ""}</small> : null}
             </div>
           ))}
-          {!loading && availability?.bookingPages.length === 0 ? <p className="empty-state">The scheduling page did not list any booking pages right now. Refresh later.</p> : null}
+          {!loading && filteredPages.length === 0 ? <p className="empty-state">No tutor matches that search. Clear it or refresh the source list.</p> : null}
         </div>
       </section>
     </main>

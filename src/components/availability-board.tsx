@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 type BookingPage = { tutor: string | null; bookingUrl: string };
 type Availability = { checkedAt: string; bookingPages: BookingPage[] };
+type SlotResult = { status: "available" | "none_in_view" | "unknown"; dates: string[]; message: string };
 
 function displayTime(value: string | null) {
   return value ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not checked yet";
@@ -13,6 +14,8 @@ export function AvailabilityBoard() {
   const [availability, setAvailability] = useState<Availability | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [checkingUrl, setCheckingUrl] = useState<string | null>(null);
+  const [slotResults, setSlotResults] = useState<Record<string, SlotResult>>({});
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -30,6 +33,17 @@ export function AvailabilityBoard() {
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  async function checkTutor(bookingUrl: string) {
+    setCheckingUrl(bookingUrl);
+    try {
+      const response = await fetch("/api/slots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bookingUrl }) });
+      const result = (await response.json()) as SlotResult & { message?: string };
+      setSlotResults((current) => ({ ...current, [bookingUrl]: response.ok ? result : { status: "unknown", dates: [], message: result.message ?? "Unable to check this booking page." } }));
+    } finally {
+      setCheckingUrl(null);
+    }
+  }
 
   return (
     <main className="app-shell">
@@ -57,7 +71,7 @@ export function AvailabilityBoard() {
         </div>
       </section>
 
-      <p className="manual-notice">A listed page is not a guaranteed open time. Google Calendar exposes current slots inside each booking page, so open a page and choose an available date and time there.</p>
+      <p className="manual-notice">Use “Check availability” for a live Google Calendar scan of one tutor. Results are not saved, and the booking page remains the final source for the exact time.</p>
 
       <section className="panel sessions-panel">
         <div className="panel-heading">
@@ -69,10 +83,11 @@ export function AvailabilityBoard() {
         </div>
         <div className="session-list">
           {availability?.bookingPages.map((booking) => (
-            <a className="session-row" href={booking.bookingUrl} key={booking.bookingUrl} rel="noreferrer" target="_blank">
+            <div className="session-row" key={booking.bookingUrl}>
               <span>{booking.tutor ?? "English Chat tutor"}</span>
-              <small>Check current times ↗</small>
-            </a>
+              <span className="slot-actions"><button disabled={checkingUrl === booking.bookingUrl} onClick={() => void checkTutor(booking.bookingUrl)} type="button">{checkingUrl === booking.bookingUrl ? "Checking…" : "Check availability"}</button><a href={booking.bookingUrl} rel="noreferrer" target="_blank">Book ↗</a></span>
+              {slotResults[booking.bookingUrl] ? <small className={`slot-result ${slotResults[booking.bookingUrl].status}`}>{slotResults[booking.bookingUrl].message}{slotResults[booking.bookingUrl].dates.length ? ` ${slotResults[booking.bookingUrl].dates.join(", ")}` : ""}</small> : null}
+            </div>
           ))}
           {!loading && availability?.bookingPages.length === 0 ? <p className="empty-state">The scheduling page did not list any booking pages right now. Refresh later.</p> : null}
         </div>

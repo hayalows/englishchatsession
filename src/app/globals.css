@@ -48,10 +48,11 @@ input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 3p
 .panel-heading h2 { font-family: Georgia, "Times New Roman", serif; font-size: 1.75rem; letter-spacing: -.035em; margin: .2rem 0 0; }
 .panel-heading > span { color: var(--muted); font-size: .8rem; }
 .session-list { display: grid; }
-.session-row { align-items: center; border-bottom: 1px solid #e5ebee; display: flex; gap: 1rem; justify-content: space-between; padding: 1rem 0; text-decoration: none; }
+.session-row { align-items: center; border-bottom: 1px solid #e5ebee; display: grid; gap: .65rem; grid-template-columns: 1fr auto; padding: 1rem 0; text-decoration: none; }
 .session-row:hover { color: var(--river-dark); }
 .session-row span { font-weight: 700; }
 .session-row small, .run-list small { color: var(--muted); }
+.slot-actions { align-items: center; display: flex; gap: .75rem; }.slot-actions button { font-size: .82rem; padding: .55rem .8rem; }.slot-actions a { color: var(--river-dark); font-size: .86rem; font-weight: 700; }.slot-result { grid-column: 1 / -1; line-height: 1.4; }.slot-result.available { color: #167455; }.slot-result.none_in_view { color: var(--muted); }.slot-result.unknown { color: var(--danger); }
 .run-list { display: grid; gap: 1rem; list-style: none; margin: 1.25rem 0 0; padding: 0; }
 .run-list li { align-items: flex-start; display: flex; gap: .7rem; }
 .run-list li > div { display: grid; gap: .15rem; }

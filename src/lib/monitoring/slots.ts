@@ -5,8 +5,10 @@ import puppeteer from "puppeteer-core";
 const CALENDAR_HOSTS = new Set(["calendar.app.google", "calendar.google.com"]);
 
 type SlotCheck = {
-  status: "available" | "none_in_view" | "unknown";
-  dates: string[];
+  status: "available" | "none_in_view" | "unknown" | "failed";
+  availableDates: string[];
+  checkedAt: string;
+  checkedRange: { description: string };
   message: string;
 };
 
@@ -43,10 +45,12 @@ export async function checkBookingSlots(bookingUrl: string): Promise<SlotCheck> 
       .filter((label, index, all) => all.indexOf(label) === index)
       .slice(0, 5));
 
-    if (dates.length > 0) return { status: "available", dates, message: "Google Calendar shows an available date. Open the booking page to choose its exact time." };
-    return { status: "none_in_view", dates: [], message: "Google Calendar did not show a free date in its current calendar view. Open the booking page to check later dates." };
+    const checkedAt = new Date().toISOString();
+    const checkedRange = { description: "Google's currently rendered appointment range" };
+    if (dates.length > 0) return { status: "available", availableDates: dates, checkedAt, checkedRange, message: "Google Calendar shows an available date. Open the booking page to choose its exact time." };
+    return { status: "none_in_view", availableDates: [], checkedAt, checkedRange, message: "No date found in the checked range. Open the booking page to check later dates." };
   } catch {
-    return { status: "unknown", dates: [], message: "Google Calendar could not be read right now. Open the booking page directly." };
+    return { status: "failed", availableDates: [], checkedAt: new Date().toISOString(), checkedRange: { description: "Google's currently rendered appointment range" }, message: "The booking page could not be checked right now. You can still open it directly." };
   } finally {
     await browser.close();
   }

@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type BookingPage = { tutor: string | null; bookingUrl: string };
 type Availability = { checkedAt: string; bookingPages: BookingPage[] };
-type SlotResult = { status: "available" | "none_in_view" | "unknown"; dates: string[]; message: string };
+type TutorCheckStatus = "not_checked" | "checking" | "available" | "none_in_view" | "unknown" | "failed";
+type SlotResult = { status: TutorCheckStatus; availableDates?: string[]; checkedAt?: string; checkedRange?: { description?: string }; message?: string };
+const STORAGE_KEY = "english-chat-booking-results:v1";
 
 function displayTime(value: string | null) {
   return value ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not checked yet";
@@ -18,6 +20,7 @@ export function AvailabilityBoard() {
   const [slotResults, setSlotResults] = useState<Record<string, SlotResult>>({});
   const [query, setQuery] = useState("");
   const [scanProgress, setScanProgress] = useState<{ completed: number; total: number } | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -35,13 +38,17 @@ export function AvailabilityBoard() {
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}"); if (saved.results) setSlotResults(saved.results); } catch { /* storage is optional */ } }, []);
+  useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ results: slotResults })); } catch { /* storage is optional */ } }, [slotResults]);
 
-  async function checkTutor(bookingUrl: string) {
+  async function checkTutor(bookingUrl: string, signal?: AbortSignal) {
     setCheckingUrl(bookingUrl);
     try {
-      const response = await fetch("/api/slots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bookingUrl }) });
+      const response = await fetch("/api/slots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bookingUrl }), signal });
       const result = (await response.json()) as SlotResult & { message?: string };
-      setSlotResults((current) => ({ ...current, [bookingUrl]: response.ok ? result : { status: "unknown", dates: [], message: result.message ?? "Unable to check this booking page." } }));
+      setSlotResults((current) => ({ ...current, [bookingUrl]: response.ok ? result : { status: "failed", message: "The booking page could not be checked right now." } }));
+    } catch (error) {
+      if ((error as Error).name !== "AbortError") setSlotResults((current) => ({ ...current, [bookingUrl]: { status: "failed", message: "The booking page could not be checked right now." } }));
     } finally {
       setCheckingUrl(null);
     }
@@ -52,10 +59,11 @@ export function AvailabilityBoard() {
   const availableCount = Object.values(slotResults).filter((result) => result.status === "available").length;
 
   async function scanAll() {
-    setScanProgress({ completed: 0, total: filteredPages.length });
+    const controller = new AbortController(); controllerRef.current = controller; setScanProgress({ completed: 0, total: filteredPages.length });
     try {
       for (let index = 0; index < filteredPages.length; index += 1) {
-        await checkTutor(filteredPages[index].bookingUrl);
+        if (controller.signal.aborted) break;
+        await checkTutor(filteredPages[index].bookingUrl, controller.signal);
         setScanProgress({ completed: index + 1, total: filteredPages.length });
       }
     } finally {
@@ -101,7 +109,7 @@ export function AvailabilityBoard() {
         </div>
         <div className="finder-controls">
           <label className="search-field"><span>Find a tutor</span><input onChange={(event) => setQuery(event.target.value)} placeholder="Type a name" type="search" value={query} /></label>
-          <button disabled={Boolean(scanProgress) || filteredPages.length === 0} onClick={() => void scanAll()} type="button">{scanProgress ? `Checking ${scanProgress.completed}/${scanProgress.total}` : `Check all ${filteredPages.length}`}</button>
+          <button disabled={Boolean(scanProgress) || filteredPages.length === 0} onClick={() => void scanAll()} type="button">{scanProgress ? `Checking ${scanProgress.completed}/${scanProgress.total}` : `Check all ${filteredPages.length}`}</button>{scanProgress ? <button onClick={() => controllerRef.current?.abort()} type="button">Stop scan</button> : null}
         </div>
         {scanProgress ? <p className="scan-note" aria-live="polite">Checking one tutor at a time for reliability. You can leave this tab open while the scan runs.</p> : null}
         <div className="session-list">
@@ -109,7 +117,7 @@ export function AvailabilityBoard() {
             <div className="session-row" key={booking.bookingUrl}>
               <span>{booking.tutor ?? "English Chat tutor"}</span>
               <span className="slot-actions"><button disabled={checkingUrl === booking.bookingUrl} onClick={() => void checkTutor(booking.bookingUrl)} type="button">{checkingUrl === booking.bookingUrl ? "Checking…" : "Check availability"}</button><a href={booking.bookingUrl} rel="noreferrer" target="_blank">Book ↗</a></span>
-              {slotResults[booking.bookingUrl] ? <small className={`slot-result ${slotResults[booking.bookingUrl].status}`}>{slotResults[booking.bookingUrl].message}{slotResults[booking.bookingUrl].dates.length ? ` ${slotResults[booking.bookingUrl].dates.join(", ")}` : ""}</small> : null}
+              {slotResults[booking.bookingUrl] ? <small className={`slot-result ${slotResults[booking.bookingUrl]?.status ?? "not_checked"}`}>{slotResults[booking.bookingUrl]?.message}{slotResults[booking.bookingUrl]?.availableDates?.length ? ` ${slotResults[booking.bookingUrl]?.availableDates?.join(", ")}` : ""}</small> : <small className="slot-result not_checked">Not checked</small>}
             </div>
           ))}
           {!loading && filteredPages.length === 0 ? <p className="empty-state">No tutor matches that search. Clear it or refresh the source list.</p> : null}

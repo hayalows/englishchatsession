@@ -7,6 +7,7 @@ type Availability = { checkedAt: string; bookingPages: BookingPage[] };
 type TutorCheckStatus = "not_checked" | "checking" | "available" | "none_in_view" | "unknown" | "failed";
 type SlotResult = { status: TutorCheckStatus; availableDates?: string[]; checkedAt?: string; checkedRange?: { description?: string }; message?: string };
 const STORAGE_KEY = "english-chat-booking-results:v1";
+const BROWSER_SCAN_CONCURRENCY = 3;
 
 function displayTime(value: string | null) {
   return value ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not checked yet";
@@ -60,12 +61,22 @@ export function AvailabilityBoard() {
 
   async function scanAll() {
     const controller = new AbortController(); controllerRef.current = controller; setScanProgress({ completed: 0, total: filteredPages.length });
-    try {
-      for (let index = 0; index < filteredPages.length; index += 1) {
-        if (controller.signal.aborted) break;
-        await checkTutor(filteredPages[index].bookingUrl, controller.signal);
-        setScanProgress({ completed: index + 1, total: filteredPages.length });
+    let nextIndex = 0;
+    let completed = 0;
+    const worker = async () => {
+      while (!controller.signal.aborted) {
+        const index = nextIndex++;
+        if (index >= filteredPages.length) return;
+        const bookingUrl = filteredPages[index].bookingUrl;
+        setSlotResults((current) => ({ ...current, [bookingUrl]: { status: "checking" } }));
+        await checkTutor(bookingUrl, controller.signal);
+        if (controller.signal.aborted) return;
+        completed += 1;
+        setScanProgress({ completed, total: filteredPages.length });
       }
+    };
+    try {
+      await Promise.all(Array.from({ length: Math.min(BROWSER_SCAN_CONCURRENCY, filteredPages.length) }, worker));
     } finally {
       setScanProgress(null);
     }

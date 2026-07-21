@@ -21,6 +21,7 @@ export function AvailabilityBoard() {
   const [slotResults, setSlotResults] = useState<Record<string, SlotResult>>({});
   const [query, setQuery] = useState("");
   const [scanProgress, setScanProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [lastScanTotal, setLastScanTotal] = useState<number | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
@@ -58,9 +59,11 @@ export function AvailabilityBoard() {
   const bookingPages = availability?.bookingPages ?? [];
   const filteredPages = bookingPages.filter((booking) => (booking.tutor ?? "").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const availableCount = Object.values(slotResults).filter((result) => result.status === "available").length;
+  const noDateCount = Object.values(slotResults).filter((result) => result.status === "none_in_view").length;
+  const failedCount = Object.values(slotResults).filter((result) => result.status === "failed").length;
 
   async function scanAll() {
-    const controller = new AbortController(); controllerRef.current = controller; setScanProgress({ completed: 0, total: filteredPages.length });
+    const controller = new AbortController(); controllerRef.current = controller; setLastScanTotal(null); setScanProgress({ completed: 0, total: filteredPages.length });
     let nextIndex = 0;
     let completed = 0;
     const worker = async () => {
@@ -78,6 +81,7 @@ export function AvailabilityBoard() {
     try {
       await Promise.all(Array.from({ length: Math.min(BROWSER_SCAN_CONCURRENCY, filteredPages.length) }, worker));
     } finally {
+      if (!controller.signal.aborted) setLastScanTotal(filteredPages.length);
       setScanProgress(null);
     }
   }
@@ -94,8 +98,8 @@ export function AvailabilityBoard() {
       <section className="signal-panel">
         <div>
           <p className="eyebrow">Live source check</p>
-          <p className="signal-number">{availableCount || availability?.bookingPages.length || "–"}</p>
-          <p className="signal-label">{availableCount ? "tutors with dates found" : "current tutor booking pages"}</p>
+          <p className="signal-number">{availability?.bookingPages.length ?? "–"}</p>
+          <p className="signal-label">current tutor booking pages</p>
         </div>
         <div className="signal-detail">
           <p>Checked from the scheduling page</p>
@@ -122,7 +126,8 @@ export function AvailabilityBoard() {
           <label className="search-field"><span>Find a tutor</span><input onChange={(event) => setQuery(event.target.value)} placeholder="Type a name" type="search" value={query} /></label>
           <button disabled={Boolean(scanProgress) || filteredPages.length === 0} onClick={() => void scanAll()} type="button">{scanProgress ? `Checking ${scanProgress.completed}/${scanProgress.total}` : `Check all ${filteredPages.length}`}</button>{scanProgress ? <button onClick={() => controllerRef.current?.abort()} type="button">Stop scan</button> : null}
         </div>
-        {scanProgress ? <p className="scan-note" aria-live="polite">Checking one tutor at a time for reliability. You can leave this tab open while the scan runs.</p> : null}
+        {scanProgress ? <p className="scan-note" aria-live="polite">Fast scan enabled: up to three tutors are checked at once. You can stop the scan at any time.</p> : null}
+        {lastScanTotal ? <section className="scan-summary" aria-live="polite"><strong>Scan complete</strong><span>{lastScanTotal} tutors checked · {availableCount} with available dates · {noDateCount} with no date in range · {failedCount} could not be checked</span>{availableCount ? <span>Open Book beside a confirmed tutor to choose the exact time.</span> : <span>No available dates were confirmed in the ranges Google displayed. You can still open any booking page directly.</span>}</section> : null}
         <div className="session-list">
           {filteredPages.map((booking) => (
             <div className="session-row" key={booking.bookingUrl}>

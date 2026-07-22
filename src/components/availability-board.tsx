@@ -12,7 +12,7 @@ type StoredResults = { version: 2; savedAt: string; results: Record<string, Slot
 
 const STORAGE_KEY = "english-chat-booking-results:v2";
 const RESULT_MAX_AGE_MS = 30 * 60 * 1000;
-const BROWSER_SCAN_CONCURRENCY = 3;
+const DIRECT_HTTP_SCAN_CONCURRENCY = 10;
 const VALID_STATUSES = new Set<TutorCheckStatus>(["available", "none_in_view", "unknown", "failed"]);
 
 function displayTime(value?: string | null) {
@@ -150,7 +150,7 @@ export function AvailabilityBoard() {
         setScan((current) => current ? { ...current, completed } : current);
       }
     };
-    try { await Promise.all(Array.from({ length: Math.min(BROWSER_SCAN_CONCURRENCY, queue.length) }, worker)); }
+    try { await Promise.all(Array.from({ length: Math.min(DIRECT_HTTP_SCAN_CONCURRENCY, queue.length) }, worker)); }
     finally {
       if (runId === runIdRef.current) setScan((current) => current ? { ...current, state: controller.signal.aborted ? "stopped" : "complete", completed } : current);
       controllerRef.current = null;
@@ -177,7 +177,7 @@ export function AvailabilityBoard() {
       </section>
       {message ? <div className="source-error" role="alert"><strong>Couldn’t refresh the tutor list.</strong><span>{message}</span><button onClick={() => void refresh()} type="button">Try again</button></div> : null}
 
-      <section className="how-it-works" aria-label="How availability checks work"><strong>What “available” means</strong><p>We read the dates Google Calendar displays and, when offered, follow <em>Jump to the next bookable date</em>. We report the exact range checked and never turn an unreadable page into “no dates.”</p></section>
+      <section className="how-it-works" aria-label="How availability checks work"><strong>What “available” means</strong><p>We ask Google Calendar directly for open appointment times during the next 60 days. We report the exact range checked and never turn a failed request into “no dates.”</p></section>
 
       <section className="panel sessions-panel">
         <div className="panel-heading"><div><p className="eyebrow">Live availability finder</p><h2>Choose a tutor</h2></div><button className="text-button" disabled={!Object.keys(slotResults).length} onClick={clearResults} type="button">Clear results</button></div>
@@ -189,7 +189,7 @@ export function AvailabilityBoard() {
 
         <div className="filter-row" aria-label="Filter tutor results">{FILTERS.map((item) => <button aria-pressed={filter === item.value} className="filter-chip" key={item.value} onClick={() => setFilter(item.value)} type="button"><span>{item.label}</span><b>{counts[item.value]}</b></button>)}</div>
 
-        {confirmScan ? <div className="confirm-card" role="alert"><div><strong>Check {visiblePages.length} tutors?</strong><span>A full directory scan can take 25–45 minutes. Three pages run at a time to keep the service stable, and you can stop without losing completed results.</span></div><div><button onClick={() => void startScan()} type="button">Start scan</button><button className="quiet-button" onClick={() => setConfirmScan(false)} type="button">Cancel</button></div></div> : null}
+        {confirmScan ? <div className="confirm-card" role="alert"><div><strong>Check {visiblePages.length} tutors?</strong><span>The fast scan checks up to ten calendars at a time. You can stop whenever you want without losing completed results.</span></div><div><button onClick={() => void startScan()} type="button">Start scan</button><button className="quiet-button" onClick={() => setConfirmScan(false)} type="button">Cancel</button></div></div> : null}
 
         {scan ? <section className={`scan-status ${scan.state}`} aria-live="polite">
           <div className="scan-status-heading"><div><strong>{scan.state === "running" ? "Checking live calendars" : scan.state === "complete" ? "Scan complete" : "Scan stopped"}</strong><span>{scan.completed} of {scan.total} tutors checked · Fast scan enabled</span></div><b>{Math.round((scan.completed / scan.total) * 100)}%</b></div>
@@ -207,6 +207,7 @@ export function AvailabilityBoard() {
               <div className="tutor-main"><div className="tutor-title"><h3>{booking.tutor ?? "English Chat tutor"}</h3><span className={`status-badge ${result.status}`}>{result.status === "available" ? "Available" : result.status === "none_in_view" ? "No dates in range" : result.status === "unknown" ? "Needs confirmation" : result.status === "failed" ? "Check failed" : result.status === "checking" ? "Checking…" : "Not checked"}</span></div>
                 <p>{result.message}</p>
                 {result.availableDates.length ? <div className="date-list">{result.availableDates.map((date) => <span key={date}>{displayDate(date)}</span>)}</div> : null}
+                {result.availableTimes?.length ? <small>Earliest opening in your device time: <strong>{displayTime(result.availableTimes[0])}</strong>. Google confirms the final time when you book.</small> : null}
                 {result.checkedRange ? <small>Range checked: {result.checkedRange.description} · {displayTime(result.checkedAt)}</small> : null}
               </div>
               <div className="slot-actions"><button disabled={hasActiveCheck || scan?.state === "running"} onClick={() => void checkTutor(booking.bookingUrl)} type="button">{result.status === "checking" ? "Checking…" : "Check live"}</button><a href={booking.bookingUrl} rel="noreferrer" target="_blank">Book on Google <span aria-hidden="true">↗</span></a></div>

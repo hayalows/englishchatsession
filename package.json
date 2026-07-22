@@ -24,10 +24,8 @@
   },
   "homepage": "https://github.com/hayalows/englishchatsession#readme",
   "dependencies": {
-    "@sparticuz/chromium": "^149.0.0",
     "cheerio": "^1.2.0",
     "next": "^16.2.10",
-    "puppeteer-core": "^25.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

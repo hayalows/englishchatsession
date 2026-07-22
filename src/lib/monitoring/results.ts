@@ -9,8 +9,10 @@ export type CheckedRange = {
 export type SlotResult = {
   status: TutorCheckStatus;
   availableDates: string[];
+  availableTimes?: string[];
   checkedAt?: string;
   checkedRange?: CheckedRange;
   message: string;
-  reasonCode?: "confirmed_dates" | "confirmed_empty_range" | "jump_unreadable" | "page_unreadable" | "browser_launch_failed" | "navigation_timeout" | "request_failed";
+  adapter?: "direct";
+  reasonCode?: "confirmed_dates" | "confirmed_empty_range" | "schedule_unavailable" | "request_failed";
 };

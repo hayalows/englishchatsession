@@ -63,4 +63,4 @@ console.table([{
   "max active": maxActive,
   "cancel ms": Math.round(cancellationMs),
 }]);
-console.log("Browser launch failures and navigation timeouts are surfaced by server logs; no page HTML, URLs, or secrets are saved.");
+console.log("The production adapter uses direct Google Calendar requests, so no Chromium process is launched. No page HTML, URLs, or secrets are saved.");

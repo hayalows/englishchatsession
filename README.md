@@ -4,7 +4,7 @@ A stateless Next.js site that reads the public [BYU-Pathway English Chat schedul
 
 ## What it can verify
 
-The scanner launches an isolated browser for one tutor per request. It reads the calendar dates Google renders and follows Google's “Jump to the next bookable date” control when present. Every result includes the displayed date range. An unreadable or changing Google page is reported as “Needs confirmation,” never as “No dates.” Exact appointment times and final availability are always confirmed on Google before booking.
+The scanner uses Google Calendar's machine-readable appointment service instead of launching a browser. It checks the next 60 days and reports the exact date range. A network or provider failure is reported as “Needs confirmation,” never as “No dates.” Exact appointment times and final availability are always confirmed on Google before booking.
 
 Scan results are kept only in the student's browser for up to 30 minutes. There is no database, account, analytics, messaging, or server-side result history.
 
@@ -30,4 +30,4 @@ npm run build
 npm run benchmark:scan -- --count=20 --concurrency=3
 ```
 
-Production uses a fixed pool of three browser checks. The benchmark command measures a chosen development concurrency without changing that production value or storing page HTML, URLs, or secrets.
+Production uses a fixed pool of ten direct checks. A controlled 252-tutor direct scan was used to validate that limit. The benchmark command measures a chosen development concurrency without changing the production value or storing page HTML, URLs, or secrets.

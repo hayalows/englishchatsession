@@ -62,8 +62,8 @@ export async function checkBookingSlots(bookingUrl: string, signal?: AbortSignal
       defaultViewport: { width: 1280, height: 720 }, executablePath, headless: true, protocolTimeout: 20_000, timeout: 15_000,
     });
     page = await browser.newPage();
-    await page.goto(bookingUrl, { waitUntil: "domcontentloaded", timeout: 15_000 });
-    await page.waitForSelector('button[data-grid-cell="true"], button', { timeout: 9_000 });
+    await page.goto(bookingUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
+    await page.waitForSelector('button[data-grid-cell="true"], button', { timeout: 15_000 });
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     let snapshot = await readCalendar();
@@ -88,7 +88,7 @@ export async function checkBookingSlots(bookingUrl: string, signal?: AbortSignal
           const hasAvailable = dates.some((cell) => /available times?/i.test(cell.getAttribute("aria-label") ?? "") && !/no available times?/i.test(cell.getAttribute("aria-label") ?? ""));
           const fingerprint = dates.slice(0, 8).map((cell) => cell.getAttribute("aria-label") ?? "").join("|");
           return hasAvailable || (fingerprint && fingerprint !== oldFingerprint);
-        }, { timeout: 10_000 }, previousFingerprint).catch(() => undefined);
+        }, { timeout: 12_000 }, previousFingerprint).catch(() => undefined);
         await new Promise((resolve) => setTimeout(resolve, 600));
         snapshot = await readCalendar();
       }

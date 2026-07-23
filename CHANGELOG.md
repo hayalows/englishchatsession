@@ -4,6 +4,25 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.1.0] - 2026-07-23
+
+### Added
+
+- Editorial, mobile-first interface using Instrument Serif for the main hero.
+- Action-first scan receipt with scope, checked range, completion time, useful counts, expiry guidance, and a clear next step.
+- Automatic result focus in the order this week, next week, later, and needs attention.
+- Independent volunteer result cards with clearer local appointment times and direct Google booking actions.
+- Compact mobile result selector and collapsible no-opening results.
+- Tested resume flow that continues only calendars left unfinished by a stopped scan.
+- Presentation-level tests for local date grouping and post-scan result selection.
+
+### Changed
+
+- Replaced the large volunteer-count banner with a compact source-status row.
+- Refined BYU-Pathway colors, contrast, focus states, touch targets, and reduced-motion behavior.
+- Clarified student guidance and the distinction between confirmed no openings and failed checks.
+- Updated the package version to `1.1.0`.
+
 ## [1.0.0] - 2026-07-23
 
 ### Added
@@ -23,4 +42,5 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 - Telegram and scheduled notification delivery.
 - Chromium-based calendar scanning.
 
+[1.1.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.1.0
 [1.0.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.0.0

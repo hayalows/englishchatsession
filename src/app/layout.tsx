@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import { Instrument_Serif } from "next/font/google";
+import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "./globals.css";
 
-const instrumentSerif = Instrument_Serif({
+const inter = Inter({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-instrument-serif",
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -18,7 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body className={instrumentSerif.variable}>{children}</body>
+      <body className={inter.variable}>{children}</body>
     </html>
   );
 }

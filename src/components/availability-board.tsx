@@ -16,6 +16,7 @@ import {
 
 type BookingPage = { tutor: string | null; bookingUrl: string };
 type Availability = { checkedAt: string; bookingPages: BookingPage[] };
+type ScanMode = "all" | "name";
 type ResultFilter = "best" | "this_week" | "next_week" | "later" | "needs_attention" | "none_in_view" | "not_checked";
 type ResultSection = OpeningGroup | "needs_attention" | "none_in_view" | "not_checked";
 type ScanReport = {
@@ -171,6 +172,7 @@ export function AvailabilityBoard() {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [slotResults, setSlotResults] = useState<Record<string, SlotResult>>({});
+  const [scanMode, setScanMode] = useState<ScanMode>("all");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ResultFilter>("best");
   const [scan, setScan] = useState<ScanReport | null>(null);
@@ -249,9 +251,11 @@ export function AvailabilityBoard() {
 
   const bookingPages = useMemo(() => availability?.bookingPages ?? [], [availability]);
   const searchedPages = useMemo(() => {
+    if (scanMode === "all") return bookingPages;
     const normalizedQuery = query.trim().toLocaleLowerCase();
+    if (!normalizedQuery) return [];
     return bookingPages.filter((booking) => (booking.tutor ?? "English Chat volunteer").toLocaleLowerCase().includes(normalizedQuery));
-  }, [bookingPages, query]);
+  }, [bookingPages, query, scanMode]);
   const thisWeekWindow = useMemo(() => localNow ? getWeekWindow(0, localNow) : null, [localNow]);
   const nextWeekWindow = useMemo(() => localNow ? getWeekWindow(1, localNow) : null, [localNow]);
 
@@ -400,7 +404,7 @@ export function AvailabilityBoard() {
     let nextIndex = 0;
     let completed = 0;
     const startedAt = new Date().toISOString();
-    const scope = query.trim()
+    const scope = scanMode === "name" && query.trim()
       ? `${queue.length} volunteer${queue.length === 1 ? "" : "s"} matching “${query.trim()}”`
       : queue.length === bookingPages.length
         ? `all ${queue.length} volunteer calendars`
@@ -476,6 +480,12 @@ export function AvailabilityBoard() {
     setScan(null);
     setFilter("best");
     setResultsExpired(false);
+  }
+
+  function selectScanMode(nextMode: ScanMode) {
+    setScanMode(nextMode);
+    setConfirmScan(false);
+    if (nextMode === "all") setQuery("");
   }
 
   const recommendedResultFilter: ResultFilter = scanCounts.thisWeek
@@ -558,15 +568,21 @@ export function AvailabilityBoard() {
         </div>
         <div className="result-actions">
           <button
-            className="secondary-button"
+            className={result.status === "available" ? "secondary-button" : "check-button"}
             disabled={hasActiveCheck || scan?.state === "running"}
             onClick={() => void checkTutor(booking.bookingUrl)}
             type="button"
           >
-            {result.status === "checking" ? "Checking…" : result.status === "not_checked" ? "Check this calendar" : "Refresh"}
+            {result.status === "checking"
+              ? "Checking…"
+              : result.status === "not_checked"
+                ? "Check availability"
+                : result.status === "available"
+                  ? "Refresh result"
+                  : "Try this check again"}
           </button>
           <a
-            className={result.status === "available" ? "booking-link primary" : "booking-link"}
+            className={result.status === "available" ? "booking-link primary" : "booking-link tertiary"}
             href={booking.bookingUrl}
             rel="noreferrer"
             target="_blank"
@@ -603,8 +619,8 @@ export function AvailabilityBoard() {
         <section className="hero" aria-labelledby="page-title">
           <div className="hero-copy">
             <p className="eyebrow">BYU-Pathway English Chat</p>
-            <h1 id="page-title">Find an open conversation.</h1>
-            <p className="lede">See which volunteer calendars have appointment times, then choose and confirm your session directly on Google.</p>
+            <h1 id="page-title">Find an available English Chat session.</h1>
+            <p className="lede">Check volunteer calendars, see confirmed openings, and choose the time that works for you on Google.</p>
             <div className="hero-actions">
               <a className="action-link primary" href="#session-finder">Find an open time <span aria-hidden="true">↓</span></a>
               <a className="action-link secondary" href="#how-it-works">How it works</a>
@@ -653,11 +669,11 @@ export function AvailabilityBoard() {
           <div className="source-strip" aria-label="Volunteer list status">
             <div className="source-state">
               <span className="live-dot" aria-hidden="true" />
-              <span><strong>{availability?.bookingPages.length ?? "—"} calendars loaded</strong><small>Updated {displayTime(availability?.checkedAt)}</small></span>
+              <span><strong>{availability?.bookingPages.length ?? "—"} volunteers</strong><small>List updated {displayTime(availability?.checkedAt)}</small></span>
             </div>
             <div className="source-actions">
               <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Official list <span aria-hidden="true">↗</span></a>
-              <button className="utility-button" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh list"}</button>
+              <button className="source-refresh" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh"}</button>
             </div>
           </div>
 
@@ -672,19 +688,41 @@ export function AvailabilityBoard() {
             </div>
           ) : null}
 
-          <div className="finder-controls">
-            <label className="search-field">
-              <span>Volunteer name</span>
-              <input onChange={(event) => setQuery(event.target.value)} placeholder="Search by name" type="search" value={query} />
-            </label>
-            <button
-              disabled={scan?.state === "running" || hasActiveCheck || searchedPages.length === 0}
-              onClick={requestScan}
-              type="button"
-            >
-              {query ? `Scan ${searchedPages.length} match${searchedPages.length === 1 ? "" : "es"}` : `Scan all ${searchedPages.length}`}
-            </button>
-            {scan?.state === "running" ? <button className="danger-button" onClick={stopScan} type="button">Stop scan</button> : null}
+          <div className="scan-chooser">
+            <div className="scan-mode-heading">
+              <div><strong>How would you like to find a session?</strong><span>Scan everyone for the best chance, or check a volunteer you already know.</span></div>
+              <div className="scan-mode-options" role="group" aria-label="Choose how to scan">
+                <button aria-pressed={scanMode === "all"} disabled={scan?.state === "running"} onClick={() => selectScanMode("all")} type="button">
+                  <span>All volunteers</span><small>Recommended</small>
+                </button>
+                <button aria-pressed={scanMode === "name"} disabled={scan?.state === "running"} onClick={() => selectScanMode("name")} type="button">
+                  <span>By name</span><small>Check one person</small>
+                </button>
+              </div>
+            </div>
+            <div className="scan-action-row">
+              {scanMode === "name" ? (
+                <label className="search-field">
+                  <span>Volunteer name</span>
+                  <input onChange={(event) => setQuery(event.target.value)} placeholder="Start typing a name" type="search" value={query} />
+                </label>
+              ) : (
+                <div className="scan-all-copy"><strong>Scan the full volunteer list</strong><span>Confirmed openings will be sorted by the dates most useful to you.</span></div>
+              )}
+              <button
+                className="scan-primary"
+                disabled={scan?.state === "running" || hasActiveCheck || searchedPages.length === 0}
+                onClick={requestScan}
+                type="button"
+              >
+                {scanMode === "all"
+                  ? `Scan all ${searchedPages.length} volunteers`
+                  : query.trim()
+                    ? `Scan ${searchedPages.length} match${searchedPages.length === 1 ? "" : "es"}`
+                    : "Enter a name to scan"}
+              </button>
+              {scan?.state === "running" ? <button className="danger-button" onClick={stopScan} type="button">Stop scan</button> : null}
+            </div>
           </div>
 
           <div className="desktop-filters" aria-label="Filter volunteer results">
@@ -806,11 +844,11 @@ export function AvailabilityBoard() {
             {!loading && visiblePages.length === 0 ? (
               <div className="empty-state">
                 <span className="empty-mark" aria-hidden="true">○</span>
-                <strong>{searchedPages.length === 0 ? "No volunteer matches that name." : scan?.state === "complete" ? "No confirmed opening in this view." : "Nothing to show yet."}</strong>
-                <span>{searchedPages.length === 0 ? "Check the spelling or clear the search." : scan?.state === "complete" ? "Try another filter, scan again later, or use the official schedule." : "Scan the live calendars to see current appointment times."}</span>
+                <strong>{scanMode === "name" && !query.trim() ? "Enter a volunteer name to begin." : searchedPages.length === 0 ? "No volunteer matches that name." : scan?.state === "complete" ? "No confirmed opening in this view." : "Nothing to show yet."}</strong>
+                <span>{scanMode === "name" && !query.trim() ? "Or switch to All volunteers to look for the best available session." : searchedPages.length === 0 ? "Check the spelling or try all volunteers." : scan?.state === "complete" ? "Try another filter, scan again later, or use the official schedule." : "Scan the live calendars to see current appointment times."}</span>
                 <div>
                   {query ? <button className="secondary-button" onClick={() => setQuery("")} type="button">Clear search</button> : null}
-                  <button className="secondary-button" onClick={() => setFilter("best")} type="button">Show best results</button>
+                  <button className="secondary-button" onClick={() => { selectScanMode("all"); setFilter("best"); }} type="button">Show all volunteers</button>
                 </div>
               </div>
             ) : null}

@@ -4,6 +4,16 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.1.1] - 2026-07-23
+
+### Changed
+
+- Replaced Instrument Serif with Inter across the complete interface.
+- Rewrote the hero around the student’s task of finding an available English Chat session.
+- Reduced the volunteer-source status to a quiet utility row.
+- Added an explicit choice between scanning all volunteers and searching by name.
+- Strengthened result action hierarchy so the primary check or booking action is visually distinct from opening Google directly.
+
 ## [1.1.0] - 2026-07-23
 
 ### Added
@@ -42,5 +52,6 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 - Telegram and scheduled notification delivery.
 - Chromium-based calendar scanning.
 
+[1.1.1]: https://github.com/hayalows/englishchatsession/releases/tag/v1.1.1
 [1.1.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.1.0
 [1.0.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.0.0

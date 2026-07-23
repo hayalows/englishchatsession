@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { dateAtEndOfWindow, isDateWithinDays } from "@/lib/date-window";
 import type { SlotResult, TutorCheckStatus } from "@/lib/monitoring/results";
 
 type BookingPage = { tutor: string | null; bookingUrl: string };
@@ -23,15 +24,6 @@ function displayTime(value?: string | null) {
 function displayDate(value: string) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value);
   return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(date);
-}
-
-function isWithinNextDays(value: string, days: number) {
-  const candidate = new Date(`${value}T12:00:00`);
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + days);
-  return !Number.isNaN(candidate.valueOf()) && candidate >= start && candidate < end;
 }
 
 function isRecommendedDay(value: string) {
@@ -78,7 +70,7 @@ async function fetchSlotResult(bookingUrl: string, signal?: AbortSignal) {
 }
 
 const FILTERS: { value: ResultFilter; label: string }[] = [
-  { value: "all", label: "All volunteers" }, { value: "next_7_days", label: "Next 7 days" },
+  { value: "all", label: "All volunteers" }, { value: "next_7_days", label: "Within 7 days" },
   { value: "available", label: "Open dates" }, { value: "none_in_view", label: "No openings" },
   { value: "unknown", label: "Could not confirm" }, { value: "failed", label: "Link unavailable" },
   { value: "not_checked", label: "Not checked" },
@@ -93,6 +85,7 @@ export function AvailabilityBoard() {
   const [filter, setFilter] = useState<ResultFilter>("all");
   const [scan, setScan] = useState<ScanReport | null>(null);
   const [confirmScan, setConfirmScan] = useState(false);
+  const [localNow, setLocalNow] = useState<Date | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
 
@@ -110,7 +103,7 @@ export function AvailabilityBoard() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { setSlotResults(readStoredResults()); void refresh(); }, [refresh]);
+  useEffect(() => { setLocalNow(new Date()); setSlotResults(readStoredResults()); void refresh(); }, [refresh]);
   useEffect(() => {
     const persisted = Object.fromEntries(Object.entries(slotResults).filter(([, result]) => VALID_STATUSES.has(result.status) && isFresh(result.checkedAt)));
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, savedAt: new Date().toISOString(), results: persisted } satisfies StoredResults)); } catch { /* Storage is optional. */ }
@@ -122,7 +115,7 @@ export function AvailabilityBoard() {
     for (const booking of bookingPages) {
       const result = slotResults[booking.bookingUrl];
       next[result?.status ?? "not_checked"] += 1;
-      if (result?.status === "available" && result.availableDates.some((date) => isWithinNextDays(date, 7))) next.next_7_days += 1;
+      if (result?.status === "available" && result.availableDates.some((date) => isDateWithinDays(date, 7))) next.next_7_days += 1;
     }
     return next;
   }, [bookingPages, slotResults]);
@@ -131,7 +124,7 @@ export function AvailabilityBoard() {
     .filter((booking) => {
       const result = slotResults[booking.bookingUrl];
       if (filter === "all") return true;
-      if (filter === "next_7_days") return result?.status === "available" && result.availableDates.some((date) => isWithinNextDays(date, 7));
+      if (filter === "next_7_days") return result?.status === "available" && result.availableDates.some((date) => isDateWithinDays(date, 7));
       return (result?.status ?? "not_checked") === filter;
     })
     .sort((a, b) => {
@@ -143,10 +136,13 @@ export function AvailabilityBoard() {
     }), [bookingPages, filter, query, slotResults]);
   const scanCounts = useMemo(() => {
     const values = scan?.urls.map((url) => slotResults[url]?.status ?? "not_checked") ?? [];
-    const soon = scan?.urls.filter((url) => slotResults[url]?.status === "available" && slotResults[url].availableDates.some((date) => isWithinNextDays(date, 7))).length ?? 0;
+    const soon = scan?.urls.filter((url) => slotResults[url]?.status === "available" && slotResults[url].availableDates.some((date) => isDateWithinDays(date, 7))).length ?? 0;
     return { available: values.filter((status) => status === "available").length, soon, none: values.filter((status) => status === "none_in_view").length, unknown: values.filter((status) => status === "unknown").length, failed: values.filter((status) => status === "failed").length };
   }, [scan, slotResults]);
   const hasActiveCheck = counts.checking > 0;
+  const sevenDayEndLabel = localNow
+    ? new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(dateAtEndOfWindow(7, localNow))
+    : "the date exactly seven days from today";
 
   async function checkTutor(bookingUrl: string, signal?: AbortSignal, runId?: number) {
     setSlotResults((current) => ({ ...current, [bookingUrl]: { status: "checking", availableDates: [], message: "Checking Google Calendar for open times…" } }));
@@ -207,24 +203,29 @@ export function AvailabilityBoard() {
         <aside className="weekly-goal">
           <p className="eyebrow">Your weekly requirement</p>
           <strong><span>2</span> sessions</strong>
-          <p>Book two 30-minute conversations. Tuesday and Friday are recommended, but any available day works.</p>
+          <p>Aim for two 30-minute conversations. You can scan any day. Friday is recommended when looking for the following week.</p>
         </aside>
       </header>
 
       <section className="weekly-route" aria-labelledby="weekly-route-title">
-        <div className="route-heading"><p className="eyebrow">A simple weekly routine</p><h2 id="weekly-route-title">From Friday to conversation</h2></div>
+        <div className="route-heading"><p className="eyebrow">A simple booking plan</p><h2 id="weekly-route-title">From scan to conversation</h2></div>
         <ol>
-          <li><span>1</span><div><strong>Scan every Friday</strong><p>Check all volunteer calendars for upcoming openings.</p></div></li>
-          <li><span>2</span><div><strong>Choose two times</strong><p>Tuesday or Friday is ideal. Choose another day when needed.</p></div></li>
-          <li><span>3</span><div><strong>Prepare and join</strong><p>Review the session structure before each conversation.</p></div></li>
+          <li><span>1</span><div><strong>Scan whenever you need a time</strong><p>Friday is a good day to start, but you can scan again on any day.</p></div></li>
+          <li><span>2</span><div><strong>Book what works</strong><p>Aim for two sessions. Tuesday or Friday is ideal, but any available day counts.</p></div></li>
+          <li><span>3</span><div><strong>If you cannot find two</strong><p>Book a suitable opening now, then scan again later or check the WhatsApp group.</p></div></li>
         </ol>
       </section>
+
+      <aside className="project-credit" aria-label="Project credit">
+        <div><span>Student-built helper</span><strong>Built by Papa Kojo Mensah</strong></div>
+        <p>An independent project that makes English Chat openings easier to find and understand.</p>
+      </aside>
 
       {message ? <div className="source-error" role="alert"><strong>Couldn’t refresh the volunteer list.</strong><span>{message}</span><button onClick={() => void refresh()} type="button">Try again</button></div> : null}
 
       <section className="panel sessions-panel" id="session-finder">
         <div className="panel-heading">
-          <div><p className="eyebrow">Step 1 · Find an opening</p><h2>Scan volunteer calendars</h2><p>New here? Scan everyone. Volunteers with confirmed open dates will move to the top.</p></div>
+          <div><p className="eyebrow">Find an opening</p><h2>Scan volunteer calendars</h2><p>Scan now or whenever you need another session. Confirmed open dates move to the top.</p></div>
           <button className="text-button" disabled={!Object.keys(slotResults).length} onClick={clearResults} type="button">Clear results</button>
         </div>
 
@@ -243,13 +244,27 @@ export function AvailabilityBoard() {
 
         <div className="filter-row" aria-label="Filter volunteer results">{FILTERS.map((item) => <button aria-pressed={filter === item.value} className="filter-chip" key={item.value} onClick={() => setFilter(item.value)} type="button"><span>{item.label}</span><b>{counts[item.value]}</b></button>)}</div>
 
+        <div className="date-window-guide">
+          <strong>An opening exactly 7 days away counts.</strong>
+          <span>“Within 7 days” means today through {sevenDayEndLabel}, including that final date. “Open dates” also includes later openings found in the full 60-day scan.</span>
+        </div>
+
+        <details className="result-help">
+          <summary>What do the result labels mean?</summary>
+          <div>
+            <p><strong>Open dates:</strong> Google confirmed at least one appointment time.</p>
+            <p><strong>No openings:</strong> Google returned no appointment times in the 60-day range checked.</p>
+            <p><strong>Could not confirm or link unavailable:</strong> the check did not produce a reliable answer. This does not mean the volunteer has no openings; retry or open Google directly.</p>
+          </div>
+        </details>
+
         {confirmScan ? <div className="confirm-card" role="alert"><div><strong>Scan {visiblePages.length} volunteer calendars?</strong><span>This usually takes less than a minute. You can stop without losing completed results.</span></div><div><button onClick={() => void startScan()} type="button">Start scan</button><button className="quiet-button" onClick={() => setConfirmScan(false)} type="button">Cancel</button></div></div> : null}
 
         {scan ? <section className={`scan-status ${scan.state}`} aria-live="polite">
           <div className="scan-status-heading"><div><strong>{scan.state === "running" ? "Scanning live calendars" : scan.state === "complete" ? (scanCounts.available ? `${scanCounts.available} volunteer${scanCounts.available === 1 ? "" : "s"} with open dates` : "No open dates found") : "Scan stopped"}</strong><span>{scan.completed} of {scan.total} calendars checked · Fast scan</span></div><b>{Math.round((scan.completed / scan.total) * 100)}%</b></div>
           <div className="progress-track"><span style={{ width: `${(scan.completed / scan.total) * 100}%` }} /></div>
-          <div className="scan-totals"><span className="positive">{scanCounts.available} with open dates</span><span>{scanCounts.soon} in the next 7 days</span><span>{scanCounts.none} no openings</span><span>{scanCounts.unknown} could not confirm</span><span>{scanCounts.failed} links unavailable</span></div>
-          {scan.state === "complete" ? <div className="scan-next-step"><p>{scanCounts.available ? "Open dates are listed first. Choose a volunteer, then book the exact time on Google." : "Try the WhatsApp group or the official scheduling page for newly shared openings."}</p>{scanCounts.available ? <button className="quiet-button" onClick={() => setFilter("available")} type="button">Show open dates</button> : null}</div> : null}
+          <div className="scan-totals"><span className="positive">{scanCounts.available} with open dates</span><span>{scanCounts.soon} with a date by {sevenDayEndLabel}</span><span>{scanCounts.none} no openings</span><span>{scanCounts.unknown} could not confirm</span><span>{scanCounts.failed} links unavailable</span></div>
+          {scan.state === "complete" ? <div className="scan-next-step"><div><strong>What to do next</strong><p>{scanCounts.available >= 2 ? "Start with dates that fit your week, then book two exact times on Google." : scanCounts.available === 1 ? "Book the opening if it works for you. For your second session, scan again later or check the WhatsApp group for newly shared times." : "No confirmed opening was found right now. New times can appear later, so scan again, check the WhatsApp group, or use the official scheduling page."}</p></div>{scanCounts.available ? <button className="quiet-button" onClick={() => setFilter("available")} type="button">Show open dates</button> : <a className="quiet-link" href="https://sites.google.com/view/english-chat-student-center/Scheduling?authuser=0" rel="noreferrer" target="_blank">Open official schedule <span aria-hidden="true">↗</span></a>}</div> : null}
           {scan.state === "stopped" && scan.completed < scan.total ? <button className="quiet-button" onClick={() => { setFilter("not_checked"); setScan(null); }} type="button">Show volunteers not checked</button> : null}
         </section> : null}
 
@@ -273,12 +288,15 @@ export function AvailabilityBoard() {
       </section>
 
       <section className="student-support" aria-label="English Chat guidance">
-        <article><p className="eyebrow">Why English Chat helps</p><h2>Build confidence through real conversation</h2><ul><li>Practice pronunciation and fluency</li><li>Speak in a friendly, low-stress setting</li><li>Learn with native English speakers</li><li>Prepare for stronger employment opportunities</li></ul></article>
+        <article><p className="eyebrow">Could not find two times?</p><h2>You still have options</h2><ul><li>Book any suitable opening you find now</li><li>Scan again later because volunteers can add new times</li><li>Check the WhatsApp group for daily appointment links</li><li>Choose another day if Tuesday or Friday is full</li></ul></article>
         <article><p className="eyebrow">Before your appointment</p><h2>Know what to expect</h2><p>Review the session structure so you arrive ready to speak and get the most from your 30 minutes.</p><a className="action-link primary" href="https://sites.google.com/view/english-chat-student-center/English-Chat-Structure?authuser=0" rel="noreferrer" target="_blank">Prepare for your session <span aria-hidden="true">↗</span></a></article>
         <article><p className="eyebrow">No suitable time?</p><h2>Check the WhatsApp group</h2><p>New openings are shared there each day. Your private group link arrives by email and must be approved. Do not share it with anyone else.</p></article>
       </section>
 
-      <footer className="site-footer"><span>English Chat sessions are free for BYU-Pathway students.</span><span>No sign-in · No tracking · Results stay in this browser for 30 minutes</span></footer>
+      <footer className="site-footer">
+        <span>English Chat sessions are free for BYU-Pathway students.</span>
+        <span>No sign-in · No tracking · Results stay in this browser for 30 minutes</span>
+      </footer>
     </main>
   );
 }

@@ -15,6 +15,7 @@ English Chat Finder helps BYU-Pathway Worldwide students find open 30-minute Eng
 - Loads the current volunteer booking links from the official scheduling page.
 - Checks Google Calendar's machine-readable appointment service for the next 60 days.
 - Groups confirmed openings into this week, next week, and later dates using the student's local timezone.
+- Presents the most useful post-scan view first and keeps no-opening results collapsed until needed.
 - Scans volunteers through a bounded worker pool instead of opening every calendar at once.
 - Reports provider or network failures as **Needs attention**, never as **No openings**.
 - Keeps scan results only in the student's browser for up to 30 minutes.
@@ -46,6 +47,7 @@ The main implementation lives in:
 - `src/lib/monitoring/parser.ts` — trusted booking-link extraction.
 - `src/lib/monitoring/slots.ts` — direct Google Calendar availability check.
 - `src/lib/date-window.ts` — local Monday-to-Sunday week filters.
+- `src/lib/result-presentation.ts` — local result grouping, appointment ordering, and next-view selection.
 
 ## Local development
 

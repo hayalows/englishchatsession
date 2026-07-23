@@ -11,19 +11,21 @@ function parseLocalDate(value: string) {
   return parsed;
 }
 
-export function isDateWithinDays(value: string, days: number, now = new Date()) {
-  const candidate = parseLocalDate(value);
-  if (!candidate || !Number.isInteger(days) || days < 0 || Number.isNaN(now.valueOf())) return false;
+export function getWeekWindow(weekOffset = 0, now = new Date()) {
+  if (!Number.isInteger(weekOffset) || Number.isNaN(now.valueOf())) return null;
 
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(start);
-  end.setDate(end.getDate() + days);
+  const daysSinceMonday = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - daysSinceMonday + (weekOffset * 7));
 
-  return candidate >= start && candidate <= end;
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+
+  return { start, end };
 }
 
-export function dateAtEndOfWindow(days: number, now = new Date()) {
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  end.setDate(end.getDate() + days);
-  return end;
+export function isDateInWeek(value: string, weekOffset = 0, now = new Date()) {
+  const candidate = parseLocalDate(value);
+  const window = getWeekWindow(weekOffset, now);
+  return Boolean(candidate && window && candidate >= window.start && candidate <= window.end);
 }

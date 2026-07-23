@@ -1,22 +1,31 @@
 import { describe, expect, it } from "vitest";
 
-import { dateAtEndOfWindow, isDateWithinDays } from "./date-window";
+import { getWeekWindow, isDateInWeek } from "./date-window";
 
-describe("inclusive date window", () => {
+describe("Monday through Sunday week windows", () => {
   const today = new Date(2026, 6, 23, 18, 30);
 
-  it("includes today and the date exactly seven days away", () => {
-    expect(isDateWithinDays("2026-07-23", 7, today)).toBe(true);
-    expect(isDateWithinDays("2026-07-30", 7, today)).toBe(true);
+  it("places dates in the current Monday through Sunday week", () => {
+    expect(isDateInWeek("2026-07-20", 0, today)).toBe(true);
+    expect(isDateInWeek("2026-07-26", 0, today)).toBe(true);
+    expect(isDateInWeek("2026-07-27", 0, today)).toBe(false);
   });
 
-  it("excludes dates outside the window and invalid dates", () => {
-    expect(isDateWithinDays("2026-07-22", 7, today)).toBe(false);
-    expect(isDateWithinDays("2026-07-31", 7, today)).toBe(false);
-    expect(isDateWithinDays("2026-02-30", 7, today)).toBe(false);
+  it("places the following Monday through Sunday in next week", () => {
+    expect(isDateInWeek("2026-07-27", 1, today)).toBe(true);
+    expect(isDateInWeek("2026-07-30", 1, today)).toBe(true);
+    expect(isDateInWeek("2026-08-02", 1, today)).toBe(true);
+    expect(isDateInWeek("2026-08-03", 1, today)).toBe(false);
   });
 
-  it("returns the inclusive end date", () => {
-    expect(dateAtEndOfWindow(7, today)).toEqual(new Date(2026, 6, 30));
+  it("returns stable inclusive boundaries across a year change", () => {
+    expect(getWeekWindow(1, new Date(2026, 11, 31))).toEqual({
+      start: new Date(2027, 0, 4),
+      end: new Date(2027, 0, 10),
+    });
+  });
+
+  it("rejects invalid dates", () => {
+    expect(isDateInWeek("2026-02-30", 0, today)).toBe(false);
   });
 });

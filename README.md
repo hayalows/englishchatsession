@@ -1,33 +1,114 @@
-# English Chat Booking Finder
+# English Chat Finder
 
-A stateless Next.js site that reads the public [BYU-Pathway English Chat scheduling page](https://sites.google.com/view/english-chat-student-center/Scheduling?authuser=0), checks trusted Google Calendar appointment pages on demand, and links students directly to booking.
+[![Quality checks](https://github.com/hayalows/englishchatsession/actions/workflows/ci.yml/badge.svg)](https://github.com/hayalows/englishchatsession/actions/workflows/ci.yml)
+[![Live site](https://img.shields.io/badge/live-English_Chat_Finder-006f7a)](https://englishchatsession.vercel.app)
+[![License: MIT](https://img.shields.io/badge/license-MIT-0f2942)](LICENSE)
 
-## What it can verify
+English Chat Finder helps BYU-Pathway Worldwide students find open 30-minute English Chat appointments with volunteers. It reads the public English Chat scheduling page, checks trusted Google Calendar appointment pages on demand, and sends students to Google to complete the booking.
 
-The scanner uses Google Calendar's machine-readable appointment service instead of launching a browser. It checks the next 60 days and reports the exact date range. A network or provider failure is reported as “Needs confirmation,” never as “No dates.” Exact appointment times and final availability are always confirmed on Google before booking.
+**Live site:** [englishchatsession.vercel.app](https://englishchatsession.vercel.app)
 
-Scan results are kept only in the student's browser for up to 30 minutes. There is no database, account, analytics, messaging, or server-side result history.
+> This is an independent student-built helper. The official scheduling page and Google Calendar remain the final sources of truth.
 
-## Local setup
+## What the app does
+
+- Loads the current volunteer booking links from the official scheduling page.
+- Checks Google Calendar's machine-readable appointment service for the next 60 days.
+- Groups confirmed openings into this week, next week, and later dates using the student's local timezone.
+- Scans volunteers through a bounded worker pool instead of opening every calendar at once.
+- Reports provider or network failures as **Needs attention**, never as **No openings**.
+- Keeps scan results only in the student's browser for up to 30 minutes.
+
+The app has no account system, database, analytics, messaging service, cron job, or server-side result history. Exact appointment times and final availability must always be confirmed on Google before booking.
+
+## How it works
+
+```text
+Official scheduling page
+        |
+        v
+GET /api/availability ---> trusted volunteer booking links
+        |
+        v
+Student starts a scan
+        |
+        v
+POST /api/slots -------> Google Calendar availability service
+        |
+        v
+Temporary browser results and direct booking links
+```
+
+The main implementation lives in:
+
+- `src/components/availability-board.tsx` — student interface, scan queue, filters, and temporary browser storage.
+- `src/lib/monitoring/availability.ts` — official scheduling-page fetch.
+- `src/lib/monitoring/parser.ts` — trusted booking-link extraction.
+- `src/lib/monitoring/slots.ts` — direct Google Calendar availability check.
+- `src/lib/date-window.ts` — local Monday-to-Sunday week filters.
+
+## Local development
+
+Requirements:
+
+- Node.js 24
+- npm 11 or a compatible npm version
 
 No secrets or environment variables are required.
 
-1. Run `npm install`.
-2. Run `npm run dev`.
-3. Open `http://localhost:3000`.
+```powershell
+npm.cmd ci
+npm.cmd run dev
+```
+
+Open `http://localhost:3000`.
+
+## Validation
+
+Run the complete pre-release validation:
+
+```powershell
+npm.cmd run lint
+npm.cmd run typecheck
+npm.cmd test
+npm.cmd run build
+```
+
+The development-only scan benchmark is:
+
+```powershell
+npm.cmd run benchmark:scan -- --count=20 --concurrency=3
+```
+
+Production uses a fixed pool of ten direct checks. The benchmark measures a chosen development concurrency without changing the production value or storing page HTML, booking URLs, or secrets.
 
 ## Deployment
 
-The site deploys to Vercel with no database, authentication, cron job, or environment configuration.
+Vercel is connected to this GitHub repository.
 
-## Commands
+- Production branch: `main`
+- Framework: Next.js
+- Root directory: repository root
+- Build command: `npm run build`
+- Node.js: 24.x
+- Production URL: [englishchatsession.vercel.app](https://englishchatsession.vercel.app)
 
-```powershell
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run benchmark:scan -- --count=20 --concurrency=3
-```
+Pull requests receive GitHub quality checks and a Vercel preview. Merging a tested pull request into `main` is the normal production release path. Manual production deployments should be reserved for recovery situations.
 
-Production uses a fixed pool of ten direct checks. A controlled 252-tutor direct scan was used to validate that limit. The benchmark command measures a chosen development concurrency without changing the production value or storing page HTML, URLs, or secrets.
+See [Operations and recovery](docs/OPERATIONS.md) for the release checklist, live verification, rollback procedure, and maintenance schedule.
+
+## Contributing and security
+
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing changes.
+- Report security concerns through the process in [SECURITY.md](SECURITY.md).
+- User-interface bugs belong in GitHub Issues. Appointment or volunteer-list questions belong on the [official scheduling page](https://sites.google.com/view/english-chat-student-center/Scheduling?authuser=0).
+
+## Project stewardship
+
+Built and maintained by **Papa Kojo Mensah**.
+
+This repository is the canonical source for the application. Stable production versions are preserved as GitHub Releases and version tags.
+
+## License
+
+[MIT](LICENSE)

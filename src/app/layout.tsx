@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "English Chat Booking Finder",
-  description: "Check current BYU-Pathway English Chat tutor availability and book on Google Calendar.",
+  title: "Book English Chat Sessions | BYU-Pathway",
+  description: "Find open English Chat appointments, book two weekly sessions, and prepare for your conversation.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

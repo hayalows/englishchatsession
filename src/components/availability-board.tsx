@@ -6,7 +6,7 @@ import type { SlotResult, TutorCheckStatus } from "@/lib/monitoring/results";
 
 type BookingPage = { tutor: string | null; bookingUrl: string };
 type Availability = { checkedAt: string; bookingPages: BookingPage[] };
-type ResultFilter = "all" | TutorCheckStatus;
+type ResultFilter = "all" | "next_7_days" | TutorCheckStatus;
 type ScanReport = { state: "running" | "complete" | "stopped"; completed: number; total: number; urls: string[] };
 type StoredResults = { version: 2; savedAt: string; results: Record<string, SlotResult> };
 
@@ -23,6 +23,20 @@ function displayTime(value?: string | null) {
 function displayDate(value: string) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T12:00:00`) : new Date(value);
   return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(date);
+}
+
+function isWithinNextDays(value: string, days: number) {
+  const candidate = new Date(`${value}T12:00:00`);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + days);
+  return !Number.isNaN(candidate.valueOf()) && candidate >= start && candidate < end;
+}
+
+function isRecommendedDay(value: string) {
+  const day = new Date(`${value}T12:00:00`).getDay();
+  return day === 2 || day === 5;
 }
 
 function isFresh(value?: string) {
@@ -64,9 +78,10 @@ async function fetchSlotResult(bookingUrl: string, signal?: AbortSignal) {
 }
 
 const FILTERS: { value: ResultFilter; label: string }[] = [
-  { value: "all", label: "All" }, { value: "available", label: "Available" },
-  { value: "none_in_view", label: "No dates" }, { value: "unknown", label: "Needs confirmation" },
-  { value: "failed", label: "Check failed" }, { value: "not_checked", label: "Not checked" },
+  { value: "all", label: "All volunteers" }, { value: "next_7_days", label: "Next 7 days" },
+  { value: "available", label: "Open dates" }, { value: "none_in_view", label: "No openings" },
+  { value: "unknown", label: "Could not confirm" }, { value: "failed", label: "Link unavailable" },
+  { value: "not_checked", label: "Not checked" },
 ];
 
 export function AvailabilityBoard() {
@@ -103,13 +118,22 @@ export function AvailabilityBoard() {
 
   const bookingPages = useMemo(() => availability?.bookingPages ?? [], [availability]);
   const counts = useMemo(() => {
-    const next: Record<ResultFilter, number> = { all: bookingPages.length, available: 0, none_in_view: 0, unknown: 0, failed: 0, not_checked: 0, checking: 0 };
-    for (const booking of bookingPages) next[slotResults[booking.bookingUrl]?.status ?? "not_checked"] += 1;
+    const next: Record<ResultFilter, number> = { all: bookingPages.length, next_7_days: 0, available: 0, none_in_view: 0, unknown: 0, failed: 0, not_checked: 0, checking: 0 };
+    for (const booking of bookingPages) {
+      const result = slotResults[booking.bookingUrl];
+      next[result?.status ?? "not_checked"] += 1;
+      if (result?.status === "available" && result.availableDates.some((date) => isWithinNextDays(date, 7))) next.next_7_days += 1;
+    }
     return next;
   }, [bookingPages, slotResults]);
   const visiblePages = useMemo(() => bookingPages
-    .filter((booking) => (booking.tutor ?? "English Chat tutor").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
-    .filter((booking) => filter === "all" || (slotResults[booking.bookingUrl]?.status ?? "not_checked") === filter)
+    .filter((booking) => (booking.tutor ?? "English Chat volunteer").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+    .filter((booking) => {
+      const result = slotResults[booking.bookingUrl];
+      if (filter === "all") return true;
+      if (filter === "next_7_days") return result?.status === "available" && result.availableDates.some((date) => isWithinNextDays(date, 7));
+      return (result?.status ?? "not_checked") === filter;
+    })
     .sort((a, b) => {
       const aResult = slotResults[a.bookingUrl]; const bResult = slotResults[b.bookingUrl];
       if (aResult?.status === "available" && bResult?.status !== "available") return -1;
@@ -119,12 +143,13 @@ export function AvailabilityBoard() {
     }), [bookingPages, filter, query, slotResults]);
   const scanCounts = useMemo(() => {
     const values = scan?.urls.map((url) => slotResults[url]?.status ?? "not_checked") ?? [];
-    return { available: values.filter((status) => status === "available").length, none: values.filter((status) => status === "none_in_view").length, unknown: values.filter((status) => status === "unknown").length, failed: values.filter((status) => status === "failed").length };
+    const soon = scan?.urls.filter((url) => slotResults[url]?.status === "available" && slotResults[url].availableDates.some((date) => isWithinNextDays(date, 7))).length ?? 0;
+    return { available: values.filter((status) => status === "available").length, soon, none: values.filter((status) => status === "none_in_view").length, unknown: values.filter((status) => status === "unknown").length, failed: values.filter((status) => status === "failed").length };
   }, [scan, slotResults]);
   const hasActiveCheck = counts.checking > 0;
 
   async function checkTutor(bookingUrl: string, signal?: AbortSignal, runId?: number) {
-    setSlotResults((current) => ({ ...current, [bookingUrl]: { status: "checking", availableDates: [], message: "Checking Google Calendar now…" } }));
+    setSlotResults((current) => ({ ...current, [bookingUrl]: { status: "checking", availableDates: [], message: "Checking Google Calendar for open times…" } }));
     try {
       const result = await fetchSlotResult(bookingUrl, signal);
       if (runId === undefined || runId === runIdRef.current) setSlotResults((current) => ({ ...current, [bookingUrl]: result }));
@@ -168,54 +193,92 @@ export function AvailabilityBoard() {
 
   return (
     <main className="app-shell">
-      <header className="topbar"><div><p className="eyebrow">BYU-Pathway English Chat</p><h1>Find your next conversation</h1><p className="lede">Check tutors’ live Google Calendar pages, compare confirmed dates, then book directly.</p></div><div className="privacy-note"><strong>No sign-in. No tracking.</strong><span>Checks stay in this browser for 30 minutes.</span></div></header>
+      <header className="hero">
+        <div className="hero-copy">
+          <p className="eyebrow">BYU-Pathway English Chat</p>
+          <h1>Book two English Chat sessions this week</h1>
+          <p className="lede">Practice one-on-one with a volunteer native English speaker in a friendly, low-stress 30-minute conversation.</p>
+          <div className="hero-actions">
+            <a className="action-link primary" href="#session-finder">Find an open time</a>
+            <a className="action-link secondary" href="https://sites.google.com/view/english-chat-student-center/English-Chat-Structure?authuser=0" rel="noreferrer" target="_blank">Learn how to prepare <span aria-hidden="true">↗</span></a>
+          </div>
+          <div className="hero-facts" aria-label="English Chat facts"><span>Free</span><span>30 minutes</span><span>One-on-one</span><span>Online</span></div>
+        </div>
+        <aside className="weekly-goal">
+          <p className="eyebrow">Your weekly requirement</p>
+          <strong><span>2</span> sessions</strong>
+          <p>Book two 30-minute conversations. Tuesday and Friday are recommended, but any available day works.</p>
+        </aside>
+      </header>
 
-      <section className="signal-panel" aria-label="Live booking source status">
-        <div className="source-stat"><p className="eyebrow">Live tutor directory</p><div><strong>{availability?.bookingPages.length ?? "—"}</strong><span>booking pages found</span></div></div>
-        <div className="signal-detail"><span>Directory refreshed</span><strong>{displayTime(availability?.checkedAt)}</strong><small>Availability is checked only when you choose a tutor or start a scan.</small></div>
-        <button className="secondary-on-dark" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh tutor list"}</button>
+      <section className="weekly-route" aria-labelledby="weekly-route-title">
+        <div className="route-heading"><p className="eyebrow">A simple weekly routine</p><h2 id="weekly-route-title">From Friday to conversation</h2></div>
+        <ol>
+          <li><span>1</span><div><strong>Scan every Friday</strong><p>Check all volunteer calendars for upcoming openings.</p></div></li>
+          <li><span>2</span><div><strong>Choose two times</strong><p>Tuesday or Friday is ideal. Choose another day when needed.</p></div></li>
+          <li><span>3</span><div><strong>Prepare and join</strong><p>Review the session structure before each conversation.</p></div></li>
+        </ol>
       </section>
-      {message ? <div className="source-error" role="alert"><strong>Couldn’t refresh the tutor list.</strong><span>{message}</span><button onClick={() => void refresh()} type="button">Try again</button></div> : null}
 
-      <section className="how-it-works" aria-label="How availability checks work"><strong>What “available” means</strong><p>We ask Google Calendar directly for open appointment times during the next 60 days. We report the exact range checked and never turn a failed request into “no dates.”</p></section>
+      {message ? <div className="source-error" role="alert"><strong>Couldn’t refresh the volunteer list.</strong><span>{message}</span><button onClick={() => void refresh()} type="button">Try again</button></div> : null}
 
-      <section className="panel sessions-panel">
-        <div className="panel-heading"><div><p className="eyebrow">Live availability finder</p><h2>Choose a tutor</h2></div><button className="text-button" disabled={!Object.keys(slotResults).length} onClick={clearResults} type="button">Clear results</button></div>
+      <section className="panel sessions-panel" id="session-finder">
+        <div className="panel-heading">
+          <div><p className="eyebrow">Step 1 · Find an opening</p><h2>Scan volunteer calendars</h2><p>New here? Scan everyone. Volunteers with confirmed open dates will move to the top.</p></div>
+          <button className="text-button" disabled={!Object.keys(slotResults).length} onClick={clearResults} type="button">Clear results</button>
+        </div>
+
+        <div className="source-bar" aria-label="Live booking source status">
+          <div><span className="live-dot" aria-hidden="true" /><strong>{availability?.bookingPages.length ?? "—"} volunteer calendars ready</strong><span>Updated {displayTime(availability?.checkedAt)}</span></div>
+          <div><a href="https://sites.google.com/view/english-chat-student-center/Scheduling?authuser=0" rel="noreferrer" target="_blank">Official scheduling page <span aria-hidden="true">↗</span></a><button disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh list"}</button></div>
+        </div>
+
+        <div className="trust-note"><strong>What the scan checks</strong><span>Google Calendar’s open appointment times for the next 60 days. A failed request is never shown as “no openings.”</span></div>
+
         <div className="finder-controls">
-          <label className="search-field"><span>Search tutors</span><input onChange={(event) => setQuery(event.target.value)} placeholder="Start typing a tutor’s name…" type="search" value={query} /></label>
-          <button disabled={scan?.state === "running" || hasActiveCheck || visiblePages.length === 0} onClick={requestScan} type="button">Check {query || filter !== "all" ? `${visiblePages.length} shown` : `all ${visiblePages.length}`} tutors</button>
+          <label className="search-field"><span>Search by volunteer name</span><input onChange={(event) => setQuery(event.target.value)} placeholder="Type a name…" type="search" value={query} /></label>
+          <button disabled={scan?.state === "running" || hasActiveCheck || visiblePages.length === 0} onClick={requestScan} type="button">{query || filter !== "all" ? `Scan ${visiblePages.length} shown` : `Scan all ${visiblePages.length} calendars`}</button>
           {scan?.state === "running" ? <button className="danger-button" onClick={stopScan} type="button">Stop scan</button> : null}
         </div>
 
-        <div className="filter-row" aria-label="Filter tutor results">{FILTERS.map((item) => <button aria-pressed={filter === item.value} className="filter-chip" key={item.value} onClick={() => setFilter(item.value)} type="button"><span>{item.label}</span><b>{counts[item.value]}</b></button>)}</div>
+        <div className="filter-row" aria-label="Filter volunteer results">{FILTERS.map((item) => <button aria-pressed={filter === item.value} className="filter-chip" key={item.value} onClick={() => setFilter(item.value)} type="button"><span>{item.label}</span><b>{counts[item.value]}</b></button>)}</div>
 
-        {confirmScan ? <div className="confirm-card" role="alert"><div><strong>Check {visiblePages.length} tutors?</strong><span>The fast scan checks up to ten calendars at a time. You can stop whenever you want without losing completed results.</span></div><div><button onClick={() => void startScan()} type="button">Start scan</button><button className="quiet-button" onClick={() => setConfirmScan(false)} type="button">Cancel</button></div></div> : null}
+        {confirmScan ? <div className="confirm-card" role="alert"><div><strong>Scan {visiblePages.length} volunteer calendars?</strong><span>This usually takes less than a minute. You can stop without losing completed results.</span></div><div><button onClick={() => void startScan()} type="button">Start scan</button><button className="quiet-button" onClick={() => setConfirmScan(false)} type="button">Cancel</button></div></div> : null}
 
         {scan ? <section className={`scan-status ${scan.state}`} aria-live="polite">
-          <div className="scan-status-heading"><div><strong>{scan.state === "running" ? "Checking live calendars" : scan.state === "complete" ? "Scan complete" : "Scan stopped"}</strong><span>{scan.completed} of {scan.total} tutors checked · Fast scan enabled</span></div><b>{Math.round((scan.completed / scan.total) * 100)}%</b></div>
+          <div className="scan-status-heading"><div><strong>{scan.state === "running" ? "Scanning live calendars" : scan.state === "complete" ? (scanCounts.available ? `${scanCounts.available} volunteer${scanCounts.available === 1 ? "" : "s"} with open dates` : "No open dates found") : "Scan stopped"}</strong><span>{scan.completed} of {scan.total} calendars checked · Fast scan</span></div><b>{Math.round((scan.completed / scan.total) * 100)}%</b></div>
           <div className="progress-track"><span style={{ width: `${(scan.completed / scan.total) * 100}%` }} /></div>
-          <div className="scan-totals"><span className="positive">{scanCounts.available} available</span><span>{scanCounts.none} no dates in range</span><span>{scanCounts.unknown} need confirmation</span><span>{scanCounts.failed} failed</span></div>
-          {scan.state === "complete" ? <p>{scanCounts.available ? "Confirmed dates are listed first. Open Book to choose an exact time." : "No dates were confirmed in the ranges checked. Review “Needs confirmation” or open any page directly."}</p> : null}
-          {scan.state === "stopped" && scan.completed < scan.total ? <button className="quiet-button" onClick={() => { setFilter("not_checked"); setScan(null); }} type="button">Show tutors not checked</button> : null}
+          <div className="scan-totals"><span className="positive">{scanCounts.available} with open dates</span><span>{scanCounts.soon} in the next 7 days</span><span>{scanCounts.none} no openings</span><span>{scanCounts.unknown} could not confirm</span><span>{scanCounts.failed} links unavailable</span></div>
+          {scan.state === "complete" ? <div className="scan-next-step"><p>{scanCounts.available ? "Open dates are listed first. Choose a volunteer, then book the exact time on Google." : "Try the WhatsApp group or the official scheduling page for newly shared openings."}</p>{scanCounts.available ? <button className="quiet-button" onClick={() => setFilter("available")} type="button">Show open dates</button> : null}</div> : null}
+          {scan.state === "stopped" && scan.completed < scan.total ? <button className="quiet-button" onClick={() => { setFilter("not_checked"); setScan(null); }} type="button">Show volunteers not checked</button> : null}
         </section> : null}
 
-        <div className="list-heading"><span>{visiblePages.length} tutor{visiblePages.length === 1 ? "" : "s"} shown</span>{counts.available > 0 ? <strong>{counts.available} with confirmed dates</strong> : null}</div>
+        <div className="list-heading"><span>{visiblePages.length} volunteer{visiblePages.length === 1 ? "" : "s"} shown</span>{counts.available > 0 ? <strong>{counts.available} with open dates</strong> : <span>Scan to see current openings</span>}</div>
         <div className="session-list">
           {visiblePages.map((booking) => {
             const result = slotResults[booking.bookingUrl] ?? { status: "not_checked", availableDates: [], message: "Not checked yet" } satisfies SlotResult;
+            const visibleDates = result.availableDates.slice(0, 8);
             return <article className={`session-row ${result.status}`} key={booking.bookingUrl}>
-              <div className="tutor-main"><div className="tutor-title"><h3>{booking.tutor ?? "English Chat tutor"}</h3><span className={`status-badge ${result.status}`}>{result.status === "available" ? "Available" : result.status === "none_in_view" ? "No dates in range" : result.status === "unknown" ? "Needs confirmation" : result.status === "failed" ? "Check failed" : result.status === "checking" ? "Checking…" : "Not checked"}</span></div>
+              <div className="tutor-main"><div className="tutor-title"><h3>{booking.tutor ?? "English Chat volunteer"}</h3><span className={`status-badge ${result.status}`}>{result.status === "available" ? "Open dates" : result.status === "none_in_view" ? "No openings in 60 days" : result.status === "unknown" ? "Could not confirm" : result.status === "failed" ? "Link unavailable" : result.status === "checking" ? "Checking…" : "Not checked"}</span></div>
                 <p>{result.message}</p>
-                {result.availableDates.length ? <div className="date-list">{result.availableDates.map((date) => <span key={date}>{displayDate(date)}</span>)}</div> : null}
-                {result.availableTimes?.length ? <small>Earliest opening in your device time: <strong>{displayTime(result.availableTimes[0])}</strong>. Google confirms the final time when you book.</small> : null}
-                {result.checkedRange ? <small>Range checked: {result.checkedRange.description} · {displayTime(result.checkedAt)}</small> : null}
+                {visibleDates.length ? <div className="date-list">{visibleDates.map((date) => <span className={isRecommendedDay(date) ? "recommended" : undefined} key={date}>{displayDate(date)}{isRecommendedDay(date) ? <small>Recommended</small> : null}</span>)}{result.availableDates.length > visibleDates.length ? <span className="more-dates">+{result.availableDates.length - visibleDates.length} more</span> : null}</div> : null}
+                {result.availableTimes?.length ? <p className="earliest-time">Earliest opening in your time zone: <strong>{displayTime(result.availableTimes[0])}</strong></p> : null}
+                {result.checkedRange ? <small className="range-note">Checked {result.checkedRange.description} · {displayTime(result.checkedAt)}</small> : null}
               </div>
-              <div className="slot-actions"><button disabled={hasActiveCheck || scan?.state === "running"} onClick={() => void checkTutor(booking.bookingUrl)} type="button">{result.status === "checking" ? "Checking…" : "Check live"}</button><a href={booking.bookingUrl} rel="noreferrer" target="_blank">Book on Google <span aria-hidden="true">↗</span></a></div>
+              <div className="slot-actions"><button className={result.status === "available" ? "quiet-check" : undefined} disabled={hasActiveCheck || scan?.state === "running"} onClick={() => void checkTutor(booking.bookingUrl)} type="button">{result.status === "checking" ? "Checking…" : result.status === "available" ? "Refresh dates" : "Check dates"}</button><a className={result.status === "available" ? "booking-link primary" : "booking-link"} href={booking.bookingUrl} rel="noreferrer" target="_blank">{result.status === "available" ? "Book this session" : "Open Google"} <span aria-hidden="true">↗</span></a></div>
             </article>;
           })}
-          {!loading && visiblePages.length === 0 ? <div className="empty-state"><strong>No tutors match this view.</strong><span>Clear the search or choose a different result filter.</span><button className="quiet-button" onClick={() => { setQuery(""); setFilter("all"); }} type="button">Show all tutors</button></div> : null}
+          {!loading && visiblePages.length === 0 ? <div className="empty-state"><strong>No volunteers match this view.</strong><span>Clear the search or choose a different result filter.</span><button className="quiet-button" onClick={() => { setQuery(""); setFilter("all"); }} type="button">Show all volunteers</button></div> : null}
         </div>
       </section>
+
+      <section className="student-support" aria-label="English Chat guidance">
+        <article><p className="eyebrow">Why English Chat helps</p><h2>Build confidence through real conversation</h2><ul><li>Practice pronunciation and fluency</li><li>Speak in a friendly, low-stress setting</li><li>Learn with native English speakers</li><li>Prepare for stronger employment opportunities</li></ul></article>
+        <article><p className="eyebrow">Before your appointment</p><h2>Know what to expect</h2><p>Review the session structure so you arrive ready to speak and get the most from your 30 minutes.</p><a className="action-link primary" href="https://sites.google.com/view/english-chat-student-center/English-Chat-Structure?authuser=0" rel="noreferrer" target="_blank">Prepare for your session <span aria-hidden="true">↗</span></a></article>
+        <article><p className="eyebrow">No suitable time?</p><h2>Check the WhatsApp group</h2><p>New openings are shared there each day. Your private group link arrives by email and must be approved. Do not share it with anyone else.</p></article>
+      </section>
+
+      <footer className="site-footer"><span>English Chat sessions are free for BYU-Pathway students.</span><span>No sign-in · No tracking · Results stay in this browser for 30 minutes</span></footer>
     </main>
   );
 }

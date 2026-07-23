@@ -1,0 +1,10 @@
+node_modules/
+.next/
+coverage/
+.env
+.env.local
+.source-page.html
+*.log
+*.tsbuildinfo
+
+.vercel

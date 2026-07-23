@@ -1,0 +1,64 @@
+name: Bug report
+description: Report a reproducible problem with the English Chat Finder.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve the finder. Do not include student information, private appointment details, credentials, or complete booking URLs.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open...
+        2. Select...
+        3. See...
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options:
+        - Mobile phone
+        - Tablet
+        - Desktop or laptop
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: Chrome, Safari, Edge, Firefox, or another browser
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result category
+      description: Select the closest result shown by the app.
+      options:
+        - Available
+        - No openings
+        - Needs attention
+        - Link unavailable
+        - Not checked
+        - Not related to availability
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Add a screenshot only after removing private information.

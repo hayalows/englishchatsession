@@ -1,0 +1,52 @@
+{
+  "name": "englishchatsession",
+  "version": "1.0.0",
+  "description": "Stateless BYU-Pathway English Chat booking availability finder.",
+  "private": true,
+  "engines": {
+    "node": "24.x"
+  },
+  "packageManager": "npm@11.13.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "benchmark:scan": "node scripts/benchmark-scan.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayalows/englishchatsession.git"
+  },
+  "keywords": [
+    "byu-pathway",
+    "english-learning",
+    "google-calendar",
+    "nextjs",
+    "vercel"
+  ],
+  "author": "Papa Kojo Mensah",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hayalows/englishchatsession/issues"
+  },
+  "homepage": "https://englishchatsession.vercel.app",
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "next": "^16.2.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.28.0",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "eslint": "^9.28.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.34.0",
+    "vitest": "^3.2.4"
+  }
+}

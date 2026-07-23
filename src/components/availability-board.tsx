@@ -176,7 +176,7 @@ export function AvailabilityBoard() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ResultFilter>("best");
   const [scan, setScan] = useState<ScanReport | null>(null);
-  const [confirmScan, setConfirmScan] = useState(false);
+  const [showScanControls, setShowScanControls] = useState(false);
   const [resultsExpired, setResultsExpired] = useState(false);
   const [localNow, setLocalNow] = useState<Date | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
@@ -256,6 +256,11 @@ export function AvailabilityBoard() {
     if (!normalizedQuery) return [];
     return bookingPages.filter((booking) => (booking.tutor ?? "English Chat volunteer").toLocaleLowerCase().includes(normalizedQuery));
   }, [bookingPages, query, scanMode]);
+  const resultPages = useMemo(() => {
+    if (!scan?.urls.length) return scanMode === "name" && query.trim() ? searchedPages : bookingPages;
+    const scanUrls = new Set(scan.completedUrls);
+    return bookingPages.filter((booking) => scanUrls.has(booking.bookingUrl));
+  }, [bookingPages, query, scan, scanMode, searchedPages]);
   const thisWeekWindow = useMemo(() => localNow ? getWeekWindow(0, localNow) : null, [localNow]);
   const nextWeekWindow = useMemo(() => localNow ? getWeekWindow(1, localNow) : null, [localNow]);
 
@@ -271,7 +276,7 @@ export function AvailabilityBoard() {
       checking: 0,
     };
     if (!localNow) return next;
-    for (const booking of searchedPages) {
+    for (const booking of resultPages) {
       const result = slotResults[booking.bookingUrl];
       if (result?.status === "available") {
         next.available += 1;
@@ -287,18 +292,19 @@ export function AvailabilityBoard() {
       }
     }
     return next;
-  }, [localNow, searchedPages, slotResults]);
+  }, [localNow, resultPages, slotResults]);
 
   const visiblePages = useMemo(() => {
     if (!localNow) return [];
-    return searchedPages
+    return resultPages
       .filter((booking) => {
         const result = slotResults[booking.bookingUrl];
         const section = resultSection(result, localNow);
         if (filter === "best") {
           if (counts.available > 0) return result?.status === "available";
           if (scan?.state === "complete") return counts.needs_attention > 0 && section === "needs_attention";
-          return section !== "none_in_view";
+          if (scan?.state === "running") return false;
+          return result?.status === "available";
         }
         return section === filter;
       })
@@ -320,7 +326,7 @@ export function AvailabilityBoard() {
         if (aTime && bTime) return new Date(aTime).valueOf() - new Date(bTime).valueOf();
         return (a.tutor ?? "").localeCompare(b.tutor ?? "");
       });
-  }, [counts.available, counts.needs_attention, filter, localNow, scan?.state, searchedPages, slotResults]);
+  }, [counts.available, counts.needs_attention, filter, localNow, resultPages, scan?.state, slotResults]);
 
   const sections = useMemo(() => {
     if (!localNow) return [] as { key: ResultSection; pages: BookingPage[] }[];
@@ -353,6 +359,12 @@ export function AvailabilityBoard() {
   const scanRange = useMemo(() => (scan?.completedUrls ?? [])
     .map((url) => slotResults[url]?.checkedRange?.description)
     .find(Boolean), [scan, slotResults]);
+  const hasResultData = useMemo(() => Object.values(slotResults).some((result) => VALID_STATUSES.has(result.status)), [slotResults]);
+  const hasSavedScanState = Boolean(scan || hasResultData);
+  const showResultsPanel = scan?.state === "running"
+    || counts.available > 0
+    || counts.needs_attention > 0
+    || Boolean(scan?.state === "stopped" && scan.completed > 0);
 
   useEffect(() => {
     if (!scan || scan.state !== "complete" || autoSelectedRef.current === scan.startedAt) return;
@@ -393,28 +405,31 @@ export function AvailabilityBoard() {
     }
   }
 
-  async function startScan(pages = searchedPages) {
+  async function startScan(pages = searchedPages, resumeFrom?: ScanReport) {
     const queue = pages.slice();
     if (!queue.length) return;
-    setConfirmScan(false);
+    setShowScanControls(false);
     setResultsExpired(false);
     const controller = new AbortController();
     controllerRef.current = controller;
     const runId = ++runIdRef.current;
     let nextIndex = 0;
-    let completed = 0;
-    const startedAt = new Date().toISOString();
-    const scope = scanMode === "name" && query.trim()
-      ? `${queue.length} volunteer${queue.length === 1 ? "" : "s"} matching “${query.trim()}”`
-      : queue.length === bookingPages.length
-        ? `all ${queue.length} volunteer calendars`
-        : `${queue.length} selected volunteer calendars`;
+    const completedUrls = resumeFrom?.completedUrls ?? [];
+    let completed = completedUrls.length;
+    const startedAt = resumeFrom?.startedAt ?? new Date().toISOString();
+    const scope = resumeFrom?.scope ?? (
+      scanMode === "name" && query.trim()
+        ? `${queue.length} volunteer${queue.length === 1 ? "" : "s"} matching “${query.trim()}”`
+        : queue.length === bookingPages.length
+          ? `all ${queue.length} volunteer calendars`
+          : `${queue.length} selected volunteer calendars`
+    );
     setScan({
       state: "running",
-      completed: 0,
-      completedUrls: [],
-      total: queue.length,
-      urls: queue.map((page) => page.bookingUrl),
+      completed,
+      completedUrls,
+      total: resumeFrom?.total ?? queue.length,
+      urls: resumeFrom?.urls ?? queue.map((page) => page.bookingUrl),
       startedAt,
       scope,
     });
@@ -466,12 +481,11 @@ export function AvailabilityBoard() {
     const completedUrls = new Set(scan.completedUrls ?? []);
     const remainingUrls = new Set(scan.urls.filter((url) => !completedUrls.has(url)));
     const remainingPages = bookingPages.filter((page) => remainingUrls.has(page.bookingUrl));
-    void startScan(remainingPages);
+    void startScan(remainingPages, scan);
   }
 
   function requestScan() {
-    if (searchedPages.length > 50) setConfirmScan(true);
-    else void startScan();
+    void startScan();
   }
 
   function clearResults() {
@@ -479,13 +493,28 @@ export function AvailabilityBoard() {
     setSlotResults({});
     setScan(null);
     setFilter("best");
+    setShowScanControls(false);
     setResultsExpired(false);
   }
 
   function selectScanMode(nextMode: ScanMode) {
     setScanMode(nextMode);
-    setConfirmScan(false);
     if (nextMode === "all") setQuery("");
+  }
+
+  function showRecommendedResults() {
+    setFilter(recommendedResultFilter);
+    window.requestAnimationFrame(() => document.querySelector("#availability-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  function showResultFilter(nextFilter: ResultFilter) {
+    setFilter(nextFilter);
+    window.requestAnimationFrame(() => document.querySelector("#availability-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  function openScanControls() {
+    setShowScanControls(true);
+    window.requestAnimationFrame(() => document.querySelector("#session-finder")?.scrollIntoView({ behavior: "smooth", block: "center" }));
   }
 
   const recommendedResultFilter: ResultFilter = scanCounts.thisWeek
@@ -620,214 +649,247 @@ export function AvailabilityBoard() {
           <div className="hero-copy">
             <p className="eyebrow">BYU-Pathway English Chat</p>
             <h1 id="page-title">Find an available English Chat session.</h1>
-            <p className="lede">Check volunteer calendars, see confirmed openings, and choose the time that works for you on Google.</p>
-            <div className="hero-actions">
-              <a className="action-link primary" href="#session-finder">Find an open time <span aria-hidden="true">↓</span></a>
-              <a className="action-link secondary" href="#how-it-works">How it works</a>
-            </div>
+            <p className="lede">Search live volunteer calendars and choose your appointment on Google.</p>
             <div className="hero-facts" aria-label="English Chat facts">
-              <span>Free</span><span>30 minutes</span><span>One-to-one</span><span>Online</span>
+              <span>Free</span><span>30 minutes</span><span>2 sessions weekly</span><span>Online</span>
             </div>
+            <a className="hero-help-link" href="#how-it-works">New to English Chat? See how it works <span aria-hidden="true">↓</span></a>
           </div>
-          <aside className="weekly-goal" aria-label="Weekly English Chat goal">
-            <p className="eyebrow">Your weekly goal</p>
-            <p className="goal-number"><span>2</span> sessions</p>
-            <p>Look any day you need a time. Friday is a helpful day to plan for the week ahead.</p>
-            <a href="#session-finder">Start with the live calendars <span aria-hidden="true">→</span></a>
+
+          <aside className="quick-finder" id="session-finder" aria-labelledby="finder-title">
+            <div className="quick-finder-heading">
+              <div>
+                <p className="eyebrow">Live availability</p>
+                <h2 id="finder-title">Find a session</h2>
+              </div>
+              {hasSavedScanState && scan?.state !== "running" ? (
+                <button className="quiet-button" onClick={clearResults} type="button">Clear results</button>
+              ) : null}
+            </div>
+
+            {message ? (
+              <div className="finder-alert" role="alert">
+                <div><strong>Volunteer list unavailable</strong><span>{message}</span></div>
+                <button onClick={() => void refresh()} type="button">Try again</button>
+              </div>
+            ) : null}
+
+            {resultsExpired ? (
+              <div className="finder-notice" role="status">
+                <div><strong>Previous results expired</strong><span>Scan again for current availability.</span></div>
+                <button className="secondary-button" disabled={!bookingPages.length} onClick={requestScan} type="button">Scan again</button>
+              </div>
+            ) : null}
+
+            {scan?.state === "running" ? (
+              <div className="finder-progress" aria-busy="true" aria-live="polite">
+                <div className="finder-progress-heading">
+                  <div><span className="state-label">Scanning live calendars</span><strong>{scan.completed} of {scan.total} checked</strong></div>
+                  <b>{Math.round((scan.completed / scan.total) * 100)}%</b>
+                </div>
+                <div
+                  aria-label={`${scan.completed} of ${scan.total} calendars checked`}
+                  aria-valuemax={scan.total}
+                  aria-valuemin={0}
+                  aria-valuenow={scan.completed}
+                  className="progress-track"
+                  role="progressbar"
+                >
+                  <span style={{ width: `${(scan.completed / scan.total) * 100}%` }} />
+                </div>
+                <p>Openings appear in the results as they are confirmed. You can stop without losing completed checks.</p>
+                <div className="finder-progress-footer">
+                  <span>Fast scan enabled</span>
+                  <button className="stop-button" onClick={stopScan} type="button">Stop scan</button>
+                </div>
+              </div>
+            ) : scan && !showScanControls ? (
+              <div className={`finder-outcome ${scan.state}`}>
+                <span className="state-label">{scan.state === "complete" ? "Scan complete" : "Scan paused"}</span>
+                <h3>
+                  {scan.state === "stopped"
+                    ? `${scan.completed} of ${scan.total} calendars checked`
+                    : scanCounts.available
+                      ? `${scanCounts.available} volunteer${scanCounts.available === 1 ? "" : "s"} with open times`
+                      : scanCounts.attention
+                        ? "No opening confirmed yet"
+                        : "No confirmed openings right now"}
+                </h3>
+                <p>{scan.state === "stopped" ? "Completed checks are still available below. Continue when you are ready." : scanGuidance}</p>
+                <div className="outcome-facts" aria-label="Scan summary">
+                  {scanCounts.thisWeek > 0 ? <span><b>{scanCounts.thisWeek}</b> this week</span> : null}
+                  {scanCounts.nextWeek > 0 ? <span><b>{scanCounts.nextWeek}</b> next week</span> : null}
+                  {scanCounts.later > 0 ? <span><b>{scanCounts.later}</b> later</span> : null}
+                  {scanCounts.attention > 0 ? <span><b>{scanCounts.attention}</b> need another look</span> : null}
+                </div>
+                {scanRange ? <small>Google range checked: {scanRange}</small> : null}
+                <div className="outcome-actions">
+                  {scan.state === "stopped" && scan.completed < scan.total ? (
+                    <button onClick={scanRemaining} type="button">Continue scan</button>
+                  ) : scanCounts.available ? (
+                    <button onClick={showRecommendedResults} type="button">{recommendedResultLabel}</button>
+                  ) : scanCounts.attention ? (
+                    <button onClick={() => showResultFilter("needs_attention")} type="button">Review these checks</button>
+                  ) : (
+                    <a className="button-link" href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Check official schedule <span aria-hidden="true">↗</span></a>
+                  )}
+                  <button className="secondary-button" onClick={openScanControls} type="button">New search</button>
+                </div>
+              </div>
+            ) : (
+              <div className="finder-setup">
+                <div className="scan-mode-options" role="group" aria-label="Choose how to find a session">
+                  <button aria-pressed={scanMode === "all"} onClick={() => selectScanMode("all")} type="button">
+                    <span>Scan everyone</span><small>Best chance</small>
+                  </button>
+                  <button aria-pressed={scanMode === "name"} onClick={() => selectScanMode("name")} type="button">
+                    <span>Search by name</span><small>Check a volunteer</small>
+                  </button>
+                </div>
+
+                {scanMode === "name" ? (
+                  <div className="finder-search">
+                    <label className="search-field">
+                      <span>Volunteer name</span>
+                      <input
+                        aria-describedby="name-search-help"
+                        autoComplete="off"
+                        list="volunteer-names"
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="Start typing a name"
+                        type="search"
+                        value={query}
+                      />
+                    </label>
+                    <datalist id="volunteer-names">
+                      {bookingPages.map((booking) => booking.tutor ? <option key={booking.bookingUrl} value={booking.tutor} /> : null)}
+                    </datalist>
+                    <p id="name-search-help" aria-live="polite">
+                      {!query.trim()
+                        ? "Choose a name from the suggestions or continue typing."
+                        : searchedPages.length
+                          ? `${searchedPages.length} matching volunteer${searchedPages.length === 1 ? "" : "s"} ready to check.`
+                          : "No matching volunteer. Check the spelling or scan everyone."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="finder-mode-copy">
+                    <strong>Best chance of finding an opening</strong>
+                    <span>We will check every volunteer and put confirmed openings first.</span>
+                  </div>
+                )}
+
+                <button
+                  className="scan-primary"
+                  disabled={hasActiveCheck || loading || searchedPages.length === 0}
+                  onClick={requestScan}
+                  type="button"
+                >
+                  {loading
+                    ? "Loading volunteers…"
+                    : scanMode === "all"
+                      ? `Scan all ${searchedPages.length} volunteers`
+                      : query.trim()
+                        ? `Check ${searchedPages.length} matching volunteer${searchedPages.length === 1 ? "" : "s"}`
+                        : "Enter a volunteer name"}
+                </button>
+              </div>
+            )}
+
+            <div className="finder-source" aria-label="Volunteer list status">
+              <span className={`live-dot ${message ? "error" : ""}`} aria-hidden="true" />
+              <span>
+                <strong>{loading ? "Loading volunteer list" : availability ? `${bookingPages.length} volunteers ready` : "Volunteer list unavailable"}</strong>
+                {availability ? <small>Updated {displayTime(availability.checkedAt)}</small> : null}
+              </span>
+              <button className="source-refresh" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh"}</button>
+            </div>
+
+            <details className="finder-trust">
+              <summary>How availability is checked</summary>
+              <p>We ask Google for each volunteer’s live appointment times. A failed check is never counted as “no openings.”</p>
+              <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Open the official volunteer list <span aria-hidden="true">↗</span></a>
+            </details>
           </aside>
         </section>
 
-        <section className="weekly-route" id="how-it-works" aria-labelledby="weekly-route-title">
-          <div className="route-heading">
-            <p className="eyebrow">Three simple steps</p>
-            <h2 id="weekly-route-title">From scan to session</h2>
-          </div>
-          <ol>
-            <li><span>01</span><div><strong>Scan</strong><p>Check all volunteers, or search for one name.</p></div></li>
-            <li><span>02</span><div><strong>Choose</strong><p>Start with this week, then next week or later.</p></div></li>
-            <li><span>03</span><div><strong>Confirm</strong><p>Pick the exact time and finish booking on Google.</p></div></li>
-          </ol>
-        </section>
-
-        {message ? (
-          <div className="source-error" role="alert">
-            <div><strong>Couldn’t refresh the volunteer list.</strong><span>{message}</span></div>
-            <button onClick={() => void refresh()} type="button">Try again</button>
-          </div>
-        ) : null}
-
-        <section className="panel sessions-panel" id="session-finder" aria-labelledby="finder-title">
-          <div className="panel-heading">
+        {showResultsPanel ? (
+        <section className="panel results-panel" id="availability-results" aria-labelledby="results-title">
+          <div className="results-overview">
             <div>
-              <p className="eyebrow">Live Google availability</p>
-              <h2 id="finder-title">Find your appointment</h2>
-              <p>Scan everyone or search for a volunteer. The most useful confirmed openings will appear first.</p>
-            </div>
-            <button className="text-button" disabled={!Object.keys(slotResults).length} onClick={clearResults} type="button">Clear results</button>
-          </div>
-
-          <div className="source-strip" aria-label="Volunteer list status">
-            <div className="source-state">
-              <span className="live-dot" aria-hidden="true" />
-              <span><strong>{availability?.bookingPages.length ?? "—"} volunteers</strong><small>List updated {displayTime(availability?.checkedAt)}</small></span>
-            </div>
-            <div className="source-actions">
-              <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Official list <span aria-hidden="true">↗</span></a>
-              <button className="source-refresh" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh"}</button>
-            </div>
-          </div>
-
-          <p className="trust-note">
-            <strong>What is checked:</strong> Google’s live appointment times. A failed check is never shown as “no openings.”
-          </p>
-
-          {resultsExpired ? (
-            <div className="expiry-note" role="status">
-              <span><strong>Your earlier results expired.</strong> Availability changes quickly, so scan again for a current answer.</span>
-              <button className="utility-button" onClick={requestScan} type="button">Scan again</button>
-            </div>
-          ) : null}
-
-          <div className="scan-chooser">
-            <div className="scan-mode-heading">
-              <div><strong>How would you like to find a session?</strong><span>Scan everyone for the best chance, or check a volunteer you already know.</span></div>
-              <div className="scan-mode-options" role="group" aria-label="Choose how to scan">
-                <button aria-pressed={scanMode === "all"} disabled={scan?.state === "running"} onClick={() => selectScanMode("all")} type="button">
-                  <span>All volunteers</span><small>Recommended</small>
-                </button>
-                <button aria-pressed={scanMode === "name"} disabled={scan?.state === "running"} onClick={() => selectScanMode("name")} type="button">
-                  <span>By name</span><small>Check one person</small>
-                </button>
-              </div>
-            </div>
-            <div className="scan-action-row">
-              {scanMode === "name" ? (
-                <label className="search-field">
-                  <span>Volunteer name</span>
-                  <input onChange={(event) => setQuery(event.target.value)} placeholder="Start typing a name" type="search" value={query} />
-                </label>
-              ) : (
-                <div className="scan-all-copy"><strong>Scan the full volunteer list</strong><span>Confirmed openings will be sorted by the dates most useful to you.</span></div>
-              )}
-              <button
-                className="scan-primary"
-                disabled={scan?.state === "running" || hasActiveCheck || searchedPages.length === 0}
-                onClick={requestScan}
-                type="button"
-              >
-                {scanMode === "all"
-                  ? `Scan all ${searchedPages.length} volunteers`
-                  : query.trim()
-                    ? `Scan ${searchedPages.length} match${searchedPages.length === 1 ? "" : "es"}`
-                    : "Enter a name to scan"}
-              </button>
-              {scan?.state === "running" ? <button className="danger-button" onClick={stopScan} type="button">Stop scan</button> : null}
-            </div>
-          </div>
-
-          <div className="desktop-filters" aria-label="Filter volunteer results">
-            {FILTERS.map((item) => {
-              const range = item.value === "this_week" ? thisWeekLabel : item.value === "next_week" ? nextWeekLabel : "";
-              const count = filterCount(item.value);
-              return (
-                <button
-                  aria-label={`${item.label}${range ? `, ${range}` : ""}: ${count}`}
-                  aria-pressed={filter === item.value}
-                  className="filter-chip"
-                  disabled={item.value !== "best" && count === 0}
-                  key={item.value}
-                  onClick={() => setFilter(item.value)}
-                  type="button"
-                >
-                  <span><span>{item.label}</span>{range ? <small>{range}</small> : null}</span>
-                  <b>{count}</b>
-                </button>
-              );
-            })}
-          </div>
-
-          <label className="mobile-filter">
-            <span>Showing</span>
-            <select onChange={(event) => setFilter(event.target.value as ResultFilter)} value={filter}>
-              {FILTERS.map((item) => <option disabled={item.value !== "best" && filterCount(item.value) === 0} key={item.value} value={item.value}>{item.label} ({filterCount(item.value)})</option>)}
-              <option disabled={counts.none_in_view === 0} value="none_in_view">No openings ({counts.none_in_view})</option>
-              <option disabled={counts.not_checked === 0} value="not_checked">Not checked ({counts.not_checked})</option>
-            </select>
-          </label>
-
-          {confirmScan ? (
-            <div className="confirm-card" role="alert">
-              <div><strong>Check {searchedPages.length} volunteer calendars?</strong><span>You can stop at any time and keep every completed result.</span></div>
-              <div><button onClick={() => void startScan()} type="button">Start scan</button><button className="secondary-button" onClick={() => setConfirmScan(false)} type="button">Cancel</button></div>
-            </div>
-          ) : null}
-
-          {scan ? (
-            <section className={`scan-receipt ${scan.state}`} aria-busy={scan.state === "running"} aria-live="polite">
-              <div className="receipt-heading">
-                <div>
-                  <p className="receipt-kicker">{scan.state === "running" ? "Live scan" : scan.state === "complete" ? "Scan complete" : "Scan paused"}</p>
-                  <h3>
-                    {scan.state === "running"
-                      ? `Checking ${scan.scope}`
-                      : scan.state === "complete"
-                        ? scanCounts.available
-                          ? `${scanCounts.available} volunteer${scanCounts.available === 1 ? "" : "s"} with open times`
-                          : "No confirmed openings right now"
-                        : `${scan.completed} of ${scan.total} calendars checked`}
-                  </h3>
-                </div>
-                <strong className="receipt-progress">{Math.round((scan.completed / scan.total) * 100)}%</strong>
-              </div>
-              <div className="progress-track" aria-hidden="true"><span style={{ width: `${(scan.completed / scan.total) * 100}%` }} /></div>
-              <p className="receipt-scope">
-                {scan.completed} of {scan.total} checked
-                <span aria-hidden="true">·</span>
-                {scan.state === "running" ? "Fast scan enabled" : `Finished ${displayClock(scan.finishedAt)}`}
-                {scanRange ? <><span aria-hidden="true">·</span> Range: {scanRange}</> : null}
+              <p className="eyebrow">{scan?.state === "running" ? "Live results" : "Your results"}</p>
+              <h2 id="results-title">
+                {scan?.state === "running"
+                  ? "Confirmed openings appear here"
+                  : scan?.state === "complete"
+                    ? scanCounts.available
+                      ? `${scanCounts.available} open volunteer calendar${scanCounts.available === 1 ? "" : "s"}`
+                      : scanCounts.attention
+                        ? "Some calendars need another look"
+                        : "No confirmed openings right now"
+                    : scan?.state === "stopped"
+                      ? "Results from completed checks"
+                      : "Recent availability results"}
+              </h2>
+              <p>
+                {scan?.state === "running"
+                  ? "You can review confirmed openings while the remaining calendars continue."
+                  : "Openings are ordered by the dates most useful for your weekly English Chat goal."}
               </p>
-              <div className="receipt-metrics">
-                {scanCounts.available > 0 ? <span className="positive"><b>{scanCounts.available}</b> open</span> : null}
-                {scanCounts.thisWeek > 0 ? <span><b>{scanCounts.thisWeek}</b> this week</span> : null}
-                {scanCounts.nextWeek > 0 ? <span><b>{scanCounts.nextWeek}</b> next week</span> : null}
-                {scanCounts.later > 0 ? <span><b>{scanCounts.later}</b> later</span> : null}
-                {scanCounts.none > 0 ? <span><b>{scanCounts.none}</b> no openings</span> : null}
-                {scanCounts.attention > 0 ? <span className="attention"><b>{scanCounts.attention}</b> need another look</span> : null}
+            </div>
+            <div className="results-actions">
+              <button className="secondary-button" onClick={openScanControls} type="button">New search</button>
+              <button className="quiet-button" onClick={clearResults} type="button">Clear</button>
+            </div>
+          </div>
+
+          {counts.available > 0 || (scan?.state !== "running" && counts.needs_attention > 0) ? (
+            <>
+              <div className="desktop-filters" aria-label="Filter volunteer results">
+                {FILTERS.filter((item) => filterCount(item.value) > 0).map((item) => {
+                  const range = item.value === "this_week" ? thisWeekLabel : item.value === "next_week" ? nextWeekLabel : "";
+                  const count = filterCount(item.value);
+                  return (
+                    <button
+                      aria-label={`${item.label}${range ? `, ${range}` : ""}: ${count}`}
+                      aria-pressed={filter === item.value}
+                      className="filter-chip"
+                      key={item.value}
+                      onClick={() => setFilter(item.value)}
+                      type="button"
+                    >
+                      <span><span>{item.label}</span>{range ? <small>{range}</small> : null}</span>
+                      <b>{count}</b>
+                    </button>
+                  );
+                })}
               </div>
-              {scan.state === "complete" ? (
-                <div className="receipt-next">
-                  <div><strong>What to do next</strong><p>{scanGuidance}</p><small>Results stay on this device for 30 minutes.</small></div>
-                  {scanCounts.available ? (
-                    <button className="receipt-action" onClick={() => setFilter(recommendedResultFilter)} type="button">{recommendedResultLabel}</button>
-                  ) : scanCounts.attention ? (
-                    <button className="receipt-action" onClick={() => setFilter("needs_attention")} type="button">Retry these checks</button>
-                  ) : (
-                    <a className="receipt-action" href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Open official schedule <span aria-hidden="true">↗</span></a>
-                  )}
-                </div>
-              ) : null}
-              {scan.state === "stopped" && scan.completed < scan.total ? (
-                <div className="receipt-next">
-                  <div><strong>Your completed results are safe.</strong><p>Continue whenever you’re ready; only the unchecked calendars will run.</p></div>
-                  <button className="receipt-action" onClick={scanRemaining} type="button">Check remaining</button>
-                </div>
-              ) : null}
-            </section>
+
+              <label className="mobile-filter">
+                <span>Showing</span>
+                <select onChange={(event) => setFilter(event.target.value as ResultFilter)} value={filter}>
+                  {FILTERS.filter((item) => filterCount(item.value) > 0).map((item) => (
+                    <option key={item.value} value={item.value}>{item.label} ({filterCount(item.value)})</option>
+                  ))}
+                  {filter === "none_in_view" ? <option value="none_in_view">No openings ({counts.none_in_view})</option> : null}
+                </select>
+              </label>
+            </>
           ) : null}
 
-          <details className="result-help">
+          {counts.available > 0 || (scan?.state !== "running" && counts.needs_attention > 0) ? <details className="result-help">
             <summary>How to read these results</summary>
             <div>
               <p><strong>Open:</strong> Google returned at least one appointment time.</p>
               <p><strong>No openings:</strong> Google returned no times in the stated scan range.</p>
               <p><strong>Needs attention:</strong> the check could not be confirmed. Try again or open Google directly.</p>
             </div>
-          </details>
+          </details> : null}
 
-          <div className="results-heading">
+          {counts.available > 0 || (scan?.state !== "running" && counts.needs_attention > 0) ? <div className="results-heading">
             <div><p className="eyebrow">Results</p><h3>{filter === "best" ? "Best available choices" : FILTERS.find((item) => item.value === filter)?.label ?? (filter === "none_in_view" ? "No openings" : "Not checked")}</h3></div>
             <span>{visiblePages.length} volunteer{visiblePages.length === 1 ? "" : "s"}</span>
-          </div>
+          </div> : null}
 
           <div className="result-sections">
             {sections.map((section) => (
@@ -841,25 +903,38 @@ export function AvailabilityBoard() {
                 <div className="result-card-list">{section.pages.map(renderCard)}</div>
               </section>
             ))}
-            {!loading && visiblePages.length === 0 ? (
+            {!loading && scan && visiblePages.length === 0 ? (
               <div className="empty-state">
-                <span className="empty-mark" aria-hidden="true">○</span>
-                <strong>{scanMode === "name" && !query.trim() ? "Enter a volunteer name to begin." : searchedPages.length === 0 ? "No volunteer matches that name." : scan?.state === "complete" ? "No confirmed opening in this view." : "Nothing to show yet."}</strong>
-                <span>{scanMode === "name" && !query.trim() ? "Or switch to All volunteers to look for the best available session." : searchedPages.length === 0 ? "Check the spelling or try all volunteers." : scan?.state === "complete" ? "Try another filter, scan again later, or use the official schedule." : "Scan the live calendars to see current appointment times."}</span>
+                <span className={scan.state === "running" ? "scan-spinner" : "empty-mark"} aria-hidden="true">{scan.state === "running" ? "" : "○"}</span>
+                <strong>{scan.state === "running" ? "Scanning live calendars…" : filter === "none_in_view" ? "No calendars in this group." : "No confirmed openings in this view."}</strong>
+                <span>{scan.state === "running" ? "Useful results will appear here as soon as Google confirms them." : "Try another result group, start a new search, or check the official schedule."}</span>
                 <div>
-                  {query ? <button className="secondary-button" onClick={() => setQuery("")} type="button">Clear search</button> : null}
-                  <button className="secondary-button" onClick={() => { selectScanMode("all"); setFilter("best"); }} type="button">Show all volunteers</button>
+                  {scan.state !== "running" && counts.available > 0 ? <button onClick={showRecommendedResults} type="button">Show best openings</button> : null}
+                  {scan.state !== "running" ? <button className="secondary-button" onClick={openScanControls} type="button">New search</button> : null}
                 </div>
               </div>
             ) : null}
           </div>
 
-          {filter !== "none_in_view" && counts.none_in_view > 0 ? (
+          {scan?.state !== "running" && filter !== "none_in_view" && counts.none_in_view > 0 ? (
             <details className="no-opening-disclosure">
               <summary><span><strong>{counts.none_in_view} calendar{counts.none_in_view === 1 ? "" : "s"} returned no openings</strong><small>Hidden so the useful choices stay easy to scan.</small></span><span>Review</span></summary>
               <div><p>These checks completed successfully; Google returned no appointment times in the checked range.</p><button className="secondary-button" onClick={() => setFilter("none_in_view")} type="button">Show these calendars</button></div>
             </details>
           ) : null}
+        </section>
+        ) : null}
+
+        <section className="weekly-route" id="how-it-works" aria-labelledby="weekly-route-title">
+          <div className="route-heading">
+            <p className="eyebrow">Your weekly flow</p>
+            <h2 id="weekly-route-title">From search to session</h2>
+          </div>
+          <ol>
+            <li><span>01</span><div><strong>Find</strong><p>Scan everyone for the best chance, or search for one volunteer.</p></div></li>
+            <li><span>02</span><div><strong>Choose</strong><p>Start with this week, then check next week or later.</p></div></li>
+            <li><span>03</span><div><strong>Book on Google</strong><p>Choose the exact time and complete the official booking.</p></div></li>
+          </ol>
         </section>
 
         <footer className="site-footer" id="about">

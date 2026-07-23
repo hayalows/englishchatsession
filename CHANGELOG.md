@@ -4,6 +4,24 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.2.0] - 2026-07-23
+
+### Added
+
+- Action-first finder in the hero so scanning everyone or searching by name is immediately visible.
+- Adaptive choose, scanning, completed, stopped, expired, and source-error states in one consistent surface.
+- Native volunteer-name suggestions with clear match counts and a focused single-volunteer check.
+- Progressive result disclosure that keeps filters, explanations, and result cards hidden until they are useful.
+
+### Changed
+
+- Moved the weekly instructions below the finder so the student’s main task comes first.
+- Replaced the large weekly-goal card with a compact, scannable weekly-goal fact.
+- Removed the unnecessary confirmation step before a full scan; scans remain cancellable and preserve completed checks.
+- Kept result scope stable when starting another search so completed results do not unexpectedly disappear.
+- Refined mobile spacing, touch targets, contrast, motion, reduced-motion behavior, result hierarchy, and failure guidance.
+- Preserved the existing Google Calendar availability adapter and bounded worker pool without scanner-engine changes.
+
 ## [1.1.1] - 2026-07-23
 
 ### Changed
@@ -52,6 +70,7 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 - Telegram and scheduled notification delivery.
 - Chromium-based calendar scanning.
 
+[1.2.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.2.0
 [1.1.1]: https://github.com/hayalows/englishchatsession/releases/tag/v1.1.1
 [1.1.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.1.0
 [1.0.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.0.0

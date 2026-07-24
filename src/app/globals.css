@@ -672,8 +672,8 @@ input:focus, select:focus, button:focus-visible, a:focus-visible, summary:focus-
 @media (hover: hover) and (pointer: fine) {
   .site-nav a:hover { background: rgba(0, 108, 117, .08); color: var(--teal-700); }
   .site-nav .nav-primary:hover { background: #005a62; color: white; }
-  a span[aria-hidden] { display: inline-block; transition: transform 160ms ease-out; }
-  a:hover span[aria-hidden] { transform: translate(2px, -2px); }
+  a span[aria-hidden]:not(.brand-mark) { display: inline-block; transition: transform 160ms ease-out; }
+  a:hover span[aria-hidden]:not(.brand-mark) { transform: translate(2px, -2px); }
   .hero-help-link:hover span[aria-hidden] { transform: translateY(2px); }
 }
 

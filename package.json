@@ -34,6 +34,7 @@
   },
   "homepage": "https://englishchatsession.vercel.app",
   "dependencies": {
+    "@vercel/analytics": "2.0.1",
     "cheerio": "^1.2.0",
     "next": "^16.2.10",
     "react": "^19.2.7",

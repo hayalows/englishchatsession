@@ -633,7 +633,7 @@ export function AvailabilityBoard() {
             <span className="brand-mark" aria-hidden="true">EC</span>
             <span>
               <strong>English Chat Finder</strong>
-              <small>Student-built booking helper</small>
+              <small>Find available volunteer sessions</small>
             </span>
           </a>
           <nav className="site-nav" aria-label="Main navigation">
@@ -676,7 +676,7 @@ export function AvailabilityBoard() {
 
             {resultsExpired ? (
               <div className="finder-notice" role="status">
-                <div><strong>Previous results expired</strong><span>Scan again for current availability.</span></div>
+                <div><strong>These results are no longer current</strong><span>Availability changes quickly. Scan again before booking.</span></div>
                 <button className="secondary-button" disabled={!bookingPages.length} onClick={requestScan} type="button">Scan again</button>
               </div>
             ) : null}
@@ -938,9 +938,9 @@ export function AvailabilityBoard() {
         </section>
 
         <footer className="site-footer" id="about">
-          <div className="footer-brand"><strong>English Chat Finder</strong><span>Designed and built by Papa Kojo Mensah</span><small>An independent student-built helper for finding English Chat appointments.</small></div>
+          <div className="footer-brand"><strong>English Chat Finder</strong><small>Helping students find available English Chat volunteer sessions.</small><span>Designed and built by Papa Kojo Mensah</span></div>
           <nav aria-label="Helpful links"><a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Official schedule <span aria-hidden="true">↗</span></a><a href={PREPARE_PAGE} rel="noreferrer" target="_blank">Prepare for your session <span aria-hidden="true">↗</span></a></nav>
-          <div className="footer-notes"><span>No sign-in</span><span>No server storage</span><span>Results expire after 30 minutes</span></div>
+          <p className="footer-guidance">Availability is checked from Google Calendar. Confirm and book the exact time on Google.</p>
         </footer>
       </main>
     </>

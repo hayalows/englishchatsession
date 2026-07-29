@@ -13,6 +13,13 @@ export class InvalidBookingUrlError extends Error {
   }
 }
 
+export class LegacyBookingLandingError extends Error {
+  constructor() {
+    super("This Google booking link opens an organizer page instead of one appointment schedule.");
+    this.name = "LegacyBookingLandingError";
+  }
+}
+
 export function isTrustedBookingUrl(value: string) {
   try {
     const url = new URL(value);
@@ -29,6 +36,15 @@ function scheduleIdFromUrl(value: string) {
   return schedulesIndex >= 0 ? parts[schedulesIndex + 1] : undefined;
 }
 
+function isLegacyBookingLandingUrl(value: string) {
+  const url = new URL(value);
+  const parts = url.pathname.split("/").filter(Boolean);
+  const appointmentsIndex = parts.indexOf("appointments");
+  return appointmentsIndex >= 0
+    && Boolean(parts[appointmentsIndex + 1])
+    && parts[appointmentsIndex + 1] !== "schedules";
+}
+
 export async function resolveScheduleId(bookingUrl: string, signal?: AbortSignal) {
   const directId = scheduleIdFromUrl(bookingUrl);
   if (directId) return directId;
@@ -38,6 +54,7 @@ export async function resolveScheduleId(bookingUrl: string, signal?: AbortSignal
     throw new InvalidBookingUrlError("The booking link redirected outside Google Calendar.");
   }
   const resolvedId = scheduleIdFromUrl(response.url);
+  if (!resolvedId && isLegacyBookingLandingUrl(response.url)) throw new LegacyBookingLandingError();
   if (!resolvedId) throw new Error("Google did not resolve this booking link to an appointment schedule.");
   return resolvedId;
 }

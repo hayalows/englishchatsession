@@ -24,7 +24,16 @@ export type LinkHealthMap = Record<string, LinkHealthRecord>;
 export type BookingUrlCatalog = Record<string, string[]>;
 
 export const TEMPORARY_FAILURE_COOLDOWN_MS = 10 * 60 * 1_000;
-export const SCHEDULE_UNAVAILABLE_COOLDOWN_MS = 8 * 60 * 60 * 1_000;
+export const SCHEDULE_UNAVAILABLE_COOLDOWNS_MS = [
+  30 * 60 * 1_000,
+  2 * 60 * 60 * 1_000,
+  6 * 60 * 60 * 1_000,
+] as const;
+
+export function scheduleUnavailableCooldown(failureCount: number) {
+  const index = Math.min(Math.max(0, failureCount), SCHEDULE_UNAVAILABLE_COOLDOWNS_MS.length - 1);
+  return SCHEDULE_UNAVAILABLE_COOLDOWNS_MS[index];
+}
 
 function tutorKey(tutor: string | null) {
   return tutor?.trim().toLocaleLowerCase() || null;

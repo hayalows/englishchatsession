@@ -62,12 +62,8 @@ export function CompletedScanOutcome({
         <div className="outcome-announcement" role="status">
           <span className="state-label">Scan complete</span>
           <h3>No sessions available right now</h3>
-          <p>
-            We did not find a bookable appointment
-            {checkedRange ? ` between ${checkedRange.replace("–", " and ")}` : " in the checked date range"}.
-            {" "}Availability changes as volunteers update their calendars, so check again later.
-          </p>
-          <small>{checkedLabel}</small>
+          <p>We checked every volunteer calendar ready now. Availability changes as volunteers update their calendars, so check again later.</p>
+          <small>{checkedLabel}{checkedRange ? ` · Searched ${checkedRange}` : ""}</small>
         </div>
         <div className="outcome-actions">
           <button onClick={onCheckAgain} type="button">Check again</button>
@@ -78,20 +74,31 @@ export function CompletedScanOutcome({
   }
 
   const onlyPausedCalendar = Boolean(singleTutor && temporarilyUnavailable > 0 && temporaryErrors === 0);
+  const everyCalendarWaiting = Boolean(!singleTutor && temporarilyUnavailable > 0 && temporaryErrors === 0);
   return (
     <>
       <div className="outcome-announcement" role="alert">
         <span className="state-label">Search incomplete</span>
-        <h3>{onlyPausedCalendar ? "This calendar is temporarily unavailable" : "We couldn’t check availability"}</h3>
+        <h3>
+          {onlyPausedCalendar
+            ? "This calendar is temporarily unavailable"
+            : everyCalendarWaiting
+              ? "Calendars are waiting briefly"
+              : "We couldn’t check availability"}
+        </h3>
         <p>
           {onlyPausedCalendar
             ? `We could not confirm ${singleTutor}’s calendar right now. Search all volunteers for the best chance of finding a session.`
-            : "Google did not return enough reliable information to confirm whether sessions are available. Please try again in a moment."}
+            : everyCalendarWaiting
+              ? "No volunteer calendar is ready to check right now. Waiting calendars automatically return to a future search."
+              : "Google did not return enough reliable information to confirm whether sessions are available. Please try again in a moment."}
         </p>
         <small>
           {onlyPausedCalendar
             ? "This calendar will become eligible for an automatic future check."
-            : "We did not label this as “no sessions available” because the check was incomplete."}
+            : everyCalendarWaiting
+              ? "This is temporary. No calendar has been removed permanently."
+              : "We did not label this as “no sessions available” because the check was incomplete."}
         </small>
       </div>
       <div className="outcome-actions">

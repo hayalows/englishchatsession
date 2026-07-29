@@ -8,6 +8,7 @@ export type StoredScanReport = {
   startedAt: string;
   finishedAt?: string;
   scope: string;
+  waitingCount?: number;
 };
 
 export function normalizeStoredScan(value: unknown, savedAt: string): StoredScanReport | null {
@@ -37,6 +38,7 @@ export function normalizeStoredScan(value: unknown, savedAt: string): StoredScan
     startedAt: candidate.startedAt,
     finishedAt: candidate.finishedAt ?? savedAt,
     scope: candidate.scope,
+    waitingCount: typeof candidate.waitingCount === "number" ? Math.max(0, candidate.waitingCount) : undefined,
   };
 }
 

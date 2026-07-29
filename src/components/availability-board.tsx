@@ -4,7 +4,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CompletedScanOutcome } from "@/components/completed-scan-outcome";
 import { getWeekWindow } from "@/lib/date-window";
+import {
+  type BookingUrlCatalog,
+  type LinkHealthMap,
+  type LinkHealthReason,
+  isLinkPaused,
+  markLinkHealthy,
+  markLinkPaused,
+  planLinkChecks,
+  reconcileLinkHealth,
+  SCHEDULE_UNAVAILABLE_COOLDOWN_MS,
+  TEMPORARY_FAILURE_COOLDOWN_MS,
+} from "@/lib/link-health";
 import type { SlotResult, TutorCheckStatus } from "@/lib/monitoring/results";
+import { runProgressiveScan } from "@/lib/progressive-scan";
 import {
   chooseRecommendedView,
   countAvailableTimes,
@@ -14,26 +27,30 @@ import {
   openingGroup,
   type OpeningGroup,
 } from "@/lib/result-presentation";
+import { normalizeStoredScan, type StoredScanReport } from "@/lib/saved-scan";
+import { fetchSlotResult, SlotRequestError } from "@/lib/slot-request";
 
 type BookingPage = { tutor: string | null; bookingUrl: string };
 type Availability = { checkedAt: string; bookingPages: BookingPage[] };
 type ScanMode = "all" | "name";
 type ResultFilter = "best" | "this_week" | "next_week" | "later";
 type ResultSection = OpeningGroup | "needs_attention" | "none_in_view" | "not_checked";
-type ScanReport = {
-  state: "running" | "complete" | "stopped";
-  speed: "fast" | "reduced";
-  completed: number;
-  completedUrls: string[];
-  total: number;
-  urls: string[];
-  startedAt: string;
-  finishedAt?: string;
-  scope: string;
+type ScanReport = StoredScanReport;
+type StoredResults = {
+  version: 2 | 3;
+  savedAt: string;
+  results: Record<string, SlotResult>;
+  scan?: ScanReport;
 };
-type StoredResults = { version: 2; savedAt: string; results: Record<string, SlotResult> };
+type StoredLinkHealth = {
+  version: 1;
+  savedAt: string;
+  health: LinkHealthMap;
+  catalog: BookingUrlCatalog;
+};
 
 const STORAGE_KEY = "english-chat-booking-results:v2";
+const LINK_HEALTH_STORAGE_KEY = "english-chat-link-health:v1";
 const RESULT_STALE_AFTER_MS = 10 * 60 * 1000;
 const RESULT_RETENTION_MS = 24 * 60 * 60 * 1000;
 const DIRECT_HTTP_SCAN_CONCURRENCY = 10;
@@ -118,63 +135,43 @@ function isRetained(value?: string) {
 function readStoredResults() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as StoredResults | null;
-    if (!saved || saved.version !== 2 || typeof saved.results !== "object") return { results: {}, expired: false };
+    if (!saved || (saved.version !== 2 && saved.version !== 3) || typeof saved.results !== "object") {
+      return { results: {}, expired: false, scan: null };
+    }
     const results = Object.fromEntries(
       Object.entries(saved.results).filter(([, result]) => result && VALID_STATUSES.has(result.status) && isRetained(result.checkedAt)),
     );
     return {
       results,
       expired: Object.values(results).some((result) => !isCurrent(result.checkedAt)),
+      scan: saved.version === 3 ? normalizeStoredScan(saved.scan, saved.savedAt) : null,
     };
   } catch {
-    return { results: {}, expired: false };
+    return { results: {}, expired: false, scan: null };
   }
 }
 
-function waitForRetry(signal?: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
-    const timer = window.setTimeout(resolve, 700);
-    signal?.addEventListener("abort", () => {
-      window.clearTimeout(timer);
-      reject(new DOMException("Stopped", "AbortError"));
-    }, { once: true });
-  });
-}
-
-class SlotRequestError extends Error {
-  constructor(message: string, readonly status?: number) {
-    super(message);
-    this.name = "SlotRequestError";
-  }
-}
-
-async function fetchSlotResult(bookingUrl: string, signal?: AbortSignal) {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const response = await fetch("/api/slots", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingUrl }),
-        signal,
-      });
-      const result = (await response.json()) as SlotResult & { message?: string };
-      if (response.ok) return result;
-      if (attempt === 0 && response.status >= 500 && response.status !== 429) {
-        await waitForRetry(signal);
-        continue;
-      }
-      throw new SlotRequestError(result.message ?? "The booking page could not be checked.", response.status);
-    } catch (error) {
-      if ((error as Error).name === "AbortError") throw error;
-      if (error instanceof SlotRequestError) throw error;
-      if (attempt === 0) {
-        await waitForRetry(signal);
-        continue;
-      }
-      throw error;
+function readStoredLinkHealth() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LINK_HEALTH_STORAGE_KEY) ?? "null") as StoredLinkHealth | null;
+    if (!saved || saved.version !== 1 || typeof saved.health !== "object" || typeof saved.catalog !== "object") {
+      return { health: {}, catalog: {} };
     }
+    return { health: saved.health, catalog: saved.catalog };
+  } catch {
+    return { health: {}, catalog: {} };
   }
-  throw new Error("The booking page could not be checked.");
+}
+
+function temporaryHealthReason(error: unknown): Exclude<LinkHealthReason, "confirmed_dates" | "confirmed_empty_range" | "schedule_unavailable"> {
+  if (error instanceof SlotRequestError && error.status === 429) return "rate_limited";
+  if (
+    (error instanceof SlotRequestError && error.status === 504)
+    || (error instanceof Error && (error.name === "TimeoutError" || /timed? out/i.test(error.message)))
+  ) {
+    return "request_timeout";
+  }
+  return "temporary_provider_failure";
 }
 
 function resultSection(result: SlotResult | undefined, now: Date): ResultSection {
@@ -197,11 +194,24 @@ export function AvailabilityBoard() {
   const [showScanControls, setShowScanControls] = useState(false);
   const [resultsExpired, setResultsExpired] = useState(false);
   const [localNow, setLocalNow] = useState<Date | null>(null);
+  const [linkHealth, setLinkHealth] = useState<LinkHealthMap>({});
+  const [bookingUrlCatalog, setBookingUrlCatalog] = useState<BookingUrlCatalog>({});
+  const [linkHealthLoaded, setLinkHealthLoaded] = useState(false);
+  const [healthNow, setHealthNow] = useState<number | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
   const autoSelectedRef = useRef<string | null>(null);
   const outcomeRef = useRef<HTMLDivElement | null>(null);
-  const permanentUnavailableRef = useRef(new Set<string>());
+  const linkHealthRef = useRef<LinkHealthMap>({});
+  const bookingUrlCatalogRef = useRef<BookingUrlCatalog>({});
+
+  const updateLinkHealth = useCallback((updater: (current: LinkHealthMap) => LinkHealthMap) => {
+    setLinkHealth((current) => {
+      const next = updater(current);
+      linkHealthRef.current = next;
+      return next;
+    });
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -210,11 +220,27 @@ export function AvailabilityBoard() {
       const response = await fetch("/api/availability", { cache: "no-store" });
       const payload = (await response.json()) as Availability & { message?: string };
       if (!response.ok) throw new Error(payload.message ?? "Unable to read the English Chat scheduling page.");
+      const reconciled = reconcileLinkHealth(
+        linkHealthRef.current,
+        bookingUrlCatalogRef.current,
+        payload.bookingPages,
+      );
+      linkHealthRef.current = reconciled.health;
+      bookingUrlCatalogRef.current = reconciled.catalog;
+      setLinkHealth(reconciled.health);
+      setBookingUrlCatalog(reconciled.catalog);
       setAvailability(payload);
       const validUrls = new Set(payload.bookingPages.map((page) => page.bookingUrl));
       setSlotResults((current) => Object.fromEntries(
         Object.entries(current).filter(([url, result]) => validUrls.has(url) && (result.status === "checking" || isRetained(result.checkedAt))),
       ));
+      setScan((current) => {
+        if (!current) return current;
+        const completedUrls = current.completedUrls.filter((url) => validUrls.has(url));
+        const urls = current.urls.filter((url) => validUrls.has(url));
+        if (!completedUrls.length && !urls.length) return null;
+        return { ...current, completedUrls, urls };
+      });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to read the English Chat scheduling page.");
     } finally {
@@ -235,9 +261,22 @@ export function AvailabilityBoard() {
   }, []);
 
   useEffect(() => {
+    setHealthNow(Date.now());
+    const timer = window.setInterval(() => setHealthNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const stored = readStoredResults();
+    const storedHealth = readStoredLinkHealth();
     setSlotResults(stored.results);
     setResultsExpired(stored.expired);
+    setScan(stored.scan);
+    linkHealthRef.current = storedHealth.health;
+    bookingUrlCatalogRef.current = storedHealth.catalog;
+    setLinkHealth(storedHealth.health);
+    setBookingUrlCatalog(storedHealth.catalog);
+    setLinkHealthLoaded(true);
     void refresh();
   }, [refresh]);
 
@@ -252,21 +291,46 @@ export function AvailabilityBoard() {
   }, [slotResults]);
 
   useEffect(() => {
+    if (!linkHealthLoaded) return;
+    try {
+      localStorage.setItem(LINK_HEALTH_STORAGE_KEY, JSON.stringify({
+        version: 1,
+        savedAt: new Date().toISOString(),
+        health: linkHealth,
+        catalog: bookingUrlCatalog,
+      } satisfies StoredLinkHealth));
+    } catch {
+      // Browser storage is optional.
+    }
+  }, [bookingUrlCatalog, linkHealth, linkHealthLoaded]);
+
+  useEffect(() => {
     const persisted = Object.fromEntries(
       Object.entries(slotResults).filter(([, result]) => VALID_STATUSES.has(result.status) && isRetained(result.checkedAt)),
     );
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: 2,
+        version: 3,
         savedAt: new Date().toISOString(),
         results: persisted,
+        scan: scan
+          ? {
+            ...scan,
+            state: scan.state === "running" ? "stopped" : scan.state,
+            finishedAt: scan.state === "running" ? new Date().toISOString() : scan.finishedAt,
+          }
+          : undefined,
       } satisfies StoredResults));
     } catch {
       // Browser storage is optional.
     }
-  }, [slotResults]);
+  }, [scan, slotResults]);
 
   const bookingPages = useMemo(() => availability?.bookingPages ?? [], [availability]);
+  const pausedLinkCount = useMemo(() => healthNow === null
+    ? 0
+    : bookingPages.filter((page) => isLinkPaused(linkHealth[page.bookingUrl], healthNow)).length,
+  [bookingPages, healthNow, linkHealth]);
   const searchedPages = useMemo(() => {
     if (scanMode === "all") return bookingPages;
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -378,7 +442,7 @@ export function AvailabilityBoard() {
     .map((url) => slotResults[url]?.checkedRange)
     .find(Boolean), [scan, slotResults]);
   const singleScannedTutor = useMemo(() => {
-    if (!scan || scan.total !== 1) return null;
+    if (!scan || scan.urls.length !== 1) return null;
     const targetUrl = scan.urls[0];
     return bookingPages.find((booking) => booking.bookingUrl === targetUrl)?.tutor ?? "this volunteer";
   }, [bookingPages, scan]);
@@ -414,18 +478,46 @@ export function AvailabilityBoard() {
     try {
       const result = await fetchSlotResult(bookingUrl, signal);
       if (runId === undefined || runId === runIdRef.current) {
-        if (result.reasonCode === "schedule_unavailable") {
-          permanentUnavailableRef.current.add(bookingUrl);
+        const checkedAt = result.checkedAt ?? new Date().toISOString();
+        if (result.status === "available" && result.reasonCode === "confirmed_dates") {
+          updateLinkHealth((current) => markLinkHealthy(current, bookingUrl, checkedAt, "confirmed_dates"));
+        } else if (result.status === "none_in_view" && result.reasonCode === "confirmed_empty_range") {
+          updateLinkHealth((current) => markLinkHealthy(current, bookingUrl, checkedAt, "confirmed_empty_range"));
+        } else if (result.reasonCode === "schedule_unavailable") {
+          updateLinkHealth((current) => markLinkPaused(
+            current,
+            bookingUrl,
+            checkedAt,
+            "schedule_unavailable",
+            SCHEDULE_UNAVAILABLE_COOLDOWN_MS,
+          ));
+        } else if (result.reasonCode === "request_failed") {
+          updateLinkHealth((current) => markLinkPaused(
+            current,
+            bookingUrl,
+            checkedAt,
+            "temporary_provider_failure",
+            TEMPORARY_FAILURE_COOLDOWN_MS,
+          ));
         }
         setSlotResults((current) => ({ ...current, [bookingUrl]: result }));
       }
       return { result, rateLimited: false };
     } catch (error) {
       if ((error as Error).name !== "AbortError" && (runId === undefined || runId === runIdRef.current)) {
+        const checkedAt = new Date().toISOString();
+        const healthReason = temporaryHealthReason(error);
+        updateLinkHealth((current) => markLinkPaused(
+          current,
+          bookingUrl,
+          checkedAt,
+          healthReason,
+          TEMPORARY_FAILURE_COOLDOWN_MS,
+        ));
         const failedResult: SlotResult = {
           status: "failed",
           availableDates: [],
-          checkedAt: new Date().toISOString(),
+          checkedAt,
           message: error instanceof SlotRequestError && error.status === 429
             ? "Too many checks reached the service at once. Try this volunteer again in a moment."
             : "The live check failed twice. Open the page directly or try again.",
@@ -442,23 +534,14 @@ export function AvailabilityBoard() {
   }
 
   async function startScan(pages = searchedPages, resumeFrom?: ScanReport) {
-    const skippedUrls = pages
-      .filter((page) => permanentUnavailableRef.current.has(page.bookingUrl))
-      .map((page) => page.bookingUrl);
-    const queue = pages.filter((page) => !permanentUnavailableRef.current.has(page.bookingUrl));
-    if (!queue.length && !skippedUrls.length) return;
+    const { queued: queue } = planLinkChecks(pages, linkHealthRef.current);
+    if (!pages.length) return;
     setShowScanControls(false);
     setResultsExpired(false);
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    const runId = ++runIdRef.current;
-    let nextIndex = 0;
-    const completedUrls = [...new Set([...(resumeFrom?.completedUrls ?? []), ...skippedUrls])];
-    let completed = completedUrls.length;
-    let active = 0;
-    let activeLimit = DIRECT_HTTP_SCAN_CONCURRENCY;
-    let transientFailures = 0;
+    if (!resumeFrom) setFilter("best");
+    const baseCompletedUrls = resumeFrom?.completedUrls ?? [];
     const startedAt = resumeFrom?.startedAt ?? new Date().toISOString();
+    const scopeUrls = resumeFrom?.urls ?? queue.map((page) => page.bookingUrl);
     const scope = resumeFrom?.scope ?? (
       scanMode === "name" && query.trim()
         ? `${queue.length} volunteer${queue.length === 1 ? "" : "s"} matching “${query.trim()}”`
@@ -466,66 +549,75 @@ export function AvailabilityBoard() {
           ? `all ${queue.length} volunteer calendars`
           : `${queue.length} selected volunteer calendars`
     );
+
+    if (!queue.length) {
+      setScan({
+        state: "complete",
+        speed: resumeFrom?.speed ?? "fast",
+        completed: 0,
+        completedUrls: baseCompletedUrls,
+        total: 0,
+        urls: scopeUrls,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        scope,
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const runId = ++runIdRef.current;
     setScan({
       state: "running",
       speed: resumeFrom?.speed ?? "fast",
-      completed,
-      completedUrls,
-      total: resumeFrom?.total ?? pages.length,
-      urls: resumeFrom?.urls ?? pages.map((page) => page.bookingUrl),
+      completed: 0,
+      completedUrls: baseCompletedUrls,
+      total: queue.length,
+      urls: scopeUrls,
       startedAt,
       scope,
     });
 
     try {
-      await new Promise<void>((resolve) => {
-        const launch = () => {
-          if (controller.signal.aborted || runId !== runIdRef.current) {
-            if (active === 0) resolve();
-            return;
-          }
-          while (active < activeLimit && nextIndex < queue.length) {
-            const index = nextIndex++;
-            active += 1;
-            void checkTutor(queue[index].bookingUrl, controller.signal, runId)
-              .then((outcome) => {
-                if (!outcome || controller.signal.aborted || runId !== runIdRef.current) return;
-                const transientFailure = outcome.rateLimited
-                  || (outcome.result.status === "unknown" && outcome.result.reasonCode === "request_failed")
-                  || (outcome.result.status === "failed" && outcome.result.reasonCode === "request_failed");
-                transientFailures = transientFailure ? transientFailures + 1 : 0;
-                if (outcome.rateLimited || transientFailures >= 3) {
-                  activeLimit = Math.max(3, Math.floor(activeLimit / 2));
-                  setScan((current) => current ? { ...current, speed: "reduced" } : current);
-                }
-                completed += 1;
-                setScan((current) => current ? {
-                  ...current,
-                  completed,
-                  completedUrls: [...current.completedUrls, queue[index].bookingUrl],
-                } : current);
-              })
-              .catch(() => undefined)
-              .finally(() => {
-                active -= 1;
-                if (nextIndex >= queue.length && active === 0) resolve();
-                else launch();
-              });
-          }
-          if (nextIndex >= queue.length && active === 0) resolve();
-        };
-        launch();
+      const summary = await runProgressiveScan({
+        items: queue,
+        concurrency: DIRECT_HTTP_SCAN_CONCURRENCY,
+        minimumConcurrency: 3,
+        signal: controller.signal,
+        run: (page, signal) => checkTutor(page.bookingUrl, signal, runId),
+        isRateLimited: (outcome) => Boolean(outcome?.rateLimited),
+        isTemporaryFailure: (outcome) => Boolean(
+          outcome
+          && (outcome.result.status === "unknown" || outcome.result.status === "failed")
+          && outcome.result.reasonCode === "request_failed"
+        ),
+        onProgress: (progress) => {
+          if (runId !== runIdRef.current) return;
+          setScan((current) => current ? {
+            ...current,
+            completed: progress.completed,
+            total: progress.total,
+            completedUrls: [...new Set([
+              ...baseCompletedUrls,
+              ...progress.completedItems.map((page) => page.bookingUrl),
+            ])],
+          } : current);
+        },
+        onReducedSpeed: () => {
+          setScan((current) => current ? { ...current, speed: "reduced" } : current);
+        },
       });
-    } finally {
       if (runId === runIdRef.current) {
         setScan((current) => current ? {
           ...current,
-          state: controller.signal.aborted ? "stopped" : "complete",
-          completed,
+          state: summary.stopped ? "stopped" : "complete",
+          completed: summary.completed,
           finishedAt: new Date().toISOString(),
         } : current);
       }
-      controllerRef.current = null;
+    } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
     }
   }
 
@@ -579,6 +671,12 @@ export function AvailabilityBoard() {
     if (scan?.state === "running") stopScan();
     setShowScanControls(true);
     window.requestAnimationFrame(() => document.querySelector("#session-finder")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }
+
+  function openAllScanControls() {
+    setScanMode("all");
+    setQuery("");
+    openScanControls();
   }
 
   const recommendedResultFilter: ResultFilter = scanCounts.thisWeek
@@ -756,10 +854,11 @@ export function AvailabilityBoard() {
                     later={scanCounts.later}
                     nextWeek={scanCounts.nextWeek}
                     onCheckAgain={requestScan}
+                    onFindAny={openAllScanControls}
                     onNewSearch={openScanControls}
                     onViewSessions={showRecommendedResults}
-                    permanentProblems={scanCounts.unavailable}
                     singleTutor={singleScannedTutor}
+                    temporarilyUnavailable={scanCounts.unavailable}
                     temporaryErrors={scanCounts.unverified}
                     thisWeek={scanCounts.thisWeek}
                   />
@@ -769,7 +868,7 @@ export function AvailabilityBoard() {
               <div className="finder-setup">
                 <div className="scan-mode-options" role="group" aria-label="Choose how to find a session">
                   <button aria-pressed={scanMode === "all"} onClick={() => selectScanMode("all")} type="button">
-                    <span>Find any opening</span><small>Recommended</small>
+                    <span>Any volunteer</span><small>Recommended</small>
                   </button>
                   <button aria-pressed={scanMode === "name"} onClick={() => selectScanMode("name")} type="button">
                     <span>Search by name</span><small>One volunteer</small>
@@ -830,7 +929,7 @@ export function AvailabilityBoard() {
             <div className="finder-source" aria-label="Volunteer list status">
               <span className={`live-dot ${message ? "error" : ""}`} aria-hidden="true" />
               <span>
-                <strong>{loading ? "Loading volunteer list" : availability ? `${bookingPages.length} volunteers available to check` : "Volunteer list unavailable"}</strong>
+                <strong>{loading ? "Loading volunteer list" : availability ? `${bookingPages.length} volunteers listed` : "Volunteer list unavailable"}</strong>
                 {availability ? <small>Updated {displayTime(availability.checkedAt)}</small> : null}
               </span>
               <button className="source-refresh" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh"}</button>
@@ -839,6 +938,11 @@ export function AvailabilityBoard() {
             <details className="finder-trust">
               <summary>How availability is checked</summary>
               <p>We ask Google for each volunteer’s live appointment times. A failed check is never counted as “no openings.”</p>
+              {pausedLinkCount > 0 ? (
+                <p className="link-health-note">
+                  {pausedLinkCount} listed calendar{pausedLinkCount === 1 ? " is" : "s are"} temporarily paused and will be checked again automatically later.
+                </p>
+              ) : null}
               <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Open the official volunteer list <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a>
             </details>
           </aside>

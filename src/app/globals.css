@@ -236,13 +236,16 @@ input:focus, select:focus, button:focus-visible, a:focus-visible, summary:focus-
 }
 .finder-search { display: grid; gap: .42rem; }
 .scan-primary {
+  align-items: center;
   box-shadow: 0 9px 24px rgba(0, 108, 117, .16);
+  display: flex;
   font-size: .92rem;
-  justify-self: start;
+  justify-content: center;
+  justify-self: stretch;
   min-height: 48px;
   padding-inline: 1.1rem;
   white-space: nowrap;
-  width: fit-content;
+  width: 100%;
 }
 
 .finder-source {
@@ -287,6 +290,7 @@ input:focus, select:focus, button:focus-visible, a:focus-visible, summary:focus-
   margin: 0;
   padding: 0 .15rem .55rem;
 }
+.finder-trust .link-health-note { color: var(--muted-light); font-size: .7rem; }
 .finder-trust a {
   color: var(--teal-700);
   display: inline-flex;

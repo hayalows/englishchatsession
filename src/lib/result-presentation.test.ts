@@ -75,10 +75,9 @@ describe("result presentation", () => {
   });
 
   it("chooses the most useful result view after a scan", () => {
-    expect(chooseRecommendedView({ thisWeek: 2, nextWeek: 3, later: 4, attention: 1 })).toBe("this_week");
-    expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 1, later: 4, attention: 1 })).toBe("next_week");
-    expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 0, later: 3, attention: 2 })).toBe("later");
-    expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 0, later: 0, attention: 2 })).toBe("needs_attention");
-    expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 0, later: 0, attention: 0 })).toBe("best");
+    expect(chooseRecommendedView({ thisWeek: 2, nextWeek: 3, later: 4 })).toBe("this_week");
+    expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 1, later: 4 })).toBe("next_week");
+    expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 0, later: 3 })).toBe("later");
+    expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 0, later: 0 })).toBe("best");
   });
 });

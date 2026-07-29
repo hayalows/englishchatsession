@@ -2,7 +2,7 @@ import { isDateInWeek } from "./date-window";
 import type { SlotResult } from "./monitoring/results";
 
 export type OpeningGroup = "this_week" | "next_week" | "later";
-export type RecommendedView = OpeningGroup | "needs_attention" | "best";
+export type RecommendedView = OpeningGroup | "best";
 
 export function localDateKey(value: string) {
   const date = new Date(value);
@@ -51,11 +51,9 @@ export function chooseRecommendedView(counts: {
   thisWeek: number;
   nextWeek: number;
   later: number;
-  attention: number;
 }): RecommendedView {
   if (counts.thisWeek > 0) return "this_week";
   if (counts.nextWeek > 0) return "next_week";
   if (counts.later > 0) return "later";
-  if (counts.attention > 0) return "needs_attention";
   return "best";
 }

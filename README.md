@@ -17,11 +17,12 @@ English Chat Finder helps BYU-Pathway Worldwide students find open 30-minute Eng
 - Places the scan-all and search-by-name actions directly beside the main introduction.
 - Adapts the same finder surface from setup to progress to a plain-language outcome.
 - Groups confirmed openings into this week, next week, and later dates using the student's local timezone.
-- Presents the most useful post-scan view first and keeps no-opening results collapsed until needed.
+- Shows bookable openings immediately and reduces a completed empty scan to one calm explanation and one clear action.
 - Scans volunteers through a bounded worker pool instead of opening every calendar at once.
-- Reports provider or network failures as **Couldn’t verify**, never as **No openings**.
+- Keeps unavailable links and temporary provider failures out of the student-facing results, while never counting them as **No sessions available**.
 - Keeps results in the student's browser for reference, marks them for rechecking after 10 minutes, and removes them after 24 hours.
 - Slows the current scan when repeated provider failures or rate limiting suggest that reliability is at risk.
+- Avoids requesting a permanently unavailable booking link again during the same browser visit.
 
 The app has no account system, database, messaging service, cron job, or server-side result history. Vercel Web Analytics records aggregate visits, not appointment results or named student profiles. Exact appointment times and final availability must always be confirmed on Google before booking.
 
@@ -46,6 +47,7 @@ Temporary browser results and direct booking links
 The main implementation lives in:
 
 - `src/components/availability-board.tsx` — student interface, scan queue, filters, and temporary browser storage.
+- `src/components/completed-scan-outcome.tsx` — focused completed, empty, and unreliable search outcomes.
 - `src/lib/monitoring/availability.ts` — official scheduling-page fetch.
 - `src/lib/monitoring/parser.ts` — trusted booking-link extraction.
 - `src/lib/monitoring/slots.ts` — direct Google Calendar availability check.

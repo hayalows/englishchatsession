@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CompletedScanOutcome } from "@/components/completed-scan-outcome";
 import { getWeekWindow } from "@/lib/date-window";
+import { FirstAppearanceTracker } from "@/lib/first-appearance";
 import {
   type BookingUrlCatalog,
   type LinkHealthMap,
@@ -13,7 +14,7 @@ import {
   markLinkPaused,
   planLinkChecks,
   reconcileLinkHealth,
-  SCHEDULE_UNAVAILABLE_COOLDOWN_MS,
+  scheduleUnavailableCooldown,
   TEMPORARY_FAILURE_COOLDOWN_MS,
 } from "@/lib/link-health";
 import type { SlotResult, TutorCheckStatus } from "@/lib/monitoring/results";
@@ -24,6 +25,7 @@ import {
   datesInUserTime,
   earliestAvailableTime,
   hasDateInWeek,
+  limitVisibleResults,
   openingGroup,
   type OpeningGroup,
 } from "@/lib/result-presentation";
@@ -54,6 +56,7 @@ const LINK_HEALTH_STORAGE_KEY = "english-chat-link-health:v1";
 const RESULT_STALE_AFTER_MS = 10 * 60 * 1000;
 const RESULT_RETENTION_MS = 24 * 60 * 60 * 1000;
 const DIRECT_HTTP_SCAN_CONCURRENCY = 10;
+const INITIAL_RESULT_LIMIT = 5;
 const VALID_STATUSES = new Set<TutorCheckStatus>(["available", "none_in_view", "unknown", "failed"]);
 const OFFICIAL_SCHEDULE = "https://sites.google.com/view/english-chat-student-center/Scheduling?authuser=0";
 const PREPARE_PAGE = "https://sites.google.com/view/english-chat-student-center/English-Chat-Structure?authuser=0";
@@ -198,12 +201,15 @@ export function AvailabilityBoard() {
   const [bookingUrlCatalog, setBookingUrlCatalog] = useState<BookingUrlCatalog>({});
   const [linkHealthLoaded, setLinkHealthLoaded] = useState(false);
   const [healthNow, setHealthNow] = useState<number | null>(null);
+  const [visibleResultLimit, setVisibleResultLimit] = useState(INITIAL_RESULT_LIMIT);
+  const [weekdayFilter, setWeekdayFilter] = useState<number | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
   const autoSelectedRef = useRef<string | null>(null);
   const outcomeRef = useRef<HTMLDivElement | null>(null);
   const linkHealthRef = useRef<LinkHealthMap>({});
   const bookingUrlCatalogRef = useRef<BookingUrlCatalog>({});
+  const appearanceTrackerRef = useRef(new FirstAppearanceTracker());
 
   const updateLinkHealth = useCallback((updater: (current: LinkHealthMap) => LinkHealthMap) => {
     setLinkHealth((current) => {
@@ -269,6 +275,11 @@ export function AvailabilityBoard() {
   useEffect(() => {
     const stored = readStoredResults();
     const storedHealth = readStoredLinkHealth();
+    appearanceTrackerRef.current.restore(
+      Object.entries(stored.results)
+        .filter(([, result]) => result.status === "available")
+        .map(([url]) => url),
+    );
     setSlotResults(stored.results);
     setResultsExpired(stored.expired);
     setScan(stored.scan);
@@ -381,8 +392,9 @@ export function AvailabilityBoard() {
       .filter((booking) => {
         const result = slotResults[booking.bookingUrl];
         const section = resultSection(result, localNow);
-        if (filter === "best") return result?.status === "available";
-        return section === filter;
+        const matchesRange = filter === "best" ? result?.status === "available" : section === filter;
+        if (!matchesRange || weekdayFilter === null) return matchesRange;
+        return datesInUserTime(result).some((date) => new Date(`${date}T12:00:00`).getDay() === weekdayFilter);
       })
       .sort((a, b) => {
         const rank: Record<ResultSection, number> = {
@@ -402,19 +414,44 @@ export function AvailabilityBoard() {
         if (aTime && bTime) return new Date(aTime).valueOf() - new Date(bTime).valueOf();
         return (a.tutor ?? "").localeCompare(b.tutor ?? "");
       });
-  }, [filter, localNow, resultPages, slotResults]);
+  }, [filter, localNow, resultPages, slotResults, weekdayFilter]);
+
+  const weekdayOptions = useMemo(() => {
+    if (counts.available <= INITIAL_RESULT_LIMIT) return [] as { day: number; label: string; count: number }[];
+    const countsByDay = new Map<number, number>();
+    for (const booking of resultPages) {
+      const result = slotResults[booking.bookingUrl];
+      if (result?.status !== "available") continue;
+      const days = new Set(datesInUserTime(result).map((date) => new Date(`${date}T12:00:00`).getDay()));
+      for (const day of days) countsByDay.set(day, (countsByDay.get(day) ?? 0) + 1);
+    }
+    if (countsByDay.size < 2) return [];
+    const formatter = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
+    return [...countsByDay.entries()]
+      .sort(([left], [right]) => left - right)
+      .map(([day, count]) => ({
+        day,
+        count,
+        label: formatter.format(new Date(2026, 7, 2 + day)),
+      }));
+  }, [counts.available, resultPages, slotResults]);
+
+  const limitedVisiblePages = useMemo(
+    () => limitVisibleResults(visiblePages, visibleResultLimit),
+    [visiblePages, visibleResultLimit],
+  );
 
   const sections = useMemo(() => {
     if (!localNow) return [] as { key: OpeningGroup; pages: BookingPage[] }[];
     const grouped = new Map<OpeningGroup, BookingPage[]>();
-    for (const page of visiblePages) {
+    for (const page of limitedVisiblePages) {
       const key = resultSection(slotResults[page.bookingUrl], localNow);
       if (key !== "this_week" && key !== "next_week" && key !== "later") continue;
       grouped.set(key, [...(grouped.get(key) ?? []), page]);
     }
     const order: OpeningGroup[] = ["this_week", "next_week", "later"];
     return order.flatMap((key) => grouped.has(key) ? [{ key, pages: grouped.get(key)! }] : []);
-  }, [localNow, slotResults, visiblePages]);
+  }, [limitedVisiblePages, localNow, slotResults]);
 
   const scanCounts = useMemo(() => {
     const completedUrls = scan?.completedUrls ?? [];
@@ -430,7 +467,8 @@ export function AvailabilityBoard() {
         : 0,
       none: values.filter((status) => status === "none_in_view").length,
       attention: values.filter((status) => status === "unknown" || status === "failed").length,
-      unavailable: completedUrls.filter((url) => slotResults[url]?.reasonCode === "schedule_unavailable").length,
+      unavailable: completedUrls.filter((url) => slotResults[url]?.reasonCode === "schedule_unavailable").length
+        + (scan?.waitingCount ?? 0),
       unverified: completedUrls.filter((url) => {
         const result = slotResults[url];
         return (result?.status === "unknown" || result?.status === "failed") && result.reasonCode !== "schedule_unavailable";
@@ -458,6 +496,14 @@ export function AvailabilityBoard() {
     setFilter(nextFilter);
     autoSelectedRef.current = scan.startedAt;
   }, [scan, scanCounts]);
+
+  useEffect(() => {
+    setVisibleResultLimit(INITIAL_RESULT_LIMIT);
+  }, [filter, scan?.startedAt, weekdayFilter]);
+
+  useEffect(() => {
+    if (weekdayOptions.length === 0 && weekdayFilter !== null) setWeekdayFilter(null);
+  }, [weekdayFilter, weekdayOptions.length]);
 
   useEffect(() => {
     if (!scan || scan.state === "running") return;
@@ -489,7 +535,7 @@ export function AvailabilityBoard() {
             bookingUrl,
             checkedAt,
             "schedule_unavailable",
-            SCHEDULE_UNAVAILABLE_COOLDOWN_MS,
+            scheduleUnavailableCooldown(current[bookingUrl]?.consecutiveFailureCount ?? 0),
           ));
         } else if (result.reasonCode === "request_failed") {
           updateLinkHealth((current) => markLinkPaused(
@@ -499,6 +545,9 @@ export function AvailabilityBoard() {
             "temporary_provider_failure",
             TEMPORARY_FAILURE_COOLDOWN_MS,
           ));
+        }
+        if (runId !== undefined && result.status === "available") {
+          appearanceTrackerRef.current.discover(bookingUrl);
         }
         setSlotResults((current) => ({ ...current, [bookingUrl]: result }));
       }
@@ -534,14 +583,15 @@ export function AvailabilityBoard() {
   }
 
   async function startScan(pages = searchedPages, resumeFrom?: ScanReport) {
-    const { queued: queue } = planLinkChecks(pages, linkHealthRef.current);
+    const { paused, queued: queue } = planLinkChecks(pages, linkHealthRef.current);
     if (!pages.length) return;
+    if (!resumeFrom) appearanceTrackerRef.current.beginScan();
     setShowScanControls(false);
     setResultsExpired(false);
     if (!resumeFrom) setFilter("best");
     const baseCompletedUrls = resumeFrom?.completedUrls ?? [];
     const startedAt = resumeFrom?.startedAt ?? new Date().toISOString();
-    const scopeUrls = resumeFrom?.urls ?? queue.map((page) => page.bookingUrl);
+    const scopeUrls = resumeFrom?.urls ?? pages.map((page) => page.bookingUrl);
     const scope = resumeFrom?.scope ?? (
       scanMode === "name" && query.trim()
         ? `${queue.length} volunteer${queue.length === 1 ? "" : "s"} matching “${query.trim()}”`
@@ -561,6 +611,7 @@ export function AvailabilityBoard() {
         startedAt,
         finishedAt: new Date().toISOString(),
         scope,
+        waitingCount: paused.length,
       });
       return;
     }
@@ -577,6 +628,7 @@ export function AvailabilityBoard() {
       urls: scopeUrls,
       startedAt,
       scope,
+      waitingCount: paused.length,
     });
 
     try {
@@ -662,6 +714,11 @@ export function AvailabilityBoard() {
     if (nextMode === "all") setQuery("");
   }
 
+  function selectResultFilter(nextFilter: ResultFilter) {
+    setFilter(nextFilter);
+    setWeekdayFilter(null);
+  }
+
   function showRecommendedResults() {
     setFilter(recommendedResultFilter);
     window.requestAnimationFrame(() => document.querySelector("#availability-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -692,9 +749,16 @@ export function AvailabilityBoard() {
     const earliest = earliestAvailableTime(result);
     const timeCount = countAvailableTimes(result);
     const resultMessage = `${timeCount} open time${timeCount === 1 ? "" : "s"} across ${availableDates.length} date${availableDates.length === 1 ? "" : "s"}`;
+    const shouldAnimate = appearanceTrackerRef.current.shouldAnimate(booking.bookingUrl);
 
     return (
-      <article className="result-card available" key={booking.bookingUrl}>
+      <article
+        className={`result-card available${shouldAnimate ? " new-result" : ""}`}
+        key={booking.bookingUrl}
+        ref={(node) => {
+          if (node && shouldAnimate) appearanceTrackerRef.current.markAnimated(booking.bookingUrl);
+        }}
+      >
         <div className="result-copy">
           <div className="result-title">
             <h4>{booking.tutor ?? "English Chat volunteer"}</h4>
@@ -729,7 +793,7 @@ export function AvailabilityBoard() {
             onClick={() => void checkTutor(booking.bookingUrl)}
             type="button"
           >
-            Refresh result
+            Check latest times
           </button>
           <a
             className="booking-link primary"
@@ -811,7 +875,7 @@ export function AvailabilityBoard() {
                   aria-valuemax={scan.total}
                   aria-valuemin={0}
                   aria-valuenow={scan.completed}
-                  className="progress-track"
+                  className="progress-track is-active"
                   role="progressbar"
                 >
                   <span style={{ width: `${(scan.completed / scan.total) * 100}%` }} />
@@ -866,46 +930,56 @@ export function AvailabilityBoard() {
               </div>
             ) : (
               <div className="finder-setup">
-                <div className="scan-mode-options" role="group" aria-label="Choose how to find a session">
-                  <button aria-pressed={scanMode === "all"} onClick={() => selectScanMode("all")} type="button">
-                    <span>Any volunteer</span><small>Recommended</small>
-                  </button>
-                  <button aria-pressed={scanMode === "name"} onClick={() => selectScanMode("name")} type="button">
-                    <span>Search by name</span><small>One volunteer</small>
-                  </button>
-                </div>
-
-                {scanMode === "name" ? (
-                  <div className="finder-search">
-                    <label className="search-field">
-                      <span>Volunteer name</span>
-                      <input
-                        aria-describedby="name-search-help"
-                        autoComplete="off"
-                        list="volunteer-names"
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder="Start typing a name"
-                        type="search"
-                        value={query}
-                      />
-                    </label>
-                    <datalist id="volunteer-names">
-                      {bookingPages.map((booking) => booking.tutor ? <option key={booking.bookingUrl} value={booking.tutor} /> : null)}
-                    </datalist>
-                    <p id="name-search-help" aria-live="polite">
-                      {!query.trim()
-                        ? "Choose a name from the suggestions or continue typing."
-                        : searchedPages.length
-                          ? `${searchedPages.length} matching volunteer${searchedPages.length === 1 ? "" : "s"} ready to check.`
-                          : "We couldn’t find that name. Check the spelling or find any opening instead."}
-                    </p>
-                  </div>
-                ) : (
+                {scanMode === "all" ? (
                   <div className="finder-mode-copy">
                     <strong>Best chance of finding an opening</strong>
                     <span>We will check every volunteer and put confirmed openings first.</span>
                   </div>
-                )}
+                ) : null}
+
+                <button
+                  aria-controls="volunteer-name-search"
+                  aria-expanded={scanMode === "name"}
+                  className="name-search-toggle"
+                  onClick={() => selectScanMode(scanMode === "name" ? "all" : "name")}
+                  type="button"
+                >
+                  {scanMode === "name" ? "Search all volunteers instead" : "Looking for a specific volunteer?"}
+                </button>
+
+                <div
+                  aria-hidden={scanMode !== "name"}
+                  className={`name-search-disclosure${scanMode === "name" ? " open" : ""}`}
+                  id="volunteer-name-search"
+                >
+                  <div>
+                    <div className="finder-search">
+                      <label className="search-field">
+                        <span>Volunteer name</span>
+                        <input
+                          aria-describedby="name-search-help"
+                          autoComplete="off"
+                          disabled={scanMode !== "name"}
+                          list="volunteer-names"
+                          onChange={(event) => setQuery(event.target.value)}
+                          placeholder="Start typing a name"
+                          type="search"
+                          value={query}
+                        />
+                      </label>
+                      <datalist id="volunteer-names">
+                        {bookingPages.map((booking) => booking.tutor ? <option key={booking.bookingUrl} value={booking.tutor} /> : null)}
+                      </datalist>
+                      <p id="name-search-help" aria-live="polite">
+                        {!query.trim()
+                          ? "Choose a name from the suggestions or continue typing."
+                          : searchedPages.length
+                            ? `${searchedPages.length} matching volunteer${searchedPages.length === 1 ? "" : "s"} ready to check.`
+                            : "We couldn’t find that name. Check the spelling or find any opening instead."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 <button
                   className="scan-primary"
@@ -913,7 +987,8 @@ export function AvailabilityBoard() {
                   onClick={requestScan}
                   type="button"
                 >
-                  {loading
+                  {loading ? <span className="loading-spinner" aria-hidden="true" /> : null}
+                  <span>{loading
                     ? "Loading volunteers…"
                     : scanMode === "all"
                       ? "Find available sessions"
@@ -921,7 +996,7 @@ export function AvailabilityBoard() {
                         ? searchedPages.length
                           ? `Check ${searchedPages.length === 1 ? searchedPages[0].tutor ?? "this volunteer" : `${searchedPages.length} matching volunteers`}`
                           : "No volunteer found"
-                        : "Choose a volunteer"}
+                        : "Choose a volunteer"}</span>
                 </button>
               </div>
             )}
@@ -932,15 +1007,15 @@ export function AvailabilityBoard() {
                 <strong>{loading ? "Loading volunteer list" : availability ? `${bookingPages.length} volunteers listed` : "Volunteer list unavailable"}</strong>
                 {availability ? <small>Updated {displayTime(availability.checkedAt)}</small> : null}
               </span>
-              <button className="source-refresh" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh"}</button>
+              <button className="source-refresh" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Updating…" : "Update volunteer list"}</button>
             </div>
 
             <details className="finder-trust">
               <summary>How availability is checked</summary>
-              <p>We ask Google for each volunteer’s live appointment times. A failed check is never counted as “no openings.”</p>
+              <p>We check every volunteer calendar ready now. Calendars that are temporarily unavailable return to a future search after their waiting period.</p>
               {pausedLinkCount > 0 ? (
                 <p className="link-health-note">
-                  {pausedLinkCount} listed calendar{pausedLinkCount === 1 ? " is" : "s are"} temporarily paused and will be checked again automatically later.
+                  {pausedLinkCount} calendar{pausedLinkCount === 1 ? " is" : "s are"} currently waiting.
                 </p>
               ) : null}
               <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Open the official volunteer list <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a>
@@ -982,7 +1057,7 @@ export function AvailabilityBoard() {
                       aria-pressed={filter === item.value}
                       className="filter-chip"
                       key={item.value}
-                      onClick={() => setFilter(item.value)}
+                      onClick={() => selectResultFilter(item.value)}
                       type="button"
                     >
                       <span><span>{item.label}</span>{range ? <small>{range}</small> : null}</span>
@@ -994,12 +1069,36 @@ export function AvailabilityBoard() {
 
               <label className="mobile-filter">
                 <span>Showing</span>
-                <select onChange={(event) => setFilter(event.target.value as ResultFilter)} value={filter}>
+                <select onChange={(event) => selectResultFilter(event.target.value as ResultFilter)} value={filter}>
                   {FILTERS.filter((item) => filterCount(item.value) > 0).map((item) => (
                     <option key={item.value} value={item.value}>{item.label} ({filterCount(item.value)})</option>
                   ))}
                 </select>
               </label>
+
+              {weekdayOptions.length > 0 ? (
+                <div className="weekday-filters" aria-label="Filter openings by weekday">
+                  <span>Day</span>
+                  <button
+                    aria-pressed={weekdayFilter === null}
+                    onClick={() => setWeekdayFilter(null)}
+                    type="button"
+                  >
+                    Any day
+                  </button>
+                  {weekdayOptions.map((option) => (
+                    <button
+                      aria-label={`${option.label}: ${option.count} volunteers`}
+                      aria-pressed={weekdayFilter === option.day}
+                      key={option.day}
+                      onClick={() => setWeekdayFilter(option.day)}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </>
           ) : null}
 
@@ -1029,6 +1128,16 @@ export function AvailabilityBoard() {
               </section>
             ))}
           </div>
+          {visiblePages.length > visibleResultLimit ? (
+            <button
+              className="show-more-results"
+              onClick={() => setVisibleResultLimit((current) => current + INITIAL_RESULT_LIMIT)}
+              type="button"
+            >
+              Show more
+              <span aria-hidden="true">↓</span>
+            </button>
+          ) : null}
         </section>
         ) : null}
 

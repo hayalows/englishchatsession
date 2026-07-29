@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { extractSlotTimestamps, InvalidBookingUrlError, isTrustedBookingUrl, resolveScheduleId } from "./slots";
+import {
+  checkBookingSlots,
+  extractSlotTimestamps,
+  InvalidBookingUrlError,
+  isTrustedBookingUrl,
+  LegacyBookingLandingError,
+  resolveScheduleId,
+} from "./slots";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -45,5 +52,19 @@ describe("extractSlotTimestamps", () => {
     }));
 
     await expect(resolveScheduleId("https://calendar.app.google/example")).resolves.toBe("abc");
+  });
+
+  it("does not permanently classify a legacy organizer landing page as a missing schedule", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      url: "https://calendar.google.com/calendar/appointments/organizer-id",
+    }));
+
+    await expect(resolveScheduleId("https://calendar.app.google/example")).rejects.toBeInstanceOf(LegacyBookingLandingError);
+    await expect(checkBookingSlots("https://calendar.app.google/example")).resolves.toMatchObject({
+      status: "unknown",
+      reasonCode: "request_failed",
+    });
   });
 });

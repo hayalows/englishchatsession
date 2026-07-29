@@ -35,7 +35,8 @@ describe("completed scan outcome", () => {
 
     expect(markup).toContain("Scan complete");
     expect(markup).toContain("No sessions available right now");
-    expect(markup).toContain("between 29 Jul and 27 Sept 2026");
+    expect(markup).toContain("We checked every volunteer calendar ready now");
+    expect(markup).toContain("Searched 29 Jul–27 Sept 2026");
     expect(markup).toContain("Checked just now");
     expect(markup).toContain("Check again");
     expect(markup).toContain("New search");
@@ -101,5 +102,19 @@ describe("completed scan outcome", () => {
     expect(markup).toContain("This calendar is temporarily unavailable");
     expect(markup).toContain("Search all volunteers");
     expect(markup).not.toContain(">Check again<");
+  });
+
+  it("explains the unusual case where every listed calendar is still waiting", () => {
+    const markup = renderOutcome({
+      confirmedEmpty: 0,
+      singleTutor: null,
+      temporarilyUnavailable: 246,
+      temporaryErrors: 0,
+    });
+
+    expect(markup).toContain("Calendars are waiting briefly");
+    expect(markup).toContain("Waiting calendars automatically return");
+    expect(markup).toContain("No calendar has been removed permanently");
+    expect(markup).not.toContain("No sessions available right now");
   });
 });

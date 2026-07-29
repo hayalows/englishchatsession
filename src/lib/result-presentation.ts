@@ -57,3 +57,7 @@ export function chooseRecommendedView(counts: {
   if (counts.later > 0) return "later";
   return "best";
 }
+
+export function limitVisibleResults<T>(results: T[], limit: number) {
+  return results.slice(0, Math.max(0, limit));
+}

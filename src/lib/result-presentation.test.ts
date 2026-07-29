@@ -7,6 +7,7 @@ import {
   datesInUserTime,
   earliestAvailableTime,
   hasDateInWeek,
+  limitVisibleResults,
   localDateKey,
   openingGroup,
 } from "./result-presentation";
@@ -79,5 +80,12 @@ describe("result presentation", () => {
     expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 1, later: 4 })).toBe("next_week");
     expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 0, later: 3 })).toBe("later");
     expect(chooseRecommendedView({ thisWeek: 0, nextWeek: 0, later: 0 })).toBe("best");
+  });
+
+  it("shows only the first five ranked results until the student asks for more", () => {
+    const results = ["one", "two", "three", "four", "five", "six", "seven"];
+
+    expect(limitVisibleResults(results, 5)).toEqual(["one", "two", "three", "four", "five"]);
+    expect(limitVisibleResults(results, 10)).toEqual(results);
   });
 });

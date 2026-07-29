@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchSlotResult } from "../lib/slot-request";
+
+const boardSource = readFileSync(new URL("./availability-board.tsx", import.meta.url), "utf8");
 
 afterEach(() => {
   vi.useRealTimers();
@@ -41,5 +45,29 @@ describe("availability request retry", () => {
 
     await expect(result).resolves.toEqual(recovered);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("finder state cues", () => {
+  it("shows the loading spinner only through the loading branch of the primary action", () => {
+    expect(boardSource).toContain('{loading ? <span className="loading-spinner" aria-hidden="true" /> : null}');
+    expect(boardSource.match(/className="loading-spinner"/g)).toHaveLength(1);
+  });
+
+  it("adds the travelling progress treatment only to the running scan progress bar", () => {
+    expect(boardSource).toMatch(/scan\?\.state === "running"[\s\S]*?className="progress-track is-active"/);
+    expect(boardSource.match(/progress-track is-active/g)).toHaveLength(1);
+  });
+
+  it("keeps volunteer-name search behind progressive disclosure", () => {
+    expect(boardSource).toContain("Looking for a specific volunteer?");
+    expect(boardSource).toContain('disabled={scanMode !== "name"}');
+    expect(boardSource).not.toContain('className="scan-mode-options"');
+  });
+
+  it("keeps public operational copy calm and renames the list refresh action", () => {
+    expect(boardSource).toContain("Update volunteer list");
+    expect(boardSource).toContain("currently waiting.");
+    expect(boardSource).not.toContain("Try problem checks again");
   });
 });

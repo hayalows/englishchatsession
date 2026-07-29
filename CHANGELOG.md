@@ -4,6 +4,23 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.4.0] - 2026-07-29
+
+### Added
+
+- Calm completed-scan outcomes for available sessions, no current availability, paused scans, and searches that could not produce a reliable answer.
+- Student-facing component tests that prevent unavailable-link counts and operational retry controls from returning to the empty state.
+- Session-level memory for permanently unavailable booking links so they are not repeatedly requested during the same visit.
+
+### Changed
+
+- Reduced the completed empty state to one explanation, one **Check again** action, and one quiet **New search** action.
+- Kept individual link problems and temporary provider failures out of the public results while preserving their internal classification.
+- Showed result cards only when a bookable opening is available.
+- Renamed the header action from **Find a time** to the more accurate **Check availability**.
+- Standardized finder and result actions at 46–48px, content width on desktop, and full width only on small mobile screens.
+- Removed the footer facts for free, 30-minute, twice-weekly, and online sessions.
+
 ## [1.3.0] - 2026-07-29
 
 ### Added
@@ -89,6 +106,7 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 - Telegram and scheduled notification delivery.
 - Chromium-based calendar scanning.
 
+[1.4.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.4.0
 [1.2.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.2.0
 [1.3.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.3.0
 [1.1.1]: https://github.com/hayalows/englishchatsession/releases/tag/v1.1.1

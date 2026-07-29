@@ -6,7 +6,14 @@ const GOOGLE_RPC_URL = "https://calendar-pa.clients6.google.com/$rpc/google.inte
 // This is Google's referrer-restricted public Calendar web-client key, not an app secret.
 const GOOGLE_CALENDAR_WEB_KEY = ["AIzaSyA7GKm43", "l8WNxlLTjsldq9z9n80CL6KW4U"].join("");
 
-function isTrustedBookingUrl(value: string) {
+export class InvalidBookingUrlError extends Error {
+  constructor(message = "Only Google Calendar booking pages can be checked.") {
+    super(message);
+    this.name = "InvalidBookingUrlError";
+  }
+}
+
+export function isTrustedBookingUrl(value: string) {
   try {
     const url = new URL(value);
     return url.protocol === "https:" && CALENDAR_HOSTS.has(url.hostname);
@@ -22,11 +29,14 @@ function scheduleIdFromUrl(value: string) {
   return schedulesIndex >= 0 ? parts[schedulesIndex + 1] : undefined;
 }
 
-async function resolveScheduleId(bookingUrl: string, signal?: AbortSignal) {
+export async function resolveScheduleId(bookingUrl: string, signal?: AbortSignal) {
   const directId = scheduleIdFromUrl(bookingUrl);
   if (directId) return directId;
   const response = await fetch(bookingUrl, { redirect: "follow", signal });
   if (!response.ok) throw new Error(`Booking link returned HTTP ${response.status}.`);
+  if (!isTrustedBookingUrl(response.url)) {
+    throw new InvalidBookingUrlError("The booking link redirected outside Google Calendar.");
+  }
   const resolvedId = scheduleIdFromUrl(response.url);
   if (!resolvedId) throw new Error("Google did not resolve this booking link to an appointment schedule.");
   return resolvedId;
@@ -47,7 +57,7 @@ function dateOnly(value: Date) {
 }
 
 export async function checkBookingSlots(bookingUrl: string, signal?: AbortSignal): Promise<SlotResult> {
-  if (!isTrustedBookingUrl(bookingUrl)) throw new Error("Only Google Calendar booking pages can be checked.");
+  if (!isTrustedBookingUrl(bookingUrl)) throw new InvalidBookingUrlError();
   if (signal?.aborted) throw new DOMException("The check was stopped.", "AbortError");
 
   const checkedAt = new Date().toISOString();

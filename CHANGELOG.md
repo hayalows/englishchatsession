@@ -4,6 +4,25 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.3.0] - 2026-07-29
+
+### Added
+
+- Name-specific no-opening summaries with the volunteer, checked date range, direct Google link, and a clear next action.
+- Automatic slowdown when rate limiting or repeated transient failures make a scan less reliable.
+- Retry-all action for calendars that could not be verified.
+- Best-effort endpoint rate limiting, request-size limits, redirect revalidation, normalized API errors, and production security headers.
+- Accessible scan-completion announcement and focus handoff.
+- Result freshness guidance that keeps recent context visible instead of abruptly removing it.
+
+### Changed
+
+- Replaced the technical scan-all label with **Find available sessions**.
+- Renamed **Needs attention** to the clearer **Couldn’t verify** state and separated unavailable links from temporary failures.
+- Moved the compact English Chat facts from the hero into the footer.
+- Improved result summaries, localized date ranges, external-link labels, small-text contrast, mobile hierarchy, and action priority.
+- Updated Next.js to a patched release and refreshed security and privacy documentation.
+
 ## [1.2.0] - 2026-07-23
 
 ### Added
@@ -71,6 +90,7 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 - Chromium-based calendar scanning.
 
 [1.2.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.2.0
+[1.3.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.3.0
 [1.1.1]: https://github.com/hayalows/englishchatsession/releases/tag/v1.1.1
 [1.1.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.1.0
 [1.0.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.0.0

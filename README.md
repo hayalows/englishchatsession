@@ -19,10 +19,11 @@ English Chat Finder helps BYU-Pathway Worldwide students find open 30-minute Eng
 - Groups confirmed openings into this week, next week, and later dates using the student's local timezone.
 - Presents the most useful post-scan view first and keeps no-opening results collapsed until needed.
 - Scans volunteers through a bounded worker pool instead of opening every calendar at once.
-- Reports provider or network failures as **Needs attention**, never as **No openings**.
-- Keeps scan results only in the student's browser for up to 30 minutes.
+- Reports provider or network failures as **Couldn’t verify**, never as **No openings**.
+- Keeps results in the student's browser for reference, marks them for rechecking after 10 minutes, and removes them after 24 hours.
+- Slows the current scan when repeated provider failures or rate limiting suggest that reliability is at risk.
 
-The app has no account system, database, analytics, messaging service, cron job, or server-side result history. Exact appointment times and final availability must always be confirmed on Google before booking.
+The app has no account system, database, messaging service, cron job, or server-side result history. Vercel Web Analytics records aggregate visits, not appointment results or named student profiles. Exact appointment times and final availability must always be confirmed on Google before booking.
 
 ## How it works
 
@@ -84,7 +85,7 @@ The development-only scan benchmark is:
 npm.cmd run benchmark:scan -- --count=20 --concurrency=3
 ```
 
-Production uses a fixed pool of ten direct checks. The benchmark measures a chosen development concurrency without changing the production value or storing page HTML, booking URLs, or secrets.
+Production starts with a fixed pool of ten direct checks and can reduce the active pool to three when repeated failures or rate limiting occur. It never increases beyond the tested maximum. The benchmark measures a chosen development concurrency without changing the production value or storing page HTML, booking URLs, or secrets.
 
 ## Deployment
 

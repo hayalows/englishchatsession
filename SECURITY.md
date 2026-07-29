@@ -25,7 +25,10 @@ The production app is intentionally stateless:
 - No accounts or authentication.
 - No application database.
 - No server-side appointment-result history.
-- No analytics or messaging integration.
-- Browser results expire after 30 minutes.
+- No messaging integration.
+- Appointment results stay only in the student's browser and are removed after 24 hours.
+- Vercel Web Analytics collects aggregate page-view and device information. It does not receive volunteer appointment results from the app.
+
+The calendar-check endpoint accepts only HTTPS Google Calendar booking links, limits request size, applies a best-effort per-client request allowance, and does not store booking-page HTML.
 
 Never commit `.env`, `.env.local`, API tokens, private volunteer information, student information, raw appointment-page archives, or captured network credentials. If a secret is committed, revoke it first, then remove it from the repository and history.

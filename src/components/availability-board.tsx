@@ -21,6 +21,7 @@ type ResultFilter = "best" | "this_week" | "next_week" | "later" | "needs_attent
 type ResultSection = OpeningGroup | "needs_attention" | "none_in_view" | "not_checked";
 type ScanReport = {
   state: "running" | "complete" | "stopped";
+  speed: "fast" | "reduced";
   completed: number;
   completedUrls: string[];
   total: number;
@@ -32,7 +33,8 @@ type ScanReport = {
 type StoredResults = { version: 2; savedAt: string; results: Record<string, SlotResult> };
 
 const STORAGE_KEY = "english-chat-booking-results:v2";
-const RESULT_MAX_AGE_MS = 30 * 60 * 1000;
+const RESULT_STALE_AFTER_MS = 10 * 60 * 1000;
+const RESULT_RETENTION_MS = 24 * 60 * 60 * 1000;
 const DIRECT_HTTP_SCAN_CONCURRENCY = 10;
 const VALID_STATUSES = new Set<TutorCheckStatus>(["available", "none_in_view", "unknown", "failed"]);
 const OFFICIAL_SCHEDULE = "https://sites.google.com/view/english-chat-student-center/Scheduling?authuser=0";
@@ -43,14 +45,14 @@ const FILTERS: { value: ResultFilter; label: string }[] = [
   { value: "this_week", label: "This week" },
   { value: "next_week", label: "Next week" },
   { value: "later", label: "Later" },
-  { value: "needs_attention", label: "Needs attention" },
+  { value: "needs_attention", label: "Couldn’t verify" },
 ];
 
 const SECTION_LABELS: Record<ResultSection, string> = {
   this_week: "Open this week",
   next_week: "Open next week",
   later: "Open later",
-  needs_attention: "Needs another look",
+  needs_attention: "Couldn’t verify",
   none_in_view: "No openings returned",
   not_checked: "Ready to check",
 };
@@ -60,13 +62,6 @@ function displayTime(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return "Not checked yet";
   return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(date);
-}
-
-function displayClock(value?: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.valueOf())) return "";
-  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date);
 }
 
 function displayDate(value: string) {
@@ -89,6 +84,18 @@ function displayOpening(value: string) {
     }).format(date);
 }
 
+function displayCheckedRange(start?: string, end?: string) {
+  if (!start || !end) return "";
+  const startDate = new Date(`${start}T12:00:00`);
+  const endDate = new Date(`${end}T12:00:00`);
+  if (Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf())) return "";
+  return `${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(startDate)}–${new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(endDate)}`;
+}
+
 function displayWeekRange(start?: Date, end?: Date) {
   if (!start || !end) return "";
   const day = new Intl.DateTimeFormat("en-GB", { day: "numeric" });
@@ -103,19 +110,25 @@ function isRecommendedDay(value: string) {
   return day === 2 || day === 5;
 }
 
-function isFresh(value?: string) {
-  return Boolean(value && Date.now() - new Date(value).valueOf() < RESULT_MAX_AGE_MS);
+function isCurrent(value?: string) {
+  return Boolean(value && Date.now() - new Date(value).valueOf() < RESULT_STALE_AFTER_MS);
+}
+
+function isRetained(value?: string) {
+  return Boolean(value && Date.now() - new Date(value).valueOf() < RESULT_RETENTION_MS);
 }
 
 function readStoredResults() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as StoredResults | null;
     if (!saved || saved.version !== 2 || typeof saved.results !== "object") return { results: {}, expired: false };
-    if (!isFresh(saved.savedAt)) return { results: {}, expired: Object.keys(saved.results).length > 0 };
     const results = Object.fromEntries(
-      Object.entries(saved.results).filter(([, result]) => result && VALID_STATUSES.has(result.status) && isFresh(result.checkedAt)),
+      Object.entries(saved.results).filter(([, result]) => result && VALID_STATUSES.has(result.status) && isRetained(result.checkedAt)),
     );
-    return { results, expired: Object.keys(saved.results).length > Object.keys(results).length };
+    return {
+      results,
+      expired: Object.values(results).some((result) => !isCurrent(result.checkedAt)),
+    };
   } catch {
     return { results: {}, expired: false };
   }
@@ -131,6 +144,13 @@ function waitForRetry(signal?: AbortSignal) {
   });
 }
 
+class SlotRequestError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+    this.name = "SlotRequestError";
+  }
+}
+
 async function fetchSlotResult(bookingUrl: string, signal?: AbortSignal) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -142,13 +162,14 @@ async function fetchSlotResult(bookingUrl: string, signal?: AbortSignal) {
       });
       const result = (await response.json()) as SlotResult & { message?: string };
       if (response.ok) return result;
-      if (attempt === 0 && response.status >= 500) {
+      if (attempt === 0 && response.status >= 500 && response.status !== 429) {
         await waitForRetry(signal);
         continue;
       }
-      throw new Error(result.message ?? "The booking page could not be checked.");
+      throw new SlotRequestError(result.message ?? "The booking page could not be checked.", response.status);
     } catch (error) {
       if ((error as Error).name === "AbortError") throw error;
+      if (error instanceof SlotRequestError) throw error;
       if (attempt === 0) {
         await waitForRetry(signal);
         continue;
@@ -182,6 +203,7 @@ export function AvailabilityBoard() {
   const controllerRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
   const autoSelectedRef = useRef<string | null>(null);
+  const outcomeRef = useRef<HTMLDivElement | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -193,7 +215,7 @@ export function AvailabilityBoard() {
       setAvailability(payload);
       const validUrls = new Set(payload.bookingPages.map((page) => page.bookingUrl));
       setSlotResults((current) => Object.fromEntries(
-        Object.entries(current).filter(([url, result]) => validUrls.has(url) && (result.status === "checking" || isFresh(result.checkedAt))),
+        Object.entries(current).filter(([url, result]) => validUrls.has(url) && (result.status === "checking" || isRetained(result.checkedAt))),
       ));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to read the English Chat scheduling page.");
@@ -223,20 +245,17 @@ export function AvailabilityBoard() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setSlotResults((current) => {
-        const entries = Object.entries(current);
-        const fresh = entries.filter(([, result]) => result.status === "checking" || !VALID_STATUSES.has(result.status) || isFresh(result.checkedAt));
-        if (fresh.length === entries.length) return current;
-        setResultsExpired(true);
-        return Object.fromEntries(fresh);
-      });
+      setSlotResults((current) => Object.fromEntries(
+        Object.entries(current).filter(([, result]) => result.status === "checking" || !VALID_STATUSES.has(result.status) || isRetained(result.checkedAt)),
+      ));
+      setResultsExpired(Object.values(slotResults).some((result) => VALID_STATUSES.has(result.status) && !isCurrent(result.checkedAt)));
     }, 60_000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [slotResults]);
 
   useEffect(() => {
     const persisted = Object.fromEntries(
-      Object.entries(slotResults).filter(([, result]) => VALID_STATUSES.has(result.status) && isFresh(result.checkedAt)),
+      Object.entries(slotResults).filter(([, result]) => VALID_STATUSES.has(result.status) && isRetained(result.checkedAt)),
     );
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -353,25 +372,43 @@ export function AvailabilityBoard() {
         : 0,
       none: values.filter((status) => status === "none_in_view").length,
       attention: values.filter((status) => status === "unknown" || status === "failed").length,
+      unavailable: completedUrls.filter((url) => slotResults[url]?.reasonCode === "schedule_unavailable").length,
+      unverified: completedUrls.filter((url) => {
+        const result = slotResults[url];
+        return (result?.status === "unknown" || result?.status === "failed") && result.reasonCode !== "schedule_unavailable";
+      }).length,
     };
   }, [localNow, scan, slotResults]);
 
   const scanRange = useMemo(() => (scan?.completedUrls ?? [])
-    .map((url) => slotResults[url]?.checkedRange?.description)
+    .map((url) => slotResults[url]?.checkedRange)
     .find(Boolean), [scan, slotResults]);
+  const singleScannedTutor = useMemo(() => {
+    if (!scan || scan.total !== 1) return null;
+    const targetUrl = scan.urls[0];
+    return bookingPages.find((booking) => booking.bookingUrl === targetUrl)?.tutor ?? "this volunteer";
+  }, [bookingPages, scan]);
   const hasResultData = useMemo(() => Object.values(slotResults).some((result) => VALID_STATUSES.has(result.status)), [slotResults]);
   const hasSavedScanState = Boolean(scan || hasResultData);
-  const showResultsPanel = scan?.state === "running"
-    || counts.available > 0
-    || counts.needs_attention > 0
-    || Boolean(scan?.state === "stopped" && scan.completed > 0);
+  const showResultsPanel = scan?.state === "running" || Boolean(scan && scan.completed > 0);
 
   useEffect(() => {
-    if (!scan || scan.state !== "complete" || autoSelectedRef.current === scan.startedAt) return;
-    const nextFilter: ResultFilter = chooseRecommendedView(scanCounts);
+    if (!scan || scan.state === "running" || autoSelectedRef.current === scan.startedAt) return;
+    const nextFilter: ResultFilter = scanCounts.available
+      ? chooseRecommendedView(scanCounts)
+      : scanCounts.attention
+        ? "needs_attention"
+        : scan.total === 1
+          ? "none_in_view"
+          : "best";
     setFilter(nextFilter);
     autoSelectedRef.current = scan.startedAt;
   }, [scan, scanCounts]);
+
+  useEffect(() => {
+    if (!scan || scan.state === "running") return;
+    window.requestAnimationFrame(() => outcomeRef.current?.focus());
+  }, [scan?.finishedAt, scan?.state]);
 
   const hasActiveCheck = counts.checking > 0;
   const thisWeekLabel = displayWeekRange(thisWeekWindow?.start, thisWeekWindow?.end);
@@ -389,19 +426,25 @@ export function AvailabilityBoard() {
       if (runId === undefined || runId === runIdRef.current) {
         setSlotResults((current) => ({ ...current, [bookingUrl]: result }));
       }
+      return { result, rateLimited: false };
     } catch (error) {
       if ((error as Error).name !== "AbortError" && (runId === undefined || runId === runIdRef.current)) {
+        const failedResult: SlotResult = {
+          status: "failed",
+          availableDates: [],
+          checkedAt: new Date().toISOString(),
+          message: error instanceof SlotRequestError && error.status === 429
+            ? "Too many checks reached the service at once. Try this volunteer again in a moment."
+            : "The live check failed twice. Open the page directly or try again.",
+          reasonCode: "request_failed",
+        };
         setSlotResults((current) => ({
           ...current,
-          [bookingUrl]: {
-            status: "failed",
-            availableDates: [],
-            checkedAt: new Date().toISOString(),
-            message: "The live check failed twice. Open the page directly or try again.",
-            reasonCode: "request_failed",
-          },
+          [bookingUrl]: failedResult,
         }));
+        return { result: failedResult, rateLimited: error instanceof SlotRequestError && error.status === 429 };
       }
+      throw error;
     }
   }
 
@@ -416,6 +459,9 @@ export function AvailabilityBoard() {
     let nextIndex = 0;
     const completedUrls = resumeFrom?.completedUrls ?? [];
     let completed = completedUrls.length;
+    let active = 0;
+    let activeLimit = DIRECT_HTTP_SCAN_CONCURRENCY;
+    let transientFailures = 0;
     const startedAt = resumeFrom?.startedAt ?? new Date().toISOString();
     const scope = resumeFrom?.scope ?? (
       scanMode === "name" && query.trim()
@@ -426,6 +472,7 @@ export function AvailabilityBoard() {
     );
     setScan({
       state: "running",
+      speed: resumeFrom?.speed ?? "fast",
       completed,
       completedUrls,
       total: resumeFrom?.total ?? queue.length,
@@ -434,23 +481,45 @@ export function AvailabilityBoard() {
       scope,
     });
 
-    const worker = async () => {
-      while (!controller.signal.aborted) {
-        const index = nextIndex++;
-        if (index >= queue.length) return;
-        await checkTutor(queue[index].bookingUrl, controller.signal, runId);
-        if (controller.signal.aborted || runId !== runIdRef.current) return;
-        completed += 1;
-        setScan((current) => current ? {
-          ...current,
-          completed,
-          completedUrls: [...current.completedUrls, queue[index].bookingUrl],
-        } : current);
-      }
-    };
-
     try {
-      await Promise.all(Array.from({ length: Math.min(DIRECT_HTTP_SCAN_CONCURRENCY, queue.length) }, worker));
+      await new Promise<void>((resolve) => {
+        const launch = () => {
+          if (controller.signal.aborted || runId !== runIdRef.current) {
+            if (active === 0) resolve();
+            return;
+          }
+          while (active < activeLimit && nextIndex < queue.length) {
+            const index = nextIndex++;
+            active += 1;
+            void checkTutor(queue[index].bookingUrl, controller.signal, runId)
+              .then((outcome) => {
+                if (!outcome || controller.signal.aborted || runId !== runIdRef.current) return;
+                const transientFailure = outcome.rateLimited
+                  || (outcome.result.status === "unknown" && outcome.result.reasonCode === "request_failed")
+                  || (outcome.result.status === "failed" && outcome.result.reasonCode === "request_failed");
+                transientFailures = transientFailure ? transientFailures + 1 : 0;
+                if (outcome.rateLimited || transientFailures >= 3) {
+                  activeLimit = Math.max(3, Math.floor(activeLimit / 2));
+                  setScan((current) => current ? { ...current, speed: "reduced" } : current);
+                }
+                completed += 1;
+                setScan((current) => current ? {
+                  ...current,
+                  completed,
+                  completedUrls: [...current.completedUrls, queue[index].bookingUrl],
+                } : current);
+              })
+              .catch(() => undefined)
+              .finally(() => {
+                active -= 1;
+                if (nextIndex >= queue.length && active === 0) resolve();
+                else launch();
+              });
+          }
+          if (nextIndex >= queue.length && active === 0) resolve();
+        };
+        launch();
+      });
     } finally {
       if (runId === runIdRef.current) {
         setScan((current) => current ? {
@@ -484,11 +553,32 @@ export function AvailabilityBoard() {
     void startScan(remainingPages, scan);
   }
 
+  function retryUnverified() {
+    if (!scan) return;
+    const problemUrls = new Set(scan.completedUrls.filter((url) => {
+      const result = slotResults[url];
+      return result?.status === "unknown" || result?.status === "failed";
+    }));
+    const problemPages = bookingPages.filter((page) => problemUrls.has(page.bookingUrl));
+    if (!problemPages.length) return;
+    const completedUrls = scan.completedUrls.filter((url) => !problemUrls.has(url));
+    void startScan(problemPages, {
+      ...scan,
+      state: "stopped",
+      completed: completedUrls.length,
+      completedUrls,
+      finishedAt: undefined,
+    });
+  }
+
   function requestScan() {
     void startScan();
   }
 
   function clearResults() {
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    runIdRef.current += 1;
     localStorage.removeItem(STORAGE_KEY);
     setSlotResults({});
     setScan(null);
@@ -507,12 +597,8 @@ export function AvailabilityBoard() {
     window.requestAnimationFrame(() => document.querySelector("#availability-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
-  function showResultFilter(nextFilter: ResultFilter) {
-    setFilter(nextFilter);
-    window.requestAnimationFrame(() => document.querySelector("#availability-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-  }
-
   function openScanControls() {
+    if (scan?.state === "running") stopScan();
     setShowScanControls(true);
     window.requestAnimationFrame(() => document.querySelector("#session-finder")?.scrollIntoView({ behavior: "smooth", block: "center" }));
   }
@@ -529,8 +615,10 @@ export function AvailabilityBoard() {
       : "See later openings";
   const scanGuidance = scanCounts.available === 0
     ? scanCounts.attention
-      ? `${scanCounts.attention} check${scanCounts.attention === 1 ? " needs" : "s need"} another try. These are not counted as “no openings.”`
-      : "No confirmed opening was returned right now. Times can be added or taken at any moment, so try again later and check the official schedule."
+      ? `${scanCounts.none ? `${scanCounts.none} calendar${scanCounts.none === 1 ? "" : "s"} returned no openings. ` : ""}${scanCounts.attention} could not be verified, so those results are kept separate and can be tried again.`
+      : singleScannedTutor
+        ? `Google returned no open appointment times for ${singleScannedTutor} in the checked date range. Availability can change, so check another volunteer or try again later.`
+        : `Google returned no open appointment times in ${scanCounts.none} checked calendar${scanCounts.none === 1 ? "" : "s"}. Availability changes, so try again later or use the official schedule.`
     : scanCounts.thisWeek >= 2
       ? "You have at least two choices this week. Open Google to choose the exact times that work for you."
       : scanCounts.thisWeek === 1
@@ -557,14 +645,14 @@ export function AvailabilityBoard() {
         : result.status === "unknown"
           ? "Could not confirm"
           : result.status === "failed"
-            ? "Check failed"
+            ? result.reasonCode === "schedule_unavailable" ? "Link unavailable" : "Couldn’t verify"
             : result.status === "checking"
               ? "Checking…"
               : "Not checked";
     const resultMessage = result.status === "available"
       ? `${timeCount} open time${timeCount === 1 ? "" : "s"} across ${availableDates.length} date${availableDates.length === 1 ? "" : "s"}`
       : result.status === "none_in_view"
-        ? `Google returned no open times${result.checkedRange?.description ? ` for ${result.checkedRange.description}` : " in the checked range"}.`
+        ? `Google returned no open times${displayCheckedRange(result.checkedRange?.start, result.checkedRange?.end) ? ` from ${displayCheckedRange(result.checkedRange?.start, result.checkedRange?.end)}` : " in the checked date range"}.`
         : result.message;
 
     return (
@@ -588,10 +676,11 @@ export function AvailabilityBoard() {
             </div>
           ) : null}
           {result.checkedAt ? (
-            <small className="result-meta">
-              {result.status === "available" ? "Confirmed by Google" : "Checked with Google"}
+            <small className={`result-meta ${isCurrent(result.checkedAt) ? "" : "stale"}`}>
+              {result.status === "available" ? "Available when checked" : "Checked with Google"}
               <span aria-hidden="true">·</span>
-              {displayClock(result.checkedAt)}
+              {displayTime(result.checkedAt)}
+              {!isCurrent(result.checkedAt) ? <><span aria-hidden="true">·</span><strong>Check again before booking</strong></> : null}
             </small>
           ) : null}
         </div>
@@ -618,6 +707,7 @@ export function AvailabilityBoard() {
           >
             {result.status === "available" ? "Choose a time on Google" : "Open Google"}
             <span aria-hidden="true">↗</span>
+            <span className="sr-only"> (opens in a new tab)</span>
           </a>
         </div>
       </article>
@@ -638,7 +728,7 @@ export function AvailabilityBoard() {
           </a>
           <nav className="site-nav" aria-label="Main navigation">
             <a href="#how-it-works">How it works</a>
-            <a href={PREPARE_PAGE} rel="noreferrer" target="_blank">Prepare <span aria-hidden="true">↗</span></a>
+            <a href={PREPARE_PAGE} rel="noreferrer" target="_blank">Prepare <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a>
             <a className="nav-primary" href="#session-finder">Find a time</a>
           </nav>
         </div>
@@ -650,9 +740,6 @@ export function AvailabilityBoard() {
             <p className="eyebrow">BYU-Pathway English Chat</p>
             <h1 id="page-title">Find an available English Chat session.</h1>
             <p className="lede">Search live volunteer calendars and choose your appointment on Google.</p>
-            <div className="hero-facts" aria-label="English Chat facts">
-              <span>Free</span><span>30 minutes</span><span>2 sessions weekly</span><span>Online</span>
-            </div>
             <a className="hero-help-link" href="#how-it-works">New to English Chat? See how it works <span aria-hidden="true">↓</span></a>
           </div>
 
@@ -676,8 +763,8 @@ export function AvailabilityBoard() {
 
             {resultsExpired ? (
               <div className="finder-notice" role="status">
-                <div><strong>These results are no longer current</strong><span>Availability changes quickly. Scan again before booking.</span></div>
-                <button className="secondary-button" disabled={!bookingPages.length} onClick={requestScan} type="button">Scan again</button>
+                <div><strong>Availability may have changed</strong><span>These results are still here for reference. Check again before booking.</span></div>
+                <button className="secondary-button" disabled={!bookingPages.length} onClick={requestScan} type="button">Check again</button>
               </div>
             ) : null}
 
@@ -699,12 +786,18 @@ export function AvailabilityBoard() {
                 </div>
                 <p>Openings appear in the results as they are confirmed. You can stop without losing completed checks.</p>
                 <div className="finder-progress-footer">
-                  <span>Fast scan enabled</span>
+                  <span>{scan.speed === "reduced" ? "Reduced scan speed for reliability" : "Fast scan enabled"}</span>
                   <button className="stop-button" onClick={stopScan} type="button">Stop scan</button>
                 </div>
               </div>
             ) : scan && !showScanControls ? (
-              <div className={`finder-outcome ${scan.state}`}>
+              <div
+                aria-live="polite"
+                className={`finder-outcome ${scan.state}`}
+                ref={outcomeRef}
+                role="status"
+                tabIndex={-1}
+              >
                 <span className="state-label">{scan.state === "complete" ? "Scan complete" : "Scan paused"}</span>
                 <h3>
                   {scan.state === "stopped"
@@ -713,37 +806,47 @@ export function AvailabilityBoard() {
                       ? `${scanCounts.available} volunteer${scanCounts.available === 1 ? "" : "s"} with open times`
                       : scanCounts.attention
                         ? "No opening confirmed yet"
-                        : "No confirmed openings right now"}
+                        : singleScannedTutor
+                          ? `No openings found for ${singleScannedTutor}`
+                          : `No openings found in ${scanCounts.none} checked calendar${scanCounts.none === 1 ? "" : "s"}`}
                 </h3>
                 <p>{scan.state === "stopped" ? "Completed checks are still available below. Continue when you are ready." : scanGuidance}</p>
                 <div className="outcome-facts" aria-label="Scan summary">
                   {scanCounts.thisWeek > 0 ? <span><b>{scanCounts.thisWeek}</b> this week</span> : null}
                   {scanCounts.nextWeek > 0 ? <span><b>{scanCounts.nextWeek}</b> next week</span> : null}
                   {scanCounts.later > 0 ? <span><b>{scanCounts.later}</b> later</span> : null}
-                  {scanCounts.attention > 0 ? <span><b>{scanCounts.attention}</b> need another look</span> : null}
+                  {scanCounts.none > 0 ? <span><b>{scanCounts.none}</b> no openings</span> : null}
+                  {scanCounts.unavailable > 0 ? <span><b>{scanCounts.unavailable}</b> links unavailable</span> : null}
+                  {scanCounts.unverified > 0 ? <span><b>{scanCounts.unverified}</b> could not verify</span> : null}
                 </div>
-                {scanRange ? <small>Google range checked: {scanRange}</small> : null}
+                {scanRange ? <small>Dates checked: {displayCheckedRange(scanRange.start, scanRange.end)} · Times shown in your timezone</small> : null}
                 <div className="outcome-actions">
                   {scan.state === "stopped" && scan.completed < scan.total ? (
                     <button onClick={scanRemaining} type="button">Continue scan</button>
                   ) : scanCounts.available ? (
                     <button onClick={showRecommendedResults} type="button">{recommendedResultLabel}</button>
                   ) : scanCounts.attention ? (
-                    <button onClick={() => showResultFilter("needs_attention")} type="button">Review these checks</button>
+                    <button onClick={retryUnverified} type="button">Try problem checks again</button>
                   ) : (
-                    <a className="button-link" href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Check official schedule <span aria-hidden="true">↗</span></a>
+                    <button onClick={openScanControls} type="button">{singleScannedTutor ? "Check another volunteer" : "Search again"}</button>
                   )}
-                  <button className="secondary-button" onClick={openScanControls} type="button">New search</button>
+                  {scanCounts.available || scanCounts.attention || scan.state === "stopped" ? (
+                    <button className="secondary-button" onClick={openScanControls} type="button">New search</button>
+                  ) : (
+                    <a className="button-link secondary-link" href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">
+                      Official schedule <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="finder-setup">
                 <div className="scan-mode-options" role="group" aria-label="Choose how to find a session">
                   <button aria-pressed={scanMode === "all"} onClick={() => selectScanMode("all")} type="button">
-                    <span>Scan everyone</span><small>Best chance</small>
+                    <span>Find any opening</span><small>Recommended</small>
                   </button>
                   <button aria-pressed={scanMode === "name"} onClick={() => selectScanMode("name")} type="button">
-                    <span>Search by name</span><small>Check a volunteer</small>
+                    <span>Search by name</span><small>One volunteer</small>
                   </button>
                 </div>
 
@@ -769,7 +872,7 @@ export function AvailabilityBoard() {
                         ? "Choose a name from the suggestions or continue typing."
                         : searchedPages.length
                           ? `${searchedPages.length} matching volunteer${searchedPages.length === 1 ? "" : "s"} ready to check.`
-                          : "No matching volunteer. Check the spelling or scan everyone."}
+                          : "We couldn’t find that name. Check the spelling or find any opening instead."}
                     </p>
                   </div>
                 ) : (
@@ -788,10 +891,12 @@ export function AvailabilityBoard() {
                   {loading
                     ? "Loading volunteers…"
                     : scanMode === "all"
-                      ? `Scan all ${searchedPages.length} volunteers`
+                      ? "Find available sessions"
                       : query.trim()
-                        ? `Check ${searchedPages.length} matching volunteer${searchedPages.length === 1 ? "" : "s"}`
-                        : "Enter a volunteer name"}
+                        ? searchedPages.length
+                          ? `Check ${searchedPages.length === 1 ? searchedPages[0].tutor ?? "this volunteer" : `${searchedPages.length} matching volunteers`}`
+                          : "No volunteer found"
+                        : "Choose a volunteer"}
                 </button>
               </div>
             )}
@@ -799,7 +904,7 @@ export function AvailabilityBoard() {
             <div className="finder-source" aria-label="Volunteer list status">
               <span className={`live-dot ${message ? "error" : ""}`} aria-hidden="true" />
               <span>
-                <strong>{loading ? "Loading volunteer list" : availability ? `${bookingPages.length} volunteers ready` : "Volunteer list unavailable"}</strong>
+                <strong>{loading ? "Loading volunteer list" : availability ? `${bookingPages.length} volunteers available to check` : "Volunteer list unavailable"}</strong>
                 {availability ? <small>Updated {displayTime(availability.checkedAt)}</small> : null}
               </span>
               <button className="source-refresh" disabled={loading} onClick={() => void refresh()} type="button">{loading ? "Refreshing…" : "Refresh"}</button>
@@ -808,7 +913,7 @@ export function AvailabilityBoard() {
             <details className="finder-trust">
               <summary>How availability is checked</summary>
               <p>We ask Google for each volunteer’s live appointment times. A failed check is never counted as “no openings.”</p>
-              <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Open the official volunteer list <span aria-hidden="true">↗</span></a>
+              <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Open the official volunteer list <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a>
             </details>
           </aside>
         </section>
@@ -825,8 +930,10 @@ export function AvailabilityBoard() {
                     ? scanCounts.available
                       ? `${scanCounts.available} open volunteer calendar${scanCounts.available === 1 ? "" : "s"}`
                       : scanCounts.attention
-                        ? "Some calendars need another look"
-                        : "No confirmed openings right now"
+                        ? "Some calendars could not be verified"
+                        : singleScannedTutor
+                          ? `No openings found for ${singleScannedTutor}`
+                          : "No openings found in the checked calendars"
                     : scan?.state === "stopped"
                       ? "Results from completed checks"
                       : "Recent availability results"}
@@ -834,13 +941,17 @@ export function AvailabilityBoard() {
               <p>
                 {scan?.state === "running"
                   ? "You can review confirmed openings while the remaining calendars continue."
-                  : "Openings are ordered by the dates most useful for your weekly English Chat goal."}
+                  : scanCounts.available
+                    ? "Openings are ordered by the dates most useful for your weekly English Chat goal."
+                    : scanCounts.attention
+                      ? "These checks did not give a reliable answer. Try them again or open Google directly."
+                      : "These calendars were checked successfully, but Google returned no open times in the date range shown."}
               </p>
             </div>
-            <div className="results-actions">
+            {scan?.state !== "running" ? <div className="results-actions">
               <button className="secondary-button" onClick={openScanControls} type="button">New search</button>
               <button className="quiet-button" onClick={clearResults} type="button">Clear</button>
-            </div>
+            </div> : null}
           </div>
 
           {counts.available > 0 || (scan?.state !== "running" && counts.needs_attention > 0) ? (
@@ -882,7 +993,7 @@ export function AvailabilityBoard() {
             <div>
               <p><strong>Open:</strong> Google returned at least one appointment time.</p>
               <p><strong>No openings:</strong> Google returned no times in the stated scan range.</p>
-              <p><strong>Needs attention:</strong> the check could not be confirmed. Try again or open Google directly.</p>
+              <p><strong>Couldn’t verify:</strong> the check did not return a reliable answer. Try again or open Google directly.</p>
             </div>
           </details> : null}
 
@@ -918,7 +1029,7 @@ export function AvailabilityBoard() {
 
           {scan?.state !== "running" && filter !== "none_in_view" && counts.none_in_view > 0 ? (
             <details className="no-opening-disclosure">
-              <summary><span><strong>{counts.none_in_view} calendar{counts.none_in_view === 1 ? "" : "s"} returned no openings</strong><small>Hidden so the useful choices stay easy to scan.</small></span><span>Review</span></summary>
+              <summary><span><strong>{counts.none_in_view} calendar{counts.none_in_view === 1 ? "" : "s"} returned no openings</strong><small>Kept out of the main list so confirmed choices stay easy to scan.</small></span><span>Review</span></summary>
               <div><p>These checks completed successfully; Google returned no appointment times in the checked range.</p><button className="secondary-button" onClick={() => setFilter("none_in_view")} type="button">Show these calendars</button></div>
             </details>
           ) : null}
@@ -939,7 +1050,8 @@ export function AvailabilityBoard() {
 
         <footer className="site-footer" id="about">
           <div className="footer-brand"><strong>English Chat Finder</strong><small>Helping students find available English Chat volunteer sessions.</small><span>Designed and built by Papa Kojo Mensah</span></div>
-          <nav aria-label="Helpful links"><a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Official schedule <span aria-hidden="true">↗</span></a><a href={PREPARE_PAGE} rel="noreferrer" target="_blank">Prepare for your session <span aria-hidden="true">↗</span></a></nav>
+          <div className="footer-facts" aria-label="English Chat facts"><span>Free</span><span>30 minutes</span><span>Two sessions weekly</span><span>Online</span></div>
+          <nav aria-label="Helpful links"><a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Official schedule <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a><a href={PREPARE_PAGE} rel="noreferrer" target="_blank">Prepare for your session <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a></nav>
           <p className="footer-guidance">Availability is checked from Google Calendar. Confirm and book the exact time on Google.</p>
         </footer>
       </main>

@@ -5,6 +5,7 @@ import { CompletedScanOutcome } from "./completed-scan-outcome";
 
 const actions = {
   onCheckAgain: vi.fn(),
+  onFindAny: vi.fn(),
   onNewSearch: vi.fn(),
   onViewSessions: vi.fn(),
 };
@@ -18,8 +19,8 @@ function renderOutcome(overrides: Partial<Parameters<typeof CompletedScanOutcome
       isStale={false}
       later={0}
       nextWeek={0}
-      permanentProblems={36}
       singleTutor={null}
+      temporarilyUnavailable={36}
       temporaryErrors={0}
       thisWeek={0}
       {...actions}
@@ -51,7 +52,7 @@ describe("completed scan outcome", () => {
       confirmedEmpty: 180,
       later: 1,
       nextWeek: 1,
-      permanentProblems: 40,
+      temporarilyUnavailable: 40,
       temporaryErrors: 2,
       thisWeek: 1,
     });
@@ -66,7 +67,7 @@ describe("completed scan outcome", () => {
   it("uses a full error only when the search produced no reliable result", () => {
     const markup = renderOutcome({
       confirmedEmpty: 0,
-      permanentProblems: 0,
+      temporarilyUnavailable: 0,
       temporaryErrors: 4,
     });
 
@@ -76,16 +77,29 @@ describe("completed scan outcome", () => {
     expect(markup).not.toContain("No sessions available right now");
   });
 
-  it("does not ask the student to retry a permanently unavailable single calendar", () => {
+  it("keeps a restored result visible while clearly marking it as stale", () => {
+    const markup = renderOutcome({
+      available: 1,
+      confirmedEmpty: 0,
+      isStale: true,
+      thisWeek: 1,
+    });
+
+    expect(markup).toContain("1 volunteer with open times");
+    expect(markup).toContain("Checked earlier");
+    expect(markup).toContain("Availability may have changed");
+  });
+
+  it("guides a student away from a temporarily unavailable single calendar", () => {
     const markup = renderOutcome({
       confirmedEmpty: 0,
-      permanentProblems: 1,
       singleTutor: "Aaron Ludwig",
+      temporarilyUnavailable: 1,
       temporaryErrors: 0,
     });
 
-    expect(markup).toContain("This booking page is unavailable");
-    expect(markup).toContain("Find another session");
+    expect(markup).toContain("This calendar is temporarily unavailable");
+    expect(markup).toContain("Search all volunteers");
     expect(markup).not.toContain(">Check again<");
   });
 });

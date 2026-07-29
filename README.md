@@ -21,10 +21,12 @@ English Chat Finder helps BYU-Pathway Worldwide students find open 30-minute Eng
 - Scans volunteers through a bounded worker pool instead of opening every calendar at once.
 - Keeps unavailable links and temporary provider failures out of the student-facing results, while never counting them as **No sessions available**.
 - Keeps results in the student's browser for reference, marks them for rechecking after 10 minutes, and removes them after 24 hours.
+- Restores completed results after a page reload and safely turns an interrupted saved scan into a resumable paused state.
 - Slows the current scan when repeated provider failures or rate limiting suggest that reliability is at risk.
-- Avoids requesting a permanently unavailable booking link again during the same browser visit.
+- Temporarily pauses unavailable schedules for 8 hours and provider failures for 10 minutes, then checks them again automatically.
+- Treats a changed or newly listed volunteer URL as new so it can be checked immediately.
 
-The app has no account system, database, messaging service, cron job, or server-side result history. Vercel Web Analytics records aggregate visits, not appointment results or named student profiles. Exact appointment times and final availability must always be confirmed on Google before booking.
+The app has no account system, database, messaging service, cron job, or server-side result history. Link-health data stays in the student's browser and contains only operational booking-URL status; it does not contain student identities, searches, or appointment choices. Vercel Web Analytics records aggregate visits, not appointment results or named student profiles. Exact appointment times and final availability must always be confirmed on Google before booking.
 
 ## How it works
 
@@ -45,6 +47,11 @@ Temporary browser results and direct booking links
 ```
 
 The main implementation lives in:
+
+- `src/lib/link-health.ts` — temporary booking-link cooldown, expiry, recovery, and official-list reconciliation.
+- `src/lib/progressive-scan.ts` — bounded progressive worker pool and zero-based progress reporting.
+- `src/lib/slot-request.ts` — browser-to-API request retry behavior.
+- `src/lib/saved-scan.ts` — safe restoration of completed or interrupted browser scans.
 
 - `src/components/availability-board.tsx` — student interface, scan queue, filters, and temporary browser storage.
 - `src/components/completed-scan-outcome.tsx` — focused completed, empty, and unreliable search outcomes.

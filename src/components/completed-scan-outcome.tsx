@@ -6,10 +6,11 @@ type CompletedScanOutcomeProps = {
   later: number;
   nextWeek: number;
   onCheckAgain: () => void;
+  onFindAny: () => void;
   onNewSearch: () => void;
   onViewSessions: () => void;
-  permanentProblems: number;
   singleTutor: string | null;
+  temporarilyUnavailable: number;
   temporaryErrors: number;
   thisWeek: number;
 };
@@ -22,10 +23,11 @@ export function CompletedScanOutcome({
   later,
   nextWeek,
   onCheckAgain,
+  onFindAny,
   onNewSearch,
   onViewSessions,
-  permanentProblems,
   singleTutor,
+  temporarilyUnavailable,
   temporaryErrors,
   thisWeek,
 }: CompletedScanOutcomeProps) {
@@ -75,24 +77,28 @@ export function CompletedScanOutcome({
     );
   }
 
-  const onlyPermanentProblems = permanentProblems > 0 && temporaryErrors === 0;
+  const onlyPausedCalendar = Boolean(singleTutor && temporarilyUnavailable > 0 && temporaryErrors === 0);
   return (
     <>
       <div className="outcome-announcement" role="alert">
         <span className="state-label">Search incomplete</span>
-        <h3>{singleTutor && onlyPermanentProblems ? "This booking page is unavailable" : "We couldn’t check availability"}</h3>
+        <h3>{onlyPausedCalendar ? "This calendar is temporarily unavailable" : "We couldn’t check availability"}</h3>
         <p>
-          {singleTutor && onlyPermanentProblems
-            ? `We could not reach ${singleTutor}’s booking calendar. Choose another volunteer or use the official schedule.`
+          {onlyPausedCalendar
+            ? `We could not confirm ${singleTutor}’s calendar right now. Search all volunteers for the best chance of finding a session.`
             : "Google did not return enough reliable information to confirm whether sessions are available. Please try again in a moment."}
         </p>
-        <small>We did not label this as “no sessions available” because the check was incomplete.</small>
+        <small>
+          {onlyPausedCalendar
+            ? "This calendar will become eligible for an automatic future check."
+            : "We did not label this as “no sessions available” because the check was incomplete."}
+        </small>
       </div>
       <div className="outcome-actions">
-        <button onClick={onlyPermanentProblems ? onNewSearch : onCheckAgain} type="button">
-          {onlyPermanentProblems ? "Find another session" : "Check again"}
+        <button onClick={onlyPausedCalendar ? onFindAny : onCheckAgain} type="button">
+          {onlyPausedCalendar ? "Search all volunteers" : "Check again"}
         </button>
-        {!onlyPermanentProblems ? (
+        {!onlyPausedCalendar ? (
           <button className="quiet-button" onClick={onNewSearch} type="button">New search</button>
         ) : null}
       </div>

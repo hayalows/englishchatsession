@@ -4,6 +4,25 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.5.0] - 2026-07-29
+
+### Added
+
+- Expiring browser-local link health with last-check, last-success, consecutive-failure, reason, and retry-after metadata.
+- Automatic recovery for booking URLs that work again after a temporary pause.
+- Official-list URL reconciliation so a new or replaced volunteer link is checked immediately.
+- Progressive worker-pool tests covering zero-based progress, per-request progress, early opening disclosure, continued background scanning, and cancellation.
+- Saved scan restoration so completed results and interrupted progress remain useful after a page reload.
+
+### Changed
+
+- Replaced the permanent unavailable-link skip set with a 10-minute cooldown for temporary provider failures and an 8-hour cooldown for unavailable schedules.
+- Excluded already-paused links from each scan's visible total without adding them to completed progress.
+- Retried temporary provider and rate-limit results once before applying a cooldown.
+- Expanded the initial **Find available sessions** action to the full finder width while keeping completed-result actions compact on desktop.
+- Simplified the recommended scan mode to **Any volunteer** with **Search by name** retained as a secondary option.
+- Renamed the source status to **volunteers listed** and placed the optional paused-calendar count inside the quiet availability explanation.
+
 ## [1.4.0] - 2026-07-29
 
 ### Added
@@ -106,6 +125,7 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 - Telegram and scheduled notification delivery.
 - Chromium-based calendar scanning.
 
+[1.5.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.5.0
 [1.4.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.4.0
 [1.2.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.2.0
 [1.3.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.3.0

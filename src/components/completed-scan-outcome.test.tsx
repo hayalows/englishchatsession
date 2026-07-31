@@ -65,6 +65,36 @@ describe("completed scan outcome", () => {
     expect(markup).not.toContain("unavailable");
   });
 
+  it("personalizes an available result for one named volunteer", () => {
+    const markup = renderOutcome({
+      available: 1,
+      confirmedEmpty: 0,
+      singleTutor: "Kofi Mensah",
+      thisWeek: 1,
+    });
+
+    expect(markup).toContain("Kofi Mensah has available sessions");
+    expect(markup).toContain("View Kofi Mensah’s available dates below");
+    expect(markup).toContain("View Kofi Mensah’s sessions");
+    expect(markup).toContain("Search another volunteer");
+    expect(markup).not.toContain("1 volunteer with open times");
+  });
+
+  it("personalizes a confirmed empty result for one named volunteer", () => {
+    const markup = renderOutcome({
+      available: 0,
+      confirmedEmpty: 1,
+      singleTutor: "Kofi Mensah",
+      temporarilyUnavailable: 0,
+    });
+
+    expect(markup).toContain("Kofi Mensah has no available sessions right now");
+    expect(markup).toContain("We checked Kofi Mensah’s calendar");
+    expect(markup).toContain("Check Kofi Mensah again");
+    expect(markup).toContain("Search another volunteer");
+    expect(markup).not.toContain("We checked every volunteer calendar ready now");
+  });
+
   it("uses a full error only when the search produced no reliable result", () => {
     const markup = renderOutcome({
       confirmedEmpty: 0,
@@ -76,6 +106,21 @@ describe("completed scan outcome", () => {
     expect(markup).toContain("We couldn’t check availability");
     expect(markup).toContain("Check again");
     expect(markup).not.toContain("No sessions available right now");
+  });
+
+  it("personalizes an unreliable result without calling it no availability", () => {
+    const markup = renderOutcome({
+      confirmedEmpty: 0,
+      singleTutor: "Kofi Mensah",
+      temporarilyUnavailable: 0,
+      temporaryErrors: 1,
+    });
+
+    expect(markup).toContain("We couldn’t confirm Kofi Mensah’s availability");
+    expect(markup).toContain("This does not mean there are no sessions");
+    expect(markup).toContain("Check again");
+    expect(markup).toContain("Search another volunteer");
+    expect(markup).not.toContain("Kofi Mensah has no available sessions");
   });
 
   it("keeps a restored result visible while clearly marking it as stale", () => {
@@ -99,7 +144,7 @@ describe("completed scan outcome", () => {
       temporaryErrors: 0,
     });
 
-    expect(markup).toContain("This calendar is temporarily unavailable");
+    expect(markup).toContain("Aaron Ludwig’s calendar is temporarily unavailable");
     expect(markup).toContain("Search all volunteers");
     expect(markup).not.toContain(">Check again<");
   });

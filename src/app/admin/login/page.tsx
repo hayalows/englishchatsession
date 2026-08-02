@@ -69,13 +69,14 @@ export default function AdminLoginPage() {
           </div>
 
           <form className={styles.loginForm} onSubmit={submit}>
-            <label className={styles.fieldLabel}>
-              Administrator password
-              <span className={styles.fieldHelp}>Enter the password provided for administrator access.</span>
-              <span className={styles.passwordField}>
+            <div className={styles.fieldLabel}>
+              <label htmlFor="admin-password">Administrator password</label>
+              <span className={styles.fieldHelp} id="admin-password-help">Enter the password provided for administrator access.</span>
+              <div className={styles.passwordField}>
                 <input
                   aria-describedby="admin-password-help"
                   autoComplete="current-password"
+                  id="admin-password"
                   onChange={(event) => setPassword(event.target.value)}
                   required
                   type={passwordVisible ? "text" : "password"}
@@ -89,9 +90,8 @@ export default function AdminLoginPage() {
                 >
                   {passwordVisible ? "Hide" : "Show"}
                 </button>
-              </span>
-              <span className="sr-only" id="admin-password-help">The password is checked securely on the server.</span>
-            </label>
+              </div>
+            </div>
 
             {message ? <p className={styles.loginError} role="alert">{message}</p> : null}
 

@@ -24,7 +24,7 @@ describe("admin operations navigation", () => {
   it("makes the important operational tasks directly discoverable", () => {
     expect(dashboardSource).toContain('aria-label="Admin views"');
     expect(dashboardSource).toContain('{ id: "overview", label: "Overview" }');
-    expect(dashboardSource).toContain('{ id: "availability", label: "Openings" }');
+    expect(dashboardSource).toContain('{ id: "availability", label: "Availability" }');
     expect(dashboardSource).toContain('{ id: "issues", label: "Issues" }');
     expect(dashboardSource).toContain('{ id: "volunteers", label: "Volunteers" }');
     expect(dashboardSource).toContain('setView("availability")');
@@ -35,9 +35,10 @@ describe("admin operations navigation", () => {
   it("keeps the overview focused while exposing full task views and clear audit guidance", () => {
     expect(dashboardSource).toContain("const overviewAvailable = available.slice(0, 3);");
     expect(dashboardSource).toContain("const overviewIssues = allIssues.slice(0, 3);");
-    expect(dashboardSource).toContain("See all openings");
+    expect(dashboardSource).toContain("Current calendar picture");
+    expect(dashboardSource).toContain("See all availability");
     expect(dashboardSource).toContain("Review all");
-    expect(dashboardSource).toContain("Run a calendar audit first.");
+    expect(dashboardSource).toContain("Run an audit to fill the dashboard.");
     expect(dashboardSource).toContain("Copy issue report");
     expect(dashboardSource).toContain('href={result.bookingUrl}');
   });

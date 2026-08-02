@@ -1,6 +1,6 @@
 {
   "name": "englishchatsession",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "Stateless BYU-Pathway English Chat booking availability finder.",
   "private": true,
   "engines": {

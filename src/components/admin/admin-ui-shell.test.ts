@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const navSource = readFileSync(new URL("./admin-top-nav.tsx", import.meta.url), "utf8");
 const navCss = readFileSync(new URL("./admin-top-nav.module.css", import.meta.url), "utf8");
 const adminCss = readFileSync(new URL("../../app/admin/admin.module.css", import.meta.url), "utf8");
+const copySource = readFileSync(new URL("../copy-icon-button.tsx", import.meta.url), "utf8");
 
 describe("administrator visual shell", () => {
   it("reuses the student navigation language with administrator actions", () => {
@@ -19,6 +20,7 @@ describe("administrator visual shell", () => {
     expect(navSource).toContain("Administrator console");
     expect(navSource).toContain("/api/admin/logout");
     expect(navSource).toContain("Prepare");
+    expect(navSource).toContain("Open the student English Chat Finder");
   });
 
   it("keeps the English Chat Finder name visible on narrow admin screens", () => {
@@ -35,5 +37,7 @@ describe("administrator visual shell", () => {
     expect(adminCss).toContain("top: calc(68px + .7rem)");
     expect(adminCss).toContain("top: calc(62px + .45rem)");
     expect(navCss).toContain(".logoutButton:hover");
+    expect(copySource).toContain("showLabel = false");
+    expect(copySource).toContain('"Copy link"');
   });
 });

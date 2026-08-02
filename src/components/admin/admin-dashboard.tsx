@@ -35,7 +35,7 @@ type StoredAudit = { completedAt: string; listedCount: number; results: AdminCal
 
 const ADMIN_VIEWS: ReadonlyArray<{ id: AdminView; label: string }> = [
   { id: "overview", label: "Overview" },
-  { id: "availability", label: "Openings" },
+  { id: "availability", label: "Availability" },
   { id: "issues", label: "Issues" },
   { id: "volunteers", label: "Volunteers" },
 ];
@@ -104,12 +104,12 @@ async function copyReportText(value: string) {
 function CalendarActions({ result }: { result: AdminCalendarResult }) {
   const calendarName = result.tutor ?? "English Chat volunteer";
   return (
-    <div className={styles.issueActions}>
+    <div aria-label={`${calendarName} actions`} className={styles.issueActions}>
       <a href={result.bookingUrl} rel="noreferrer" target="_blank">
         Open Google <span aria-hidden="true">↗</span>
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
-      <CopyIconButton bookingUrl={result.bookingUrl} calendarName={calendarName} />
+      <CopyIconButton bookingUrl={result.bookingUrl} calendarName={calendarName} showLabel />
     </div>
   );
 }
@@ -154,9 +154,9 @@ function AuditRequiredNotice({ onRun }: { onRun: () => void }) {
   return (
     <section className={styles.auditRequired} aria-labelledby="audit-required-title">
       <div>
-        <p className={styles.eyebrow}>Audit needed</p>
-        <h2 id="audit-required-title">Run a calendar audit first.</h2>
-        <p>Openings, issues, and volunteer status will appear here from the same current audit.</p>
+        <p className={styles.eyebrow}>Start with one check</p>
+        <h2 id="audit-required-title">Run an audit to fill the dashboard.</h2>
+        <p>Openings, issues, and volunteer status will appear here from the same current results.</p>
       </div>
       <button className={styles.primaryButton} onClick={onRun} type="button">Run calendar audit</button>
     </section>
@@ -196,7 +196,7 @@ function VolunteerLookup({
         <div>
           <p className={styles.eyebrow}>{compact ? "Quick lookup" : "Volunteer status"}</p>
           <h2 id={titleId}>Find a volunteer</h2>
-          <p>{compact ? "Search the results already checked in this audit." : "Find a volunteer in the current audit and see their latest status. Searching here does not run another calendar check."}</p>
+          <p>{compact ? "Search the results from this audit." : "Find a volunteer in the current audit. Searching here does not run another calendar check."}</p>
         </div>
       </div>
       {!hasAudit ? (
@@ -316,7 +316,8 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
     : auditState === "running"
       ? "Audit in progress"
       : "No audit run yet";
-  const auditActionLabel = auditState === "running" ? "Audit running…" : hasAudit ? "Refresh audit" : "Run calendar audit";
+  const auditActionLabel = auditState === "running" ? "Audit running" : hasAudit ? "Refresh audit" : "Run calendar audit";
+  const summaryValue = (value: number) => hasAudit ? value : "Not run";
 
   async function runAudit() {
     if (auditState === "running") return;
@@ -398,9 +399,62 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
         <div>
           <p className={styles.eyebrow}>Administrator console</p>
           <h1>Calendar operations</h1>
-          <p>Run one audit to see current openings, spot calendar problems, and find any volunteer quickly.</p>
+          <p>See what is open, what needs review, and where to go next.</p>
         </div>
       </header>
+
+      {view === "overview" ? (
+        <section className={styles.statusPanel} aria-labelledby="system-status-title">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Calendar status</p>
+          <h2 id="system-status-title">Current calendar picture</h2>
+          <p>One audit shows openings, successful checks, and calendars that need review.</p>
+            </div>
+            <div className={styles.statusAction}>
+              <span>{auditTimestamp}</span>
+              <button className={styles.primaryButton} disabled={auditState === "running"} onClick={() => void runAudit()} type="button">
+                {auditActionLabel}
+              </button>
+            </div>
+          </div>
+          <div className={styles.summaryGrid}>
+            <button
+              aria-label={hasAudit ? `View ${summary.available} confirmed openings` : "Run an audit to see confirmed openings"}
+              className={styles.summaryCard + " " + styles.summaryCardAction + " " + styles.summaryCardAvailable}
+              onClick={() => setView("availability")}
+              type="button"
+            >
+              <span className={styles.summaryCardLabel}>Available now</span>
+              <strong className={hasAudit ? undefined : styles.summaryValuePending}>{summaryValue(summary.available)}</strong>
+              <span>Confirmed openings</span>
+              <small>See openings <span aria-hidden="true">→</span></small>
+            </button>
+            <button
+              aria-label={hasAudit ? `Review ${attentionCount} calendars needing attention` : "Run an audit to see calendars needing attention"}
+              className={styles.summaryCard + " " + styles.summaryCardAction + " " + styles.summaryCardAttention}
+              onClick={() => setView("issues")}
+              type="button"
+            >
+              <span className={styles.summaryCardLabel}>Needs attention</span>
+              <strong className={hasAudit ? undefined : styles.summaryValuePending}>{summaryValue(attentionCount)}</strong>
+              <span>{hasAudit ? summary.unavailable + " unavailable · " + summary.temporary + " temporary" : "Unavailable · temporary"}</span>
+              <small>Review calendars <span aria-hidden="true">→</span></small>
+            </button>
+            <article className={styles.summaryCard + " " + styles.summaryCardChecked}>
+              <span className={styles.summaryCardLabel}>Checked successfully</span>
+              <strong className={hasAudit ? undefined : styles.summaryValuePending}>{summaryValue(summary.healthy)}</strong>
+              <span>{hasAudit ? summary.available + " open · " + summary.noOpenings + " no openings" : "Open · no openings"}</span>
+            </article>
+            <article className={styles.summaryCard + " " + styles.summaryCardTotal}>
+              <span className={styles.summaryCardLabel}>Calendars listed</span>
+              <strong className={hasAudit ? undefined : styles.summaryValuePending}>{summaryValue(summary.listed)}</strong>
+              <span>Official volunteer list</span>
+            </article>
+          </div>
+          {!hasAudit ? <p className={styles.emptyNotice}>No audit yet. Run one calendar check to fill in the current picture.</p> : null}
+        </section>
+      ) : null}
 
       <nav className={styles.taskNav} aria-label="Admin views">
         <div className={styles.taskNavInner}>
@@ -426,59 +480,6 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
           })}
         </div>
       </nav>
-
-      {view === "overview" ? (
-        <section className={styles.statusPanel} aria-labelledby="system-status-title">
-          <div className={styles.sectionHeading}>
-            <div>
-              <p className={styles.eyebrow}>Calendar status</p>
-              <h2 id="system-status-title">What’s happening now</h2>
-              <p>Run one audit to refresh openings, successful checks, and calendars that need attention. Results update as calendars are checked.</p>
-            </div>
-            <div className={styles.statusAction}>
-              <span>{auditTimestamp}</span>
-              <button className={styles.primaryButton} disabled={auditState === "running"} onClick={() => void runAudit()} type="button">
-                {auditActionLabel}
-              </button>
-            </div>
-          </div>
-          <div className={styles.summaryGrid}>
-            <button
-              aria-label={"View " + (hasAudit ? summary.available : 0) + " available sessions"}
-              className={styles.summaryCard + " " + styles.summaryCardAction + " " + styles.summaryCardAvailable}
-              onClick={() => setView("availability")}
-              type="button"
-            >
-              <span className={styles.summaryCardLabel}>Available now</span>
-              <strong>{hasAudit ? summary.available : "—"}</strong>
-              <span>Confirmed openings</span>
-              <small>See openings <span aria-hidden="true">→</span></small>
-            </button>
-            <button
-              aria-label={"Review " + (hasAudit ? attentionCount : 0) + " calendars requiring attention"}
-              className={styles.summaryCard + " " + styles.summaryCardAction + " " + styles.summaryCardAttention}
-              onClick={() => setView("issues")}
-              type="button"
-            >
-              <span className={styles.summaryCardLabel}>Needs attention</span>
-              <strong>{hasAudit ? attentionCount : "—"}</strong>
-              <span>{hasAudit ? summary.unavailable + " unavailable · " + summary.temporary + " temporary" : "Unavailable · temporary"}</span>
-              <small>Review calendars <span aria-hidden="true">→</span></small>
-            </button>
-            <article className={styles.summaryCard + " " + styles.summaryCardChecked}>
-              <span className={styles.summaryCardLabel}>Checked successfully</span>
-              <strong>{hasAudit ? summary.healthy : "—"}</strong>
-              <span>{hasAudit ? summary.available + " open · " + summary.noOpenings + " no openings" : "Open · no openings"}</span>
-            </article>
-            <article className={styles.summaryCard + " " + styles.summaryCardTotal}>
-              <span className={styles.summaryCardLabel}>Calendars listed</span>
-              <strong>{hasAudit ? summary.listed : "—"}</strong>
-              <span>Official volunteer list</span>
-            </article>
-          </div>
-          {!hasAudit ? <p className={styles.emptyNotice}>No audit yet. Run one to see current openings and calendar health.</p> : null}
-        </section>
-      ) : null}
 
       {view !== "overview" && hasAudit ? (
         <section className={styles.completionPanel} aria-label="Current audit status">
@@ -513,8 +514,8 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
             <section className={styles.completionPanel} aria-live="polite" aria-labelledby="audit-complete-title">
               <div>
                 <p className={styles.eyebrow}>Audit complete</p>
-                <h2 id="audit-complete-title">Current picture updated.</h2>
-                <p>{audit.completedCount} calendars checked · {summary.available} open · {attentionCount} need attention</p>
+                <h2 id="audit-complete-title">Audit results are ready.</h2>
+                <p>{audit.completedCount} calendars checked. {summary.available} open. {attentionCount} need review.</p>
               </div>
               <div className={styles.completionActions}>
                 <button className={styles.primaryButton} onClick={() => setView("availability")} type="button">See openings</button>
@@ -527,8 +528,8 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
             <section className={styles.completionPanel + " " + styles.completionStopped} aria-live="polite" aria-labelledby="audit-stopped-title">
               <div>
                 <p className={styles.eyebrow}>Audit stopped</p>
-                <h2 id="audit-stopped-title">Partial results are still available.</h2>
-                <p>{audit.completedCount} of {audit.listedCount} calendars checked · {summary.available} open · {attentionCount} need attention</p>
+                <h2 id="audit-stopped-title">Partial results are available.</h2>
+                <p>{audit.completedCount} of {audit.listedCount} calendars checked. {summary.available} open. {attentionCount} need review.</p>
               </div>
               <button className={styles.secondaryButton} onClick={() => void runAudit()} type="button">Run another audit</button>
             </section>
@@ -539,11 +540,11 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
               <div>
                 <p className={styles.eyebrow}>Start here</p>
                 <h2 id="pre-audit-title">Get the current calendar picture.</h2>
-                <p>One audit checks the official volunteer list and sorts the results into openings, clear no-opening results, and calendars that need review.</p>
+                <p>One audit checks the official volunteer list and sorts the results into openings, no openings, and calendars that need review.</p>
                 <ul className={styles.auditSteps}>
                   <li>See confirmed openings as they appear</li>
-                  <li>Separate clear no-opening results from problems</li>
-                  <li>Find any volunteer from the same audit</li>
+                  <li>Separate no openings from problems</li>
+                  <li>Find any volunteer from these results</li>
                 </ul>
               </div>
               <button className={styles.primaryButton} onClick={() => void runAudit()} type="button">Run calendar audit</button>
@@ -554,11 +555,11 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
                 <section className={styles.section} aria-labelledby="availability-preview-title">
                   <div className={styles.sectionHeading}>
                     <div>
-                      <p className={styles.eyebrow}>Current openings</p>
-                      <h2 id="availability-preview-title">Openings</h2>
-                      <p>{summary.available} volunteer{summary.available === 1 ? "" : "s"} ready to book.</p>
+                      <p className={styles.eyebrow}>Current availability</p>
+                      <h2 id="availability-preview-title">Availability</h2>
+                      <p>{summary.available} volunteer{summary.available === 1 ? "" : "s"} with a confirmed opening.</p>
                     </div>
-                    <button className={styles.textButton} onClick={() => setView("availability")} type="button">See all openings</button>
+                      <button className={styles.textButton} onClick={() => setView("availability")} type="button">See all availability</button>
                   </div>
                   {overviewAvailable.length ? (
                     <div className={styles.availabilityList}>
@@ -574,7 +575,7 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
                     <div>
                       <p className={styles.eyebrow}>Needs review</p>
                       <h2 id="issues-preview-title">{attentionCount} calendar{attentionCount === 1 ? "" : "s"}</h2>
-                      <p>{summary.unavailable} unavailable · {summary.temporary} temporary</p>
+                      <p>{summary.unavailable} unavailable. {summary.temporary} temporary.</p>
                     </div>
                     <button className={styles.secondaryButton} disabled={!allIssues.length} onClick={() => setView("issues")} type="button">Review all</button>
                   </div>
@@ -613,7 +614,7 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
           )}
 
           <details className={styles.referenceCard}>
-            <summary>Admin guide & useful links</summary>
+            <summary>Help and reference</summary>
             <div className={styles.policyCopy}>
               <p><strong>Open:</strong> Google returned at least one bookable appointment time.</p>
               <p><strong>No openings:</strong> the calendar checked successfully but had no appointment time in the checked range.</p>
@@ -626,8 +627,8 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
               <div><dt>Availability source</dt><dd>Google Calendar appointment schedules</dd></div>
             </dl>
             <nav>
-              <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Official volunteer schedule ↗<span className="sr-only"> (opens in a new tab)</span></a>
-              <a href={PREPARE_PAGE} rel="noreferrer" target="_blank">Student preparation page ↗<span className="sr-only"> (opens in a new tab)</span></a>
+              <a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Open official schedule ↗<span className="sr-only"> (opens in a new tab)</span></a>
+              <a href={PREPARE_PAGE} rel="noreferrer" target="_blank">Open preparation guide ↗<span className="sr-only"> (opens in a new tab)</span></a>
             </nav>
           </details>
         </div>
@@ -638,15 +639,15 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
           <section className={styles.section} aria-labelledby="availability-title">
             <div className={styles.sectionHeading}>
               <div>
-                <p className={styles.eyebrow}>Confirmed openings</p>
-                <h2 id="availability-title">Openings</h2>
-                <p>Earliest opening first. These are volunteers Google confirmed had a bookable time in this audit.</p>
+                <p className={styles.eyebrow}>Confirmed availability</p>
+                <h2 id="availability-title">Availability</h2>
+                <p>Earliest opening first. These volunteers have a bookable time in this audit.</p>
               </div>
               <strong className={styles.viewCount}>{summary.available} volunteer{summary.available === 1 ? "" : "s"}</strong>
             </div>
             <div className={styles.availabilitySummary}>
               <strong>{summary.available} volunteer{summary.available === 1 ? "" : "s"} ready to book</strong>
-              <span>{summary.thisWeek} this week · {summary.nextWeek} next week · {summary.later} later</span>
+              <span>{summary.thisWeek} this week, {summary.nextWeek} next week, {summary.later} later</span>
             </div>
             <div className={styles.filterRow} aria-label="Filter confirmed openings">
               {AVAILABILITY_FILTERS.map((filter) => (
@@ -680,7 +681,7 @@ export function AdminDashboard({ appVersion }: { appVersion: string }) {
               <div>
                 <p className={styles.eyebrow}>Needs review</p>
                 <h2 id="issues-title">Issues to review</h2>
-                <p>{attentionCount} calendar{attentionCount === 1 ? "" : "s"} did not produce a reliable no-opening result. Unavailable calendars need checking; temporary problems may clear on a later audit.</p>
+                <p>{attentionCount} calendar{attentionCount === 1 ? "" : "s"} need review. Unavailable calendars need checking. Temporary problems may clear on a later audit.</p>
               </div>
               <button className={styles.secondaryButton} disabled={!audit} onClick={() => void copyIssueReport()} type="button">{reportCopied ? "Issue report copied" : "Copy issue report"}</button>
             </div>

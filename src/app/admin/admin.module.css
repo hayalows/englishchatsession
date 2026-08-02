@@ -4,17 +4,17 @@
   margin: 0 auto;
   max-width: 1180px;
   min-height: 100vh;
-  padding: 2rem 1.5rem 3rem;
+  padding: clamp(1.25rem, 3vw, 2.4rem) 1.5rem 3.5rem;
 }
 
 .adminHeader {
   display: block;
-  padding: .5rem .1rem 1.6rem;
+  padding: .35rem .1rem 1.15rem;
 }
 
 .adminHeader > div:first-child { max-width: 62ch; }
 .brand, .headerActions { display: none; }
-.adminHeader h1 { font-size: clamp(2.15rem, 4.7vw, 3.7rem); letter-spacing: -.065em; line-height: .95; margin: .45rem 0 .65rem; text-wrap: balance; }
+.adminHeader h1 { font-size: clamp(2.2rem, 4.7vw, 3.45rem); letter-spacing: -.065em; line-height: .95; margin: .45rem 0 .65rem; text-wrap: balance; }
 .adminHeader p:not(.eyebrow) { color: var(--muted); font-size: .94rem; line-height: 1.55; margin: 0; max-width: 54ch; }
 .eyebrow { color: var(--teal-700); font-size: .68rem; font-weight: 820; letter-spacing: .1em; margin: .55rem 0 0; text-transform: uppercase; }
 .studentLink { color: var(--teal-700); font-size: .78rem; font-weight: 760; min-height: 44px; padding: .7rem .45rem; text-decoration: none; }
@@ -48,10 +48,12 @@
   background: var(--surface);
   border: 1px solid rgba(190, 205, 211, .65);
   border-radius: 1.2rem;
-  box-shadow: var(--shadow-panel);
+  box-shadow: var(--shadow-card);
   min-width: 0;
   padding: clamp(1rem, 3vw, 1.6rem);
 }
+
+.statusPanel { background: linear-gradient(145deg, #ffffff, #f2f8f7); border-color: #c2d8d9; box-shadow: var(--shadow-panel); }
 
 .statusPanel, .progressPanel, .section, .recoveredPanel, .lookupPreview, .completionPanel, .auditRequired { margin-bottom: 1rem; }
 .sectionHeading { align-items: start; display: flex; gap: 1.1rem; justify-content: space-between; }
@@ -90,6 +92,7 @@
 .summaryCardTotal { background: var(--surface); }
 .summaryCardLabel { color: var(--muted); font-size: .68rem; font-weight: 820; letter-spacing: .08em; text-transform: uppercase; }
 .summaryCard strong { font-size: clamp(1.75rem, 3.4vw, 2.55rem); letter-spacing: -.055em; line-height: 1; margin-top: .18rem; }
+.summaryValuePending { font-size: clamp(1.15rem, 2.4vw, 1.55rem) !important; letter-spacing: -.035em !important; }
 .summaryCard > span:not(.summaryCardLabel) { color: var(--muted); font-size: .72rem; line-height: 1.35; }
 .summaryCard small { color: var(--teal-700); font-size: .7rem; font-weight: 780; margin-top: auto; }
 .summaryCardAttention small { color: var(--amber-800); }
@@ -102,7 +105,7 @@
   border: 1px solid rgba(190, 205, 211, .82);
   border-radius: 1rem;
   box-shadow: 0 8px 26px rgba(7, 47, 79, .08);
-  margin-bottom: 1rem;
+  margin: .25rem 0 1rem;
   position: sticky;
   top: calc(68px + .7rem);
   z-index: 10;
@@ -150,7 +153,7 @@
 .completionPanel p:not(.eyebrow) { color: var(--muted); font-size: .8rem; line-height: 1.5; margin: 0; }
 .completionStopped { background: var(--amber-100); border-color: #ead59c; }
 .completionActions { align-items: center; display: flex; flex-wrap: wrap; gap: .45rem; }
-.auditRequired { align-items: center; background: #f5faf9; border-color: #b7dccc; display: flex; gap: 1.25rem; justify-content: space-between; }
+.auditRequired { align-items: center; background: #f5faf9; border-color: #b7dccc; box-shadow: inset 4px 0 0 var(--teal-700), var(--shadow-card); display: flex; gap: 1.25rem; justify-content: space-between; }
 .auditRequired h2 { font-size: clamp(1.3rem, 2.8vw, 1.9rem); letter-spacing: -.045em; line-height: 1.08; margin: .35rem 0 .5rem; max-width: 28ch; }
 .auditRequired p:not(.eyebrow) { color: var(--muted); font-size: .82rem; line-height: 1.5; margin: 0; max-width: 66ch; }
 .auditSteps { color: var(--muted); display: grid; font-size: .77rem; gap: .28rem; line-height: 1.4; list-style: none; margin: .9rem 0 0; padding: 0; }
@@ -180,9 +183,9 @@
 .statusAvailable, .statusHealthy { background: var(--teal-100); color: var(--teal-700); }
 .statusUnavailable { background: #f7e5e5; color: #8b3040; }
 .statusTemporary { background: var(--amber-100); color: var(--amber-800); }
-.issueActions { align-items: center; display: flex; flex: 0 0 auto; gap: .4rem; }
-.issueActions > a { color: var(--teal-700); font-size: .73rem; font-weight: 780; min-height: 44px; padding: .72rem .28rem; text-decoration: none; white-space: nowrap; }
-.issueActions > a:hover { text-decoration: underline; }
+.issueActions { align-items: stretch; display: flex; flex: 0 0 auto; gap: .4rem; }
+.issueActions > a { align-items: center; background: var(--teal-50); border: 1px solid #c5dfe0; border-radius: .72rem; color: var(--teal-700); display: inline-flex; font-size: .73rem; font-weight: 780; gap: .3rem; min-height: 48px; padding: .72rem .72rem; text-decoration: none; white-space: nowrap; }
+.issueActions > a:hover { background: var(--teal-100); border-color: #a8c8cc; text-decoration: none; }
 .viewCount { color: var(--muted); font-size: .76rem; font-variant-numeric: tabular-nums; padding-top: .6rem; white-space: nowrap; }
 
 .recoveredPanel { align-items: start; background: #eef7f5; border-color: #b7dccc; display: grid; gap: 1.15rem; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); }
@@ -292,7 +295,7 @@
   .taskButton b { font-size: .6rem; min-width: 1.15rem; padding-inline: .2rem; }
   .filterRow { display: grid; grid-template-columns: 1fr 1fr; }
   .filterButton, .filterActive { justify-content: space-between; width: 100%; }
-  .issueActions { display: grid; grid-template-columns: 1fr 48px; }
+  .issueActions { display: grid; grid-template-columns: minmax(0, 1fr) 7rem; }
   .issueActions > a { text-align: center; }
 }
 

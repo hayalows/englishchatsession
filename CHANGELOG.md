@@ -4,6 +4,14 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.7.2] - 2026-08-02
+
+### Changed
+
+- Refined the administrator console hierarchy so the current status and audit action come before task navigation.
+- Improved mobile and desktop readability with clearer copy, consistent action buttons, stronger contrast, and visible copy-link labels.
+- Made the Student finder route explicit in the branded administrator navigation while preserving the existing audit, authentication, and student behavior.
+
 ## [1.7.1] - 2026-08-02
 
 ### Changed

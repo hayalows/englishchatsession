@@ -26,7 +26,7 @@ export function AdminTopNav() {
             <a href={PREPARE_PAGE} rel="noreferrer" target="_blank">
               Prepare <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
             </a>
-            <a className={`nav-primary ${styles.studentLink}`} href="/">
+            <a aria-label="Open the student English Chat Finder" className={`nav-primary ${styles.studentLink}`} href="/" title="Open student finder">
               <span className={styles.studentDesktop}>Student finder</span>
               <span className={styles.studentMobile}>Student</span>
             </a>

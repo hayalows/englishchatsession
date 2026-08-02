@@ -2,25 +2,21 @@
   background: var(--canvas);
   color: var(--ink);
   margin: 0 auto;
-  max-width: 1260px;
+  max-width: 1180px;
   min-height: 100vh;
-  padding: 2rem clamp(1rem, 4vw, 3rem) 3rem;
+  padding: 2rem 1.5rem 3rem;
 }
 
 .adminHeader {
-  align-items: start;
-  display: flex;
-  gap: 2rem;
-  justify-content: space-between;
+  display: block;
   padding: .5rem .1rem 1.6rem;
 }
 
 .adminHeader > div:first-child { max-width: 62ch; }
-.brand { color: var(--teal-700); font-size: .86rem; font-weight: 820; text-decoration: none; }
+.brand, .headerActions { display: none; }
 .adminHeader h1 { font-size: clamp(2.15rem, 4.7vw, 3.7rem); letter-spacing: -.065em; line-height: .95; margin: .45rem 0 .65rem; text-wrap: balance; }
 .adminHeader p:not(.eyebrow) { color: var(--muted); font-size: .94rem; line-height: 1.55; margin: 0; max-width: 54ch; }
 .eyebrow { color: var(--teal-700); font-size: .68rem; font-weight: 820; letter-spacing: .1em; margin: .55rem 0 0; text-transform: uppercase; }
-.headerActions { align-items: center; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: end; }
 .studentLink { color: var(--teal-700); font-size: .78rem; font-weight: 760; min-height: 44px; padding: .7rem .45rem; text-decoration: none; }
 .studentLink:hover { text-decoration: underline; }
 
@@ -78,12 +74,18 @@
   min-width: 0;
   padding: .9rem;
   text-align: left;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
   width: 100%;
 }
 .summaryCardAction { cursor: pointer; font: inherit; }
-.summaryCardAction:hover { border-color: var(--line-strong); box-shadow: var(--shadow-card); transform: translateY(-1px); }
+.summaryCardAction:hover { border-color: var(--line-strong); box-shadow: var(--shadow-card); color: var(--ink); transform: translateY(-1px); }
+.summaryCardAction:active { color: var(--ink); transform: translateY(0) scale(.99); }
 .summaryCardAvailable { background: linear-gradient(145deg, #f0fbf9, #f8fafa); border-color: #b7dccc; }
+.summaryCardAction.summaryCardAvailable:hover,
+.summaryCardAction.summaryCardAvailable:active { background: linear-gradient(145deg, #e2f6f1, #f3faf8); border-color: #91c9b5; }
 .summaryCardAttention { background: linear-gradient(145deg, #fff9ec, #fdfafa); border-color: #ead59c; }
+.summaryCardAction.summaryCardAttention:hover,
+.summaryCardAction.summaryCardAttention:active { background: linear-gradient(145deg, #fff3d7, #fffaf0); border-color: #d9bb70; }
 .summaryCardChecked { background: linear-gradient(145deg, #f3f8fb, #f8fafa); }
 .summaryCardTotal { background: var(--surface); }
 .summaryCardLabel { color: var(--muted); font-size: .68rem; font-weight: 820; letter-spacing: .08em; text-transform: uppercase; }
@@ -102,7 +104,7 @@
   box-shadow: 0 8px 26px rgba(7, 47, 79, .08);
   margin-bottom: 1rem;
   position: sticky;
-  top: .7rem;
+  top: calc(68px + .7rem);
   z-index: 10;
 }
 .taskNavInner { display: grid; gap: .35rem; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: .35rem; }
@@ -261,13 +263,12 @@
   .adminShell { padding: 1rem .8rem 2rem; }
   .adminHeader, .sectionHeading, .completionPanel, .auditRequired { flex-direction: column; gap: .85rem; }
   .adminHeader { padding-bottom: 1.2rem; }
-  .headerActions, .statusAction { align-items: stretch; justify-content: start; justify-items: stretch; width: 100%; }
-  .statusAction { grid-template-columns: 1fr; }
+  .statusAction { align-items: stretch; justify-items: stretch; width: 100%; grid-template-columns: 1fr; }
   .statusAction > span { order: 2; }
   .primaryButton, .secondaryButton { width: 100%; }
   .summaryCard { min-height: 126px; padding: .75rem; }
   .summaryCard strong { font-size: 1.85rem; }
-  .taskNav { top: .45rem; }
+  .taskNav { top: calc(62px + .45rem); }
   .taskButton { font-size: .7rem; padding-inline: .35rem; }
   .sectionHeading > .secondaryButton, .sectionHeading > .textButton { align-self: start; }
   .issueCard, .availabilityCard, .lookupDetail { align-items: stretch; flex-direction: column; }

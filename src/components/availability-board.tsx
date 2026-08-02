@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CompletedScanOutcome } from "@/components/completed-scan-outcome";
+import { CopyIconButton } from "@/components/copy-icon-button";
 import { getWeekWindow } from "@/lib/date-window";
 import { FirstAppearanceTracker } from "@/lib/first-appearance";
 import {
@@ -805,6 +806,10 @@ export function AvailabilityBoard() {
             <span aria-hidden="true">↗</span>
             <span className="sr-only"> (opens in a new tab)</span>
           </a>
+          <CopyIconButton
+            bookingUrl={booking.bookingUrl}
+            calendarName={booking.tutor ?? "English Chat volunteer"}
+          />
         </div>
       </article>
     );

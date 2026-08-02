@@ -70,4 +70,10 @@ describe("finder state cues", () => {
     expect(boardSource).toContain("currently waiting.");
     expect(boardSource).not.toContain("Try problem checks again");
   });
+
+  it("keeps the official Google URL available to the student copy action", () => {
+    expect(boardSource).toContain("<CopyIconButton");
+    expect(boardSource).toContain("bookingUrl={booking.bookingUrl}");
+    expect(boardSource).toContain("Choose a time on Google");
+  });
 });

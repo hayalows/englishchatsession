@@ -25,7 +25,7 @@ Vercel deployments are executable artifacts, not the canonical source-code backu
 - Root directory: `.`
 - Node.js: `24.x`
 - Production alias: `https://englishchatsession.vercel.app`
-- Required environment variables: none
+- Required environment variables: `ADMIN_PASSWORD` for the password-protected administrator console. The public student finder remains usable without it, but `/admin` fails closed until it is configured.
 
 The local `.vercel/project.json` link is intentionally ignored by Git. A fresh checkout should be linked to the existing Vercel project rather than committing account-specific project metadata.
 
@@ -63,6 +63,7 @@ Verify all of the following after production becomes ready:
 5. The response status is one of `available`, `none_in_view`, `unknown`, or `failed`.
 6. The response reports the checked date range.
 7. If a known opening exists, compare the returned date with Google Calendar.
+8. With `ADMIN_PASSWORD` configured, `/admin` redirects unauthenticated visitors to `/admin/login`, accepts the configured password, and shows the audit action after sign-in.
 
 Never log or publish the complete tutor URL list during routine verification.
 

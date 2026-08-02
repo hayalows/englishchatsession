@@ -1,0 +1,22 @@
+.button {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: .78rem;
+  color: var(--teal-700);
+  display: inline-flex;
+  flex: 0 0 48px;
+  justify-content: center;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 120ms ease;
+}
+
+.button:hover { background: var(--teal-50); border-color: #a8c8cc; }
+.button:active { transform: translateY(1px); }
+.button:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 2px; }
+.button svg { height: 18px; width: 18px; }
+.button.success { background: var(--teal-100); border-color: #a8cccc; color: var(--teal-700); }
+
+:global(.result-actions) .button { width: 48px; }

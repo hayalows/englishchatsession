@@ -22,9 +22,9 @@ describe("admin/student state separation", () => {
 
 describe("admin operations navigation", () => {
   it("makes the important operational tasks directly discoverable", () => {
-    expect(dashboardSource).toContain('aria-label="Administrator tasks"');
+    expect(dashboardSource).toContain('aria-label="Admin views"');
     expect(dashboardSource).toContain('{ id: "overview", label: "Overview" }');
-    expect(dashboardSource).toContain('{ id: "availability", label: "Availability" }');
+    expect(dashboardSource).toContain('{ id: "availability", label: "Openings" }');
     expect(dashboardSource).toContain('{ id: "issues", label: "Issues" }');
     expect(dashboardSource).toContain('{ id: "volunteers", label: "Volunteers" }');
     expect(dashboardSource).toContain('setView("availability")');
@@ -32,14 +32,21 @@ describe("admin operations navigation", () => {
     expect(dashboardSource).toContain('setView("volunteers")');
   });
 
-  it("keeps the overview short while exposing full task views and audit guidance", () => {
+  it("keeps the overview focused while exposing full task views and clear audit guidance", () => {
     expect(dashboardSource).toContain("const overviewAvailable = available.slice(0, 3);");
     expect(dashboardSource).toContain("const overviewIssues = allIssues.slice(0, 3);");
-    expect(dashboardSource).toContain("Review all {attentionCount} issues");
-    expect(dashboardSource).toContain("View all {summary.available} available");
-    expect(dashboardSource).toContain("Audit complete");
-    expect(dashboardSource).toContain("Run a health audit before searching current volunteer status.");
+    expect(dashboardSource).toContain("See all openings");
+    expect(dashboardSource).toContain("Review all");
+    expect(dashboardSource).toContain("Run a calendar audit first.");
     expect(dashboardSource).toContain("Copy issue report");
     expect(dashboardSource).toContain('href={result.bookingUrl}');
+  });
+
+  it("matches the student brand language and credits the builder in the admin footer", () => {
+    expect(dashboardSource).toContain('className="site-footer"');
+    expect(dashboardSource).toContain("English Chat Finder");
+    expect(dashboardSource).toContain("Designed and built by Papa Kojo Mensah");
+    expect(dashboardSource).toContain("Student finder");
+    expect(dashboardSource).toContain("Administrator audits do not change student scan state");
   });
 });

@@ -39,6 +39,6 @@ describe("administrator visual shell", () => {
     expect(navCss).toContain("min-height: 48px");
     expect(navCss).toContain("min-height: 52px");
     expect(copySource).toContain("showLabel = false");
-    expect(copySource).toContain('"Copy link"');
+    expect(copySource).toContain('"Copy calendar link"');
   });
 });

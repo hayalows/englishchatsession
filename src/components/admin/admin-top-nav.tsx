@@ -13,8 +13,8 @@ export function AdminTopNav() {
   return (
     <>
       <a className="skip-link" href="#admin-main">Skip to admin operations</a>
-      <header className="site-header">
-        <div className="nav-shell">
+      <header className={`site-header ${styles.adminSiteHeader}`}>
+        <div className={`nav-shell ${styles.navShell}`}>
           <a className="site-brand" href="/admin" aria-label="English Chat Finder administrator home">
             <span className="brand-mark" aria-hidden="true">EC</span>
             <span className={styles.brandCopy}>
@@ -22,11 +22,14 @@ export function AdminTopNav() {
               <small>Administrator console</small>
             </span>
           </a>
-          <nav className="site-nav" aria-label="Administrator navigation">
+          <nav className={`site-nav ${styles.adminNav}`} aria-label="Administrator navigation">
             <a href={PREPARE_PAGE} rel="noreferrer" target="_blank">
               Prepare <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
             </a>
-            <a className="nav-primary" href="/">Student finder</a>
+            <a className={`nav-primary ${styles.studentLink}`} href="/">
+              <span className={styles.studentDesktop}>Student finder</span>
+              <span className={styles.studentMobile}>Student</span>
+            </a>
             <button className={styles.logoutButton} onClick={() => void logout()} type="button">Sign out</button>
           </nav>
         </div>

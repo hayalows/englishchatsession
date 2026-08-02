@@ -2,23 +2,70 @@
   align-items: center;
   background: var(--surface);
   border: 1px solid var(--line-strong);
-  border-radius: .78rem;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(7, 47, 79, .06);
   color: var(--teal-700);
+  cursor: pointer;
   display: inline-flex;
   flex: 0 0 48px;
+  height: 48px;
   justify-content: center;
   min-height: 48px;
   min-width: 48px;
   padding: 0;
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 120ms ease;
+  touch-action: manipulation;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 140ms cubic-bezier(.2, .8, .2, 1);
 }
 
-.button:hover { background: var(--teal-50); border-color: #a8c8cc; }
-.button:active { transform: translateY(1px); }
-.button:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 2px; }
-.button svg { height: 18px; width: 18px; }
-.button.success { background: var(--teal-100); border-color: #a8cccc; color: var(--teal-700); }
-.button.withLabel { flex-basis: auto; gap: .42rem; min-width: 6.2rem; padding-inline: .72rem; }
-.button.withLabel > span:not(.sr-only) { font-size: .72rem; font-weight: 780; }
+.button:hover {
+  background: var(--teal-50);
+  border-color: #a8c8cc;
+  box-shadow: 0 5px 14px rgba(7, 47, 79, .1);
+  transform: translateY(-1px);
+}
+
+.button:active {
+  box-shadow: 0 2px 7px rgba(7, 47, 79, .08);
+  transform: scale(.94);
+}
+
+.button:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 3px; }
+.button.success { background: var(--teal-100); border-color: #9fcacb; color: var(--teal-700); }
+.button.error { background: #fff5f4; border-color: #e4b8b5; color: #9b3d3a; }
+
+.iconSwap {
+  align-items: center;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.iconSwap svg {
+  animation: iconIn 220ms cubic-bezier(.2, .8, .2, 1);
+  height: 20px;
+  width: 20px;
+}
+
+.button[data-state="copied"] {
+  animation: copiedPulse 320ms cubic-bezier(.2, .8, .2, 1);
+}
 
 :global(.result-actions) .button { width: 48px; }
+
+@keyframes iconIn {
+  from { opacity: 0; transform: scale(.72) rotate(-8deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes copiedPulse {
+  0% { transform: scale(.92); }
+  55% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button { transition: none; }
+  .button:hover, .button:active { transform: none; }
+  .button[data-state="copied"], .iconSwap svg { animation: none; }
+}

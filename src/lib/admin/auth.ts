@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const ADMIN_SESSION_COOKIE = "english-chat-admin-session";
 export const ADMIN_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
@@ -9,12 +9,10 @@ function configuredPassword() {
   return process.env.ADMIN_PASSWORD ?? "";
 }
 
-function digest(value: string) {
-  return createHash("sha256").update(value).digest();
-}
-
 function safeEqual(left: string, right: string) {
-  return timingSafeEqual(digest(left), digest(right));
+  const leftBuffer = Buffer.from(left, "utf8");
+  const rightBuffer = Buffer.from(right, "utf8");
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 function sign(payload: string, password: string) {

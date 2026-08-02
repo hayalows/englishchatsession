@@ -4,6 +4,14 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.7.1] - 2026-08-02
+
+### Changed
+
+- Reorganized the administrator console into Overview, Availability, Issues, and Volunteers task views.
+- Made availability, issue counts, audit completion, recovery context, and audited-volunteer lookup visible without scrolling through the full issue list.
+- Preserved the v1.7.0 audit, authentication, student finder, and scanner behavior while improving responsive layout and keyboard-accessible task navigation.
+
 ## [1.7.0] - 2026-08-01
 
 ### Added

@@ -65,6 +65,22 @@
   box-shadow: var(--shadow-card);
 }
 
+/* Progressive disclosure: before the first audit, show one clear starting point instead of an empty dashboard. */
+.adminSiteHeader ~ :global(main:has(section[aria-labelledby="pre-audit-title"])) :global(section[aria-labelledby="system-status-title"]),
+.adminSiteHeader ~ :global(main:has(section[aria-labelledby="pre-audit-title"])) :global(nav[aria-label="Admin views"]),
+.adminSiteHeader ~ :global(main:has(section[aria-labelledby="pre-audit-title"])) :global(details) {
+  display: none;
+}
+
+.adminSiteHeader ~ :global(main:has(section[aria-labelledby="pre-audit-title"])) :global(section[aria-labelledby="pre-audit-title"]) {
+  margin-inline: auto;
+  max-width: 50rem;
+}
+
+.adminSiteHeader ~ :global(main:has(section[aria-labelledby="pre-audit-title"])) :global(section[aria-labelledby="pre-audit-title"] h2) {
+  max-width: 22ch;
+}
+
 .adminSiteHeader ~ :global(main) :global(section),
 .adminSiteHeader ~ :global(main) :global(details),
 .adminSiteHeader ~ :global(main) :global(article) {
@@ -108,6 +124,16 @@
 
 .adminSiteHeader ~ :global(main) :global([class*="issueActions"] > a:active) { transform: scale(.98); }
 
+/* Once results exist, make the summary and task navigation read as one compact operating workspace. */
+.adminSiteHeader ~ :global(main:not(:has(section[aria-labelledby="pre-audit-title"]))) :global(nav[aria-label="Admin views"]) {
+  box-shadow: 0 10px 30px rgba(7, 47, 79, .07);
+}
+
+.adminSiteHeader ~ :global(main) :global([class*="summaryCardAction"]:focus-visible),
+.adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button:focus-visible) {
+  scroll-margin-top: 8rem;
+}
+
 @keyframes adminSurfaceIn {
   from { opacity: 0; transform: translateY(8px) scale(.995); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -137,8 +163,38 @@
     width: 100%;
   }
 
-  :global(main nav[aria-label="Admin views"]) { border-radius: .95rem; }
-  :global(main nav[aria-label="Admin views"] button) { min-height: 48px; }
+  .adminSiteHeader ~ :global(main:has(section[aria-labelledby="pre-audit-title"])) :global(header) {
+    padding-bottom: .7rem;
+  }
+
+  .adminSiteHeader ~ :global(main:has(section[aria-labelledby="pre-audit-title"])) :global(section[aria-labelledby="pre-audit-title"]) {
+    padding: 1.15rem;
+  }
+
+  :global(main nav[aria-label="Admin views"]) {
+    border-radius: .95rem;
+    overflow: hidden;
+  }
+
+  :global(main nav[aria-label="Admin views"] > div) {
+    display: flex !important;
+    gap: .25rem !important;
+    overflow-x: auto;
+    padding: .35rem !important;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+
+  :global(main nav[aria-label="Admin views"] > div::-webkit-scrollbar) { display: none; }
+
+  :global(main nav[aria-label="Admin views"] button) {
+    flex: 1 0 auto;
+    min-height: 48px;
+    min-width: 6.4rem;
+    padding-inline: .72rem !important;
+    scroll-snap-align: start;
+    white-space: nowrap !important;
+  }
 
   .adminSiteHeader ~ :global(main) :global([class*="issueActions"]) {
     display: grid;
@@ -170,6 +226,10 @@
   .adminSiteHeader ~ :global(main) :global([class*="issueActions"] > a) {
     font-size: .76rem;
     font-weight: 760;
+  }
+
+  .adminSiteHeader ~ :global(main:has(section[aria-labelledby="pre-audit-title"])) :global(section[aria-labelledby="pre-audit-title"] ul) {
+    gap: .5rem;
   }
 }
 

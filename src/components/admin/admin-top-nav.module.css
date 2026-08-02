@@ -1,0 +1,31 @@
+.logoutButton {
+  background: transparent;
+  border: 0;
+  border-radius: .68rem;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--teal-700);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 720;
+  min-height: 44px;
+  padding: .72rem .82rem;
+  transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease, transform 120ms ease;
+}
+
+.logoutButton:hover {
+  background: var(--teal-50);
+  box-shadow: inset 0 0 0 1px #a8c8cc;
+  color: var(--teal-700);
+}
+
+.logoutButton:active { transform: scale(.98); }
+.logoutButton:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
+
+@media (max-width: 430px) {
+  .brandCopy { display: none !important; }
+  .logoutButton { font-size: .72rem; padding-inline: .65rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logoutButton { transition: none; }
+}

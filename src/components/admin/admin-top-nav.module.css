@@ -79,13 +79,34 @@
   transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 140ms cubic-bezier(.2, .8, .2, 1);
 }
 
-.adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button:active) {
-  transform: scale(.97);
-}
+.adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button:active) { transform: scale(.97); }
 
-.adminSiteHeader ~ :global(main) :global(article:hover) {
+.adminSiteHeader ~ :global(main) :global([class*="issueCard"]),
+.adminSiteHeader ~ :global(main) :global([class*="availabilityCard"]),
+.adminSiteHeader ~ :global(main) :global([class*="lookupDetail"]) {
   transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(.2, .8, .2, 1);
 }
+
+@media (hover: hover) and (pointer: fine) {
+  .adminSiteHeader ~ :global(main) :global([class*="issueCard"]:hover),
+  .adminSiteHeader ~ :global(main) :global([class*="availabilityCard"]:hover),
+  .adminSiteHeader ~ :global(main) :global([class*="lookupDetail"]:hover) {
+    transform: translateY(-2px);
+  }
+}
+
+.adminSiteHeader ~ :global(main) :global([class*="issueActions"]) {
+  align-items: center;
+}
+
+.adminSiteHeader ~ :global(main) :global([class*="issueActions"] > a) {
+  border-radius: .82rem;
+  min-height: 48px;
+  padding-inline: 1rem;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
+}
+
+.adminSiteHeader ~ :global(main) :global([class*="issueActions"] > a:active) { transform: scale(.98); }
 
 @keyframes adminSurfaceIn {
   from { opacity: 0; transform: translateY(8px) scale(.995); }
@@ -99,9 +120,7 @@
   .logoutButton { font-size: .76rem; min-height: 44px; padding-inline: .85rem; }
 
   :global(main button),
-  :global(main a[role="button"]) {
-    touch-action: manipulation;
-  }
+  :global(main a[role="button"]) { touch-action: manipulation; }
 
   :global(main button:not([class*="summaryCard"]):not([class*="taskButton"]):not([class*="lookupMatches"])),
   :global(main a[target="_blank"]) {
@@ -118,12 +137,19 @@
     width: 100%;
   }
 
-  :global(main nav[aria-label="Admin views"]) {
-    border-radius: .95rem;
+  :global(main nav[aria-label="Admin views"]) { border-radius: .95rem; }
+  :global(main nav[aria-label="Admin views"] button) { min-height: 48px; }
+
+  .adminSiteHeader ~ :global(main) :global([class*="issueActions"]) {
+    display: grid;
+    gap: .55rem;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    width: 100%;
   }
 
-  :global(main nav[aria-label="Admin views"] button) {
-    min-height: 48px;
+  .adminSiteHeader ~ :global(main) :global([class*="issueActions"] > a) {
+    justify-content: center;
+    width: 100%;
   }
 }
 
@@ -133,8 +159,17 @@
   .brandCopy strong { font-size: .8rem; }
   .logoutButton { padding-inline: .78rem; }
 
-  :global(main section) {
-    scroll-margin-top: 7.5rem;
+  :global(main section) { scroll-margin-top: 7.5rem; }
+
+  .adminSiteHeader ~ :global(main) :global([class*="availabilityCard"]),
+  .adminSiteHeader ~ :global(main) :global([class*="issueCard"]),
+  .adminSiteHeader ~ :global(main) :global([class*="lookupDetail"]) {
+    border-radius: 1rem;
+  }
+
+  .adminSiteHeader ~ :global(main) :global([class*="issueActions"] > a) {
+    font-size: .76rem;
+    font-weight: 760;
   }
 }
 
@@ -150,6 +185,10 @@
   .adminSiteHeader ~ :global(main) :global(details),
   .adminSiteHeader ~ :global(main) :global(article) { animation: none; }
   .adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button),
-  .adminSiteHeader ~ :global(main) :global(article:hover) { transition: none; }
-  .adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button:active) { transform: none; }
+  .adminSiteHeader ~ :global(main) :global([class*="issueCard"]),
+  .adminSiteHeader ~ :global(main) :global([class*="availabilityCard"]),
+  .adminSiteHeader ~ :global(main) :global([class*="lookupDetail"]),
+  .adminSiteHeader ~ :global(main) :global([class*="issueActions"] > a) { transition: none; }
+  .adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button:active),
+  .adminSiteHeader ~ :global(main) :global([class*="issueActions"] > a:active) { transform: none; }
 }

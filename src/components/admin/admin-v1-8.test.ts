@@ -25,7 +25,7 @@ describe("v1.8 administrator experience", () => {
   it("progressively reveals long operational lists", () => {
     expect(progressiveSource).toContain("AVAILABILITY_PAGE_SIZE = 5");
     expect(progressiveSource).toContain("ISSUE_PAGE_SIZE = 8");
-    expect(progressiveSource).toContain("Show ${Math.min(config.pageSize, remaining)} more");
+    expect(progressiveSource).toContain("Show {Math.min(config.pageSize, remaining)} more");
     expect(progressiveSource).toContain("Show fewer");
     expect(progressiveSource).toContain('section[aria-labelledby="availability-title"]');
     expect(progressiveSource).toContain('section[aria-labelledby="issues-title"]');

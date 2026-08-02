@@ -3,12 +3,13 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 
-import styles from "../admin.module.css";
+import styles from "./login.module.css";
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,28 +37,83 @@ export default function AdminLoginPage() {
   return (
     <main className={styles.loginShell}>
       <section className={styles.loginCard} aria-labelledby="admin-login-title">
-        <a className={styles.backLink} href="/">← Student finder</a>
-        <p className={styles.eyebrow}>English Chat Finder</p>
-        <h1 id="admin-login-title">Administrator sign-in</h1>
-        <p className={styles.loginLead}>Use the operations password to review current volunteer calendar health.</p>
-        <form className={styles.loginForm} onSubmit={submit}>
-          <label>
-            <span>Administrator password</span>
-            <input
-              autoComplete="current-password"
-              autoFocus
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              type="password"
-              value={password}
-            />
-          </label>
-          {message ? <p className={styles.loginError} role="alert">{message}</p> : null}
-          <button disabled={submitting || !password} type="submit">
-            {submitting ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-        <p className={styles.loginFootnote}>The password is checked on the server and is never stored in this browser.</p>
+        <div className={styles.contextPanel}>
+          <div className={styles.brandRow}>
+            <span className={styles.brandMark} aria-hidden="true">EC</span>
+            <span className={styles.brandCopy}>
+              <strong>English Chat Finder</strong>
+              <span>Administrator access</span>
+            </span>
+          </div>
+
+          <div>
+            <p className={styles.eyebrow}>Calendar operations</p>
+            <h1 id="admin-login-title">See what needs attention.</h1>
+            <p className={styles.lead}>Sign in to check current volunteer availability, review calendar problems, and look up a volunteer’s latest status.</p>
+          </div>
+
+          <div className={styles.expectationCard} aria-label="What you can do after signing in">
+            <strong>After you sign in</strong>
+            <ul className={styles.expectationList}>
+              <li><span className={styles.expectationIcon} aria-hidden="true">1</span><span>Run one calendar audit and watch confirmed openings appear.</span></li>
+              <li><span className={styles.expectationIcon} aria-hidden="true">2</span><span>Separate calendars with no openings from calendars that need review.</span></li>
+              <li><span className={styles.expectationIcon} aria-hidden="true">3</span><span>Search any volunteer from the current audit without running another check.</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className={styles.formPanel}>
+          <div>
+            <h2>Administrator sign-in</h2>
+            <p className={styles.formIntro}>Use the shared operations password for this administrator console.</p>
+          </div>
+
+          <form className={styles.loginForm} onSubmit={submit}>
+            <div className={styles.fieldLabel}>
+              <label htmlFor="admin-password">Administrator password</label>
+              <span className={styles.fieldHelp} id="admin-password-help">Enter the password provided for administrator access.</span>
+              <div className={styles.passwordField}>
+                <input
+                  aria-describedby="admin-password-help"
+                  autoComplete="current-password"
+                  id="admin-password"
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  type={passwordVisible ? "text" : "password"}
+                  value={password}
+                />
+                <button
+                  aria-label={passwordVisible ? "Hide administrator password" : "Show administrator password"}
+                  className={styles.visibilityButton}
+                  onClick={() => setPasswordVisible((visible) => !visible)}
+                  type="button"
+                >
+                  {passwordVisible ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+
+            {message ? <p className={styles.loginError} role="alert">{message}</p> : null}
+
+            <button className={styles.submitButton} disabled={submitting || !password} type="submit">
+              {submitting ? <span className={styles.spinner} aria-hidden="true" /> : null}
+              {submitting ? "Signing in" : "Sign in to admin"}
+            </button>
+          </form>
+
+          <p className={styles.securityNote}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8">
+              <rect x="5" y="10" width="14" height="10" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+            <span>Your password is checked on the server and is not stored in this browser.</span>
+          </p>
+
+          <div className={styles.studentRoute}>
+            <span>Looking for an English Chat session?</span>
+            <a href="/">Open Student finder <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
       </section>
     </main>
   );

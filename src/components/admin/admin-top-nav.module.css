@@ -65,6 +65,33 @@
   box-shadow: var(--shadow-card);
 }
 
+.adminSiteHeader ~ :global(main) :global(section),
+.adminSiteHeader ~ :global(main) :global(details),
+.adminSiteHeader ~ :global(main) :global(article) {
+  animation: adminSurfaceIn 360ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.adminSiteHeader ~ :global(main) :global(article:nth-child(2)) { animation-delay: 45ms; }
+.adminSiteHeader ~ :global(main) :global(article:nth-child(3)) { animation-delay: 90ms; }
+.adminSiteHeader ~ :global(main) :global(article:nth-child(4)) { animation-delay: 135ms; }
+
+.adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button) {
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 140ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button:active) {
+  transform: scale(.97);
+}
+
+.adminSiteHeader ~ :global(main) :global(article:hover) {
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+@keyframes adminSurfaceIn {
+  from { opacity: 0; transform: translateY(8px) scale(.995); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (max-width: 700px) {
   .navShell { gap: .65rem; }
   .brandCopy small { display: none; }
@@ -119,4 +146,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .logoutButton, .adminNav > a { transition: none; }
+  .adminSiteHeader ~ :global(main) :global(section),
+  .adminSiteHeader ~ :global(main) :global(details),
+  .adminSiteHeader ~ :global(main) :global(article) { animation: none; }
+  .adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button),
+  .adminSiteHeader ~ :global(main) :global(article:hover) { transition: none; }
+  .adminSiteHeader ~ :global(main) :global(nav[aria-label="Admin views"] button:active) { transform: none; }
 }

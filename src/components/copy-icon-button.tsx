@@ -6,6 +6,8 @@ import styles from "./copy-icon-button.module.css";
 
 type CopyState = "idle" | "copied" | "error";
 
+const COPY_ACTION = "Copy calendar link";
+
 async function copyText(value: string) {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(value);
@@ -51,7 +53,7 @@ export function CopyIconButton({
     ? "Calendar link copied"
     : state === "error"
       ? "Could not copy the calendar link. Try again."
-      : `Copy calendar link for ${calendarName}`;
+      : `${COPY_ACTION} for ${calendarName}`;
 
   return (
     <button

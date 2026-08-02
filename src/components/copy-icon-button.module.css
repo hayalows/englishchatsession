@@ -18,5 +18,7 @@
 .button:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 2px; }
 .button svg { height: 18px; width: 18px; }
 .button.success { background: var(--teal-100); border-color: #a8cccc; color: var(--teal-700); }
+.button.withLabel { flex-basis: auto; gap: .42rem; min-width: 6.2rem; padding-inline: .72rem; }
+.button.withLabel > span:not(.sr-only) { font-size: .72rem; font-weight: 780; }
 
 :global(.result-actions) .button { width: 48px; }

@@ -24,7 +24,11 @@ async function copyText(value: string) {
   if (!copied) throw new Error("Copy was not confirmed.");
 }
 
-export function CopyIconButton({ calendarName, bookingUrl }: { calendarName: string; bookingUrl: string }) {
+export function CopyIconButton({
+  calendarName,
+  bookingUrl,
+  showLabel = false,
+}: { calendarName: string; bookingUrl: string; showLabel?: boolean }) {
   const [state, setState] = useState<CopyState>("idle");
 
   useEffect(() => {
@@ -45,13 +49,14 @@ export function CopyIconButton({ calendarName, bookingUrl }: { calendarName: str
   const label = state === "copied"
     ? "Google Calendar link copied"
     : state === "error"
-      ? "Copy failed — try again"
+      ? "Copy failed. Try again."
       : `Copy ${calendarName}’s Google Calendar link`;
+  const visibleLabel = state === "copied" ? "Copied" : state === "error" ? "Try again" : "Copy link";
 
   return (
     <button
       aria-label={label}
-      className={`${styles.button}${state === "copied" ? ` ${styles.success}` : ""}`}
+      className={`${styles.button}${showLabel ? ` ${styles.withLabel}` : ""}${state === "copied" ? ` ${styles.success}` : ""}`}
       onClick={() => void handleCopy()}
       title={label}
       type="button"
@@ -72,6 +77,7 @@ export function CopyIconButton({ calendarName, bookingUrl }: { calendarName: str
           <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
         </svg>
       )}
+      {showLabel ? <span aria-hidden="true">{visibleLabel}</span> : null}
       <span className="sr-only" aria-live="polite">{state === "copied" ? "Google Calendar link copied" : state === "error" ? "Copy failed. Try again." : ""}</span>
     </button>
   );

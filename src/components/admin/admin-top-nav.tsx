@@ -24,11 +24,7 @@ export function AdminTopNav() {
           </a>
           <nav className={`site-nav ${styles.adminNav}`} aria-label="Administrator navigation">
             <a href={PREPARE_PAGE} rel="noreferrer" target="_blank">
-              Prepare <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
-            </a>
-            <a aria-label="Open the student English Chat Finder" className={`nav-primary ${styles.studentLink}`} href="/" title="Open student finder">
-              <span className={styles.studentDesktop}>Student finder</span>
-              <span className={styles.studentMobile}>Student</span>
+              Preparation guide <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
             </a>
             <button className={styles.logoutButton} onClick={() => void logout()} type="button">Sign out</button>
           </nav>

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import packageJson from "../../../package.json";
 
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import { AdminTopNav } from "@/components/admin/admin-top-nav";
 import { ADMIN_SESSION_COOKIE, isValidAdminSessionToken } from "@/lib/admin/auth";
 
 export const dynamic = "force-dynamic";
@@ -18,5 +19,12 @@ export default async function AdminPage() {
   const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
   if (!isValidAdminSessionToken(token)) redirect("/admin/login");
 
-  return <AdminDashboard appVersion={packageJson.version} />;
+  return (
+    <>
+      <AdminTopNav />
+      <div id="admin-main">
+        <AdminDashboard appVersion={packageJson.version} />
+      </div>
+    </>
+  );
 }

@@ -12,6 +12,7 @@ This runbook keeps GitHub, Vercel, and the live English Chat Finder aligned.
 | Current volunteers | Official English Chat scheduling page |
 | Appointment availability | Google Calendar booking service |
 | Stable restore points | GitHub tags and Releases |
+| Product progress | [`docs/PROJECT_PROGRESS.md`](PROJECT_PROGRESS.md) and [`CHANGELOG.md`](../CHANGELOG.md) |
 
 Vercel deployments are executable artifacts, not the canonical source-code backup.
 
@@ -48,7 +49,7 @@ The local `.vercel/project.json` link is intentionally ignored by Git. A fresh c
 6. Merge the pull request.
 7. Wait for the automatic Vercel production deployment.
 8. Perform the live verification below.
-9. Update `CHANGELOG.md` and create a version tag for a meaningful release.
+9. Update `CHANGELOG.md` and `docs/PROJECT_PROGRESS.md`, then create a version tag for a meaningful release.
 
 Do not use `vercel --prod` for routine releases. A manual production deployment can publish a branch that is not yet the GitHub source of truth.
 

@@ -29,6 +29,19 @@ English Chat Finder helps BYU-Pathway Worldwide students find open 30-minute Eng
 
 The public student finder has no student account system, database, messaging service, cron job, or server-side result history. The separate administrator console uses one server-configured password and expiring session cookie; it does not create user accounts or store audit history on the server. Link-health data stays in the student's browser and contains only operational booking-URL status; it does not contain student identities, searches, or appointment choices. Vercel Web Analytics records aggregate visits, not appointment results or named student profiles. Exact appointment times and final availability must always be confirmed on Google before booking.
 
+## Current progress
+
+The current production line is **v1.8.0**, released on **2026-08-02**. GitHub `main` is the canonical application source, and Vercel deploys production from that branch.
+
+For an easy-to-scan record of the project:
+
+- [Project progress](docs/PROJECT_PROGRESS.md) explains what changed, when it changed, why each milestone mattered, and how it was implemented.
+- [Changelog](CHANGELOG.md) is the concise release-by-release record.
+- [Operations and recovery](docs/OPERATIONS.md) describes the source-of-truth rules, release checks, live verification, and rollback path.
+- [GitHub commit history](https://github.com/hayalows/englishchatsession/commits/main) shows the exact implementation sequence.
+
+The latest milestone focuses on making the administrator workflow easier to understand and operate: guided sign-in, readable hierarchy, progressive availability and issue lists, stronger mobile behavior, and regression coverage. The student finder, availability engine, privacy boundary, and browser-local result model remain intact.
+
 ## How it works
 
 ```text

@@ -4,6 +4,22 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.8.0] - 2026-08-02
+
+### Added
+
+- Progressive administrator lists that show a manageable first page of availability cards and issues, with **Show more** and **Show fewer** controls.
+- A dedicated administrator sign-in presentation with clear expectations, password visibility control, accessible field guidance, and a direct route back to the student finder.
+
+### Changed
+
+- Added a readable administrator typography and layout layer for the sign-in, dashboard, navigation, and mobile states.
+- Kept administrator copy-link actions icon-led while improving labels, state feedback, focus behavior, and touch sizing.
+
+### Fixed
+
+- Reset progressive list state when audit content changes and added regression coverage for the v1.8 administrator experience.
+
 ## [1.7.2] - 2026-08-02
 
 ### Changed
@@ -31,6 +47,14 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 ### Changed
 
 - Kept the student finder and scanner contracts unchanged while exposing operational health findings separately from browser-local student scan state.
+
+## [1.6.0] - 2026-07-29
+
+### Changed
+
+- Made progressive scan results truthful when calendars finish at different times, are temporarily paused, or cannot be verified.
+- Added active-range weekday filtering and first-appearance guidance so the result view follows the dates the student is actually viewing.
+- Treated legacy organizer landing pages as unverified rather than permanently unavailable and strengthened saved-scan recovery and link-health coverage.
 
 ## [1.5.0] - 2026-07-29
 
@@ -154,6 +178,11 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 - Chromium-based calendar scanning.
 
 [1.5.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.5.0
+[1.8.0]: https://github.com/hayalows/englishchatsession/commit/62f18254e244fa12c4d95a3814a282a81a721493
+[1.7.2]: https://github.com/hayalows/englishchatsession/commit/9fa1830
+[1.7.1]: https://github.com/hayalows/englishchatsession/commit/98d348b
+[1.7.0]: https://github.com/hayalows/englishchatsession/commit/c3b7264
+[1.6.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.6.0
 [1.4.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.4.0
 [1.2.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.2.0
 [1.3.0]: https://github.com/hayalows/englishchatsession/releases/tag/v1.3.0

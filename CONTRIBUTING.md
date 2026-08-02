@@ -78,4 +78,12 @@ The normal release path is:
 5. Live smoke test.
 6. Version tag and GitHub Release for meaningful stable versions.
 
+For every meaningful release or product milestone, update the documentation trail before merging:
+
+- Add a concise entry to [CHANGELOG.md](CHANGELOG.md).
+- Add the human-readable **when, why, what, how, and verification** summary to [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md).
+- Update the README's current-progress wording if the product boundary, production branch, or latest milestone changes.
+
+Keep the progress page factual. Link the relevant commit or pull request, distinguish shipped behavior from future ideas, and do not claim a deployment or live behavior that was not checked.
+
 See [docs/OPERATIONS.md](docs/OPERATIONS.md) for the complete release and rollback runbook.

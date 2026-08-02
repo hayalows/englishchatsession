@@ -15,7 +15,33 @@
   gap: .18rem;
 }
 
-.studentLink { white-space: nowrap; }
+.adminNav > a {
+  color: var(--teal-700);
+  font-size: .78rem;
+  font-weight: 720;
+  min-height: 44px;
+  padding: .72rem .68rem;
+  text-decoration: none;
+}
+
+.adminNav > a:hover {
+  background: var(--teal-50);
+  color: var(--teal-700);
+}
+
+.studentLink {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--muted) !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+.studentLink:hover {
+  background: var(--surface-subtle) !important;
+  color: var(--teal-700) !important;
+}
+
 .studentMobile { display: none; }
 
 .logoutButton {
@@ -41,10 +67,18 @@
 .logoutButton:active { transform: scale(.98); }
 .logoutButton:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
 
+:global(section[aria-labelledby="pre-audit-title"]),
+:global(section[aria-labelledby="audit-required-title"]) {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--shadow-card);
+}
+
 @media (max-width: 700px) {
   .navShell { gap: .5rem; }
   .brandCopy small { display: none; }
-  .studentLink { font-size: .72rem; padding-inline: .7rem !important; }
+  .adminNav > a:first-child { display: none; }
+  .studentLink { font-size: .72rem; padding-inline: .48rem !important; }
   .logoutButton { font-size: .72rem; padding-inline: .65rem; }
 }
 
@@ -54,14 +88,14 @@
   .brandCopy strong { font-size: .78rem; }
   .studentDesktop { display: none; }
   .studentMobile { display: inline; }
-  .studentLink { padding-inline: .58rem !important; }
+  .studentLink { padding-inline: .4rem !important; }
   .logoutButton { padding-inline: .58rem; }
 }
 
 @media (max-width: 360px) {
   .navShell { gap: .25rem; padding-inline: .5rem; }
   .brandCopy strong { font-size: .72rem; }
-  .studentLink, .logoutButton { font-size: .67rem; padding-inline: .5rem !important; }
+  .studentLink, .logoutButton { font-size: .67rem; padding-inline: .42rem !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

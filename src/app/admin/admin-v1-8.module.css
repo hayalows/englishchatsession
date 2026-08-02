@@ -1,0 +1,327 @@
+.adminV18 {
+  --admin-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --admin-body-size: 1rem;
+  --admin-body-line: 1.5;
+  --admin-label-size: .875rem;
+  --admin-label-line: 1.43;
+  --admin-small-size: .8125rem;
+  --admin-small-line: 1.45;
+  --admin-title-size: 1.5rem;
+  --admin-title-line: 1.32;
+  --admin-headline-size: clamp(2rem, 4.5vw, 2.75rem);
+  --admin-headline-line: 1.08;
+  color: var(--ink);
+  font-family: var(--admin-font);
+  font-size: 16px;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.adminV18 :global(.site-header),
+.adminV18 :global(main) {
+  font-family: var(--admin-font);
+}
+
+.adminV18 :global(.site-brand strong) {
+  font-size: .9375rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  line-height: 1.35;
+}
+
+.adminV18 :global(.site-brand small) {
+  font-size: .8125rem;
+  line-height: 1.35;
+}
+
+.adminV18 :global(main[class*="adminShell"]) {
+  max-width: 1120px;
+  padding-inline: clamp(1rem, 2.5vw, 1.75rem);
+}
+
+.adminV18 :global([class*="adminHeader"] h1) {
+  font-size: var(--admin-headline-size);
+  font-weight: 680;
+  letter-spacing: -.035em;
+  line-height: var(--admin-headline-line);
+  margin: .45rem 0 .65rem;
+}
+
+.adminV18 :global([class*="adminHeader"] p:not([class*="eyebrow"])),
+.adminV18 :global([class*="sectionHeading"] p:not([class*="eyebrow"])),
+.adminV18 :global([class*="auditRequired"] p:not([class*="eyebrow"])),
+.adminV18 :global([class*="completionPanel"] p:not([class*="eyebrow"])) {
+  color: var(--muted);
+  font-size: var(--admin-body-size);
+  line-height: var(--admin-body-line);
+  max-width: 64ch;
+  text-wrap: pretty;
+}
+
+.adminV18 :global([class*="eyebrow"]) {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .09em;
+  line-height: 1.33;
+}
+
+.adminV18 :global([class*="sectionHeading"] h2),
+.adminV18 :global([class*="referenceCard"] h2),
+.adminV18 :global([class*="auditRequired"] h2) {
+  font-size: var(--admin-title-size);
+  font-weight: 670;
+  letter-spacing: -.025em;
+  line-height: var(--admin-title-line);
+}
+
+.adminV18 :global([class*="statusPanel"]),
+.adminV18 :global([class*="section"]),
+.adminV18 :global([class*="progressPanel"]),
+.adminV18 :global([class*="completionPanel"]),
+.adminV18 :global([class*="lookupPreview"]),
+.adminV18 :global([class*="referenceCard"]),
+.adminV18 :global([class*="auditRequired"]) {
+  border-color: #d5e0e4;
+  border-radius: 1.125rem;
+  box-shadow: 0 1px 2px rgba(7, 47, 79, .025), 0 10px 30px rgba(7, 47, 79, .045);
+}
+
+.adminV18 :global([class*="statusPanel"]) {
+  background: var(--surface);
+}
+
+.adminV18 :global([class*="taskNav"]) {
+  background: color-mix(in srgb, var(--canvas) 92%, white 8%);
+  border-color: #d2dde1;
+  box-shadow: 0 6px 18px rgba(7, 47, 79, .06);
+}
+
+.adminV18 :global([class*="taskButton"]) {
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  line-height: 1.4;
+}
+
+.adminV18 :global([class*="taskButtonActive"]) {
+  box-shadow: 0 2px 8px rgba(7, 47, 79, .13);
+}
+
+.adminV18 :global([class*="summaryCard"]) {
+  border-radius: 1rem;
+  min-height: 136px;
+  padding: 1rem;
+}
+
+.adminV18 :global([class*="summaryCardLabel"]) {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .065em;
+  line-height: 1.35;
+}
+
+.adminV18 :global([class*="summaryCard"] strong) {
+  font-size: clamp(1.9rem, 3vw, 2.45rem);
+  font-weight: 680;
+  letter-spacing: -.035em;
+}
+
+.adminV18 :global([class*="summaryCard"] > span:not([class*="summaryCardLabel"])),
+.adminV18 :global([class*="summaryCard"] small) {
+  font-size: var(--admin-small-size);
+  line-height: var(--admin-small-line);
+}
+
+.adminV18 :global([class*="issueTitle"] h3),
+.adminV18 :global([class*="availabilityCard"] h3),
+.adminV18 :global([class*="lookupDetail"] h3) {
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  line-height: 1.45;
+}
+
+.adminV18 :global([class*="availabilityCard"] p) {
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.adminV18 :global([class*="issueCopy"] > p),
+.adminV18 :global([class*="lookupDetail"] p) {
+  font-size: .9375rem;
+  line-height: 1.5;
+}
+
+.adminV18 :global([class*="issueCopy"] small),
+.adminV18 :global([class*="availabilityCard"] small),
+.adminV18 :global([class*="lookupDetail"] small),
+.adminV18 :global([class*="viewCount"]),
+.adminV18 :global([class*="availabilitySummary"] span),
+.adminV18 :global([class*="progressMeta"]) {
+  font-size: var(--admin-small-size);
+  line-height: var(--admin-small-line);
+}
+
+.adminV18 :global([class*="statusPill"]) {
+  font-size: .75rem;
+  font-weight: 650;
+  line-height: 1.33;
+  padding: .3rem .55rem;
+}
+
+.adminV18 :global(button),
+.adminV18 :global([class*="issueActions"] > a) {
+  font-size: .875rem;
+  font-weight: 620;
+  letter-spacing: -.005em;
+  line-height: 1.4;
+}
+
+.adminV18 :global(input) {
+  font-family: var(--admin-font);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.adminV18 :global([class*="lookupField"] span),
+.adminV18 :global([class*="issueSearch"] span) {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .065em;
+  line-height: 1.33;
+}
+
+.adminV18 :global([class*="filterButton"]),
+.adminV18 :global([class*="filterActive"]) {
+  min-height: 44px;
+  padding-block: .65rem;
+}
+
+.adminV18 :global([class*="emptyNotice"]),
+.adminV18 :global([class*="alert"]),
+.adminV18 :global([class*="policyCopy"] p),
+.adminV18 :global([class*="referenceCard"] dt),
+.adminV18 :global([class*="referenceCard"] dd) {
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+.adminV18 :global([class*="issueCard"]),
+.adminV18 :global([class*="availabilityCard"]),
+.adminV18 :global([class*="lookupDetail"]) {
+  padding: 1rem 1.05rem;
+}
+
+.adminV18 :global(.admin-progressive-list-control) {
+  border-top: 1px solid var(--line);
+  margin-top: .85rem;
+  padding-top: .85rem;
+}
+
+.adminV18 :global(.admin-progressive-list-row) {
+  align-items: center;
+  display: flex;
+  gap: .75rem;
+  justify-content: space-between;
+}
+
+.adminV18 :global(.admin-progressive-list-row span) {
+  color: var(--muted);
+  font-size: .875rem;
+  line-height: 1.45;
+}
+
+.adminV18 :global(.admin-progressive-list-row button) {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  box-shadow: none;
+  color: var(--teal-700);
+  min-height: 44px;
+  padding: .65rem 1rem;
+}
+
+.adminV18 :global(.admin-progressive-list-row button:hover) {
+  background: var(--teal-50);
+  box-shadow: none;
+}
+
+.adminV18 :global(article[hidden]) {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  .adminV18 {
+    --admin-title-size: 1.375rem;
+    --admin-headline-size: 2rem;
+  }
+
+  .adminV18 :global(main[class*="adminShell"]) {
+    padding-inline: 1rem;
+  }
+
+  .adminV18 :global([class*="adminHeader"]) {
+    padding-inline: .1rem;
+  }
+
+  .adminV18 :global([class*="summaryGrid"]) {
+    gap: .65rem;
+  }
+
+  .adminV18 :global([class*="summaryCard"]) {
+    min-height: 124px;
+    padding: .85rem;
+  }
+
+  .adminV18 :global([class*="issueCard"]),
+  .adminV18 :global([class*="availabilityCard"]),
+  .adminV18 :global([class*="lookupDetail"]) {
+    padding: 1rem;
+  }
+
+  .adminV18 :global([class*="taskNavInner"]) {
+    gap: .3rem;
+    padding: .3rem;
+  }
+
+  .adminV18 :global([class*="taskButton"]) {
+    flex: 0 0 auto;
+    min-width: 7.25rem;
+    padding-inline: .8rem;
+  }
+
+  .adminV18 :global(.admin-progressive-list-row) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .adminV18 :global(.admin-progressive-list-row button) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .adminV18 :global([class*="summaryGrid"]) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .adminV18 :global([class*="summaryCard"] strong) {
+    font-size: 1.65rem;
+  }
+
+  .adminV18 :global([class*="sectionHeading"] p:not([class*="eyebrow"])),
+  .adminV18 :global([class*="auditRequired"] p:not([class*="eyebrow"])),
+  .adminV18 :global([class*="completionPanel"] p:not([class*="eyebrow"])) {
+    font-size: .9375rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adminV18 *,
+  .adminV18 *::before,
+  .adminV18 *::after {
+    scroll-behavior: auto !important;
+  }
+}

@@ -57,33 +57,33 @@ function ProgressiveControl({ config }: { config: TargetConfig }) {
         }
       }
 
-      const cards = currentSection ? Array.from(currentSection.querySelectorAll<HTMLElement>("article")) : [];
-      setItemCount(cards.length);
-      cards.forEach((card, index) => {
-        const hidden = index >= visibleCount;
-        card.hidden = hidden;
-        card.setAttribute("aria-hidden", hidden ? "true" : "false");
-      });
+      const count = currentSection?.querySelectorAll("article").length ?? 0;
+      setItemCount(count);
     };
 
     sync();
     const observer = new MutationObserver(sync);
     observer.observe(document.body, { childList: true, subtree: true });
+
     return () => {
       observer.disconnect();
       currentMount?.remove();
-      if (currentSection) {
-        currentSection.querySelectorAll<HTMLElement>("article").forEach((card) => {
-          card.hidden = false;
-          card.removeAttribute("aria-hidden");
-        });
-      }
+      currentSection?.querySelectorAll<HTMLElement>("article").forEach((card) => {
+        card.hidden = false;
+        card.removeAttribute("aria-hidden");
+      });
     };
-  }, [config, visibleCount]);
+  }, [config]);
 
   useEffect(() => {
-    setVisibleCount(config.pageSize);
-  }, [config.pageSize, section]);
+    if (!section) return;
+    const cards = Array.from(section.querySelectorAll<HTMLElement>("article"));
+    cards.forEach((card, index) => {
+      const hidden = index >= visibleCount;
+      card.hidden = hidden;
+      card.setAttribute("aria-hidden", hidden ? "true" : "false");
+    });
+  }, [itemCount, section, visibleCount]);
 
   const remaining = Math.max(0, itemCount - visibleCount);
   const copy = useMemo(() => {

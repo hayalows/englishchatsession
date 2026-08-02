@@ -47,11 +47,11 @@ export function CopyIconButton({
   }
 
   const label = state === "copied"
-    ? "Google Calendar link copied"
+    ? "Calendar link copied"
     : state === "error"
-      ? "Copy failed. Try again."
-      : `Copy ${calendarName}’s Google Calendar link`;
-  const visibleLabel = state === "copied" ? "Copied" : state === "error" ? "Try again" : "Copy link";
+      ? "Could not copy the calendar link. Try again."
+      : `Copy ${calendarName}’s calendar link`;
+  const visibleLabel = state === "copied" ? "Copied" : state === "error" ? "Try again" : "Copy calendar link";
 
   return (
     <button
@@ -78,7 +78,7 @@ export function CopyIconButton({
         </svg>
       )}
       {showLabel ? <span aria-hidden="true">{visibleLabel}</span> : null}
-      <span className="sr-only" aria-live="polite">{state === "copied" ? "Google Calendar link copied" : state === "error" ? "Copy failed. Try again." : ""}</span>
+      <span className="sr-only" aria-live="polite">{state === "copied" ? "Calendar link copied" : state === "error" ? "Could not copy the calendar link. Try again." : ""}</span>
     </button>
   );
 }

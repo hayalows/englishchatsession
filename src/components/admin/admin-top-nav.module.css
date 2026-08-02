@@ -12,60 +12,51 @@
 
 .adminNav {
   flex: 0 0 auto;
-  gap: .18rem;
+  gap: .35rem;
 }
 
 .adminNav > a {
-  color: var(--teal-700);
+  align-items: center;
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
   font-size: .78rem;
-  font-weight: 720;
+  font-weight: 700;
   min-height: 44px;
-  padding: .72rem .68rem;
+  padding: .7rem .82rem;
   text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease, transform 120ms ease;
 }
 
 .adminNav > a:hover {
-  background: var(--teal-50);
+  background: var(--surface-subtle);
   color: var(--teal-700);
 }
 
-.studentLink {
-  background: transparent !important;
-  box-shadow: none !important;
-  color: var(--muted) !important;
-  font-weight: 700 !important;
-  white-space: nowrap;
-}
-
-.studentLink:hover {
-  background: var(--surface-subtle) !important;
-  color: var(--teal-700) !important;
-}
-
-.studentMobile { display: none; }
+.adminNav > a:active { transform: scale(.98); }
 
 .logoutButton {
-  background: transparent;
-  border: 0;
-  border-radius: .68rem;
-  box-shadow: inset 0 0 0 1px var(--line-strong);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  box-shadow: none;
   color: var(--teal-700);
+  cursor: pointer;
   font: inherit;
   font-size: .8rem;
-  font-weight: 720;
+  font-weight: 740;
   min-height: 44px;
-  padding: .72rem .82rem;
-  transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease, transform 120ms ease;
+  padding: .7rem .9rem;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
 }
 
 .logoutButton:hover {
   background: var(--teal-50);
-  box-shadow: inset 0 0 0 1px #a8c8cc;
-  color: var(--teal-700);
+  border-color: #a8c8cc;
 }
 
 .logoutButton:active { transform: scale(.98); }
-.logoutButton:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
+.logoutButton:focus-visible, .adminNav > a:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
 
 :global(section[aria-labelledby="pre-audit-title"]),
 :global(section[aria-labelledby="audit-required-title"]) {
@@ -75,29 +66,57 @@
 }
 
 @media (max-width: 700px) {
-  .navShell { gap: .5rem; }
+  .navShell { gap: .65rem; }
   .brandCopy small { display: none; }
-  .adminNav > a:first-child { display: none; }
-  .studentLink { font-size: .72rem; padding-inline: .48rem !important; }
-  .logoutButton { font-size: .72rem; padding-inline: .65rem; }
+  .adminNav > a { display: none; }
+  .logoutButton { font-size: .76rem; min-height: 44px; padding-inline: .85rem; }
+
+  :global(main button),
+  :global(main a[role="button"]) {
+    touch-action: manipulation;
+  }
+
+  :global(main button:not([class*="summaryCard"]):not([class*="taskButton"]):not([class*="lookupMatches"])),
+  :global(main a[target="_blank"]) {
+    border-radius: .82rem;
+    min-height: 48px;
+  }
+
+  :global(main section[aria-labelledby="pre-audit-title"] button),
+  :global(main section[aria-labelledby="audit-required-title"] button) {
+    border-radius: .9rem;
+    font-size: .86rem;
+    font-weight: 760;
+    min-height: 52px;
+    width: 100%;
+  }
+
+  :global(main nav[aria-label="Admin views"]) {
+    border-radius: .95rem;
+  }
+
+  :global(main nav[aria-label="Admin views"] button) {
+    min-height: 48px;
+  }
 }
 
 @media (max-width: 430px) {
-  .navShell { gap: .35rem; padding-inline: .65rem; }
+  .navShell { gap: .45rem; padding-inline: .7rem; }
   .brandCopy { display: grid !important; }
-  .brandCopy strong { font-size: .78rem; }
-  .studentDesktop { display: none; }
-  .studentMobile { display: inline; }
-  .studentLink { padding-inline: .4rem !important; }
-  .logoutButton { padding-inline: .58rem; }
+  .brandCopy strong { font-size: .8rem; }
+  .logoutButton { padding-inline: .78rem; }
+
+  :global(main section) {
+    scroll-margin-top: 7.5rem;
+  }
 }
 
 @media (max-width: 360px) {
-  .navShell { gap: .25rem; padding-inline: .5rem; }
-  .brandCopy strong { font-size: .72rem; }
-  .studentLink, .logoutButton { font-size: .67rem; padding-inline: .42rem !important; }
+  .navShell { gap: .35rem; padding-inline: .55rem; }
+  .brandCopy strong { font-size: .73rem; }
+  .logoutButton { font-size: .7rem; padding-inline: .65rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logoutButton { transition: none; }
+  .logoutButton, .adminNav > a { transition: none; }
 }

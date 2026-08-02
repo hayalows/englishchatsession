@@ -4,6 +4,18 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## [1.7.0] - 2026-08-01
+
+### Added
+
+- Separate password-protected administrator console at `/admin` with explicit bounded calendar health audits, fault filters, human-readable issue reports, recovery visibility, availability snapshots, and audited-volunteer lookup.
+- Server-side `ADMIN_PASSWORD` session protection with an expiring HTTP-only secure same-site cookie, login rate limiting, and fail-closed behavior when the password is not configured.
+- Small accessible copy-link action on student and administrator calendar cards that copies the exact official Google booking URL.
+
+### Changed
+
+- Kept the student finder and scanner contracts unchanged while exposing operational health findings separately from browser-local student scan state.
+
 ## [1.5.0] - 2026-07-29
 
 ### Added

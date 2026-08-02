@@ -1,0 +1,185 @@
+.adminShell {
+  background: var(--canvas);
+  color: var(--ink);
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: 100vh;
+  padding: 2.5rem clamp(1rem, 4vw, 3rem) 3rem;
+}
+
+.adminHeader {
+  align-items: start;
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  padding: .5rem .1rem 2.2rem;
+}
+
+.adminHeader > div:first-child { max-width: 62ch; }
+.brand { color: var(--teal-700); font-size: .86rem; font-weight: 820; text-decoration: none; }
+.adminHeader h1 { font-size: clamp(2.4rem, 5vw, 4.3rem); letter-spacing: -.065em; line-height: .95; margin: .45rem 0 .7rem; text-wrap: balance; }
+.adminHeader p:not(.eyebrow) { color: var(--muted); font-size: .96rem; line-height: 1.55; margin: 0; max-width: 54ch; }
+.eyebrow { color: var(--teal-700); font-size: .68rem; font-weight: 820; letter-spacing: .1em; margin: .55rem 0 0; text-transform: uppercase; }
+.headerActions { align-items: center; display: flex; flex-wrap: wrap; gap: .5rem; justify-content: end; }
+.studentLink { color: var(--teal-700); font-size: .78rem; font-weight: 760; min-height: 44px; padding: .7rem .45rem; text-decoration: none; }
+.studentLink:hover { text-decoration: underline; }
+.logoutButton, .secondaryButton, .primaryButton, .stopButton, .filterButton, .filterActive {
+  border: 0;
+  border-radius: .72rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 780;
+  min-height: 46px;
+  padding: .7rem .9rem;
+  transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 120ms ease;
+}
+.logoutButton { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--teal-700); }
+.logoutButton:hover, .secondaryButton:hover, .filterButton:hover { background: var(--teal-50); }
+.primaryButton { background: var(--teal-700); box-shadow: 0 7px 18px rgba(0, 108, 117, .14); color: white; }
+.primaryButton:hover { background: #005a62; }
+.primaryButton:disabled, .stopButton:disabled { cursor: wait; opacity: .65; }
+.secondaryButton { background: white; box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--teal-700); }
+.stopButton { background: var(--red-700); color: white; }
+.stopButton:hover { background: #792738; }
+.primaryButton:focus-visible, .secondaryButton:focus-visible, .logoutButton:focus-visible, .stopButton:focus-visible, .filterButton:focus-visible, .filterActive:focus-visible, .lookupMatches button:focus-visible, .loginForm button:focus-visible, .backLink:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 2px; }
+
+.statusPanel, .progressPanel, .section, .recoveredPanel, .referenceCard {
+  background: var(--surface);
+  border: 1px solid rgba(190, 205, 211, .65);
+  border-radius: 1.35rem;
+  box-shadow: var(--shadow-panel);
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 1.7rem);
+}
+.statusPanel, .progressPanel, .section, .recoveredPanel { margin-bottom: 1rem; }
+.sectionHeading { align-items: start; display: flex; gap: 1.2rem; justify-content: space-between; }
+.sectionHeading h2, .referenceCard h2 { font-size: clamp(1.35rem, 3vw, 2rem); letter-spacing: -.045em; line-height: 1.05; margin: .35rem 0 .45rem; text-wrap: balance; }
+.sectionHeading p:not(.eyebrow) { color: var(--muted); font-size: .82rem; line-height: 1.5; margin: 0; }
+.statusAction { align-items: end; display: grid; gap: .55rem; justify-items: end; }
+.statusAction > span { color: var(--muted-light); font-size: .72rem; }
+.statGrid { display: grid; gap: .6rem; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 1.25rem; }
+.statGrid > div { background: var(--surface-subtle); border: 1px solid var(--line); border-radius: .9rem; display: grid; gap: .2rem; min-height: 92px; padding: .8rem; }
+.statGrid strong { font-size: clamp(1.45rem, 3vw, 2.05rem); letter-spacing: -.045em; line-height: 1; }
+.statGrid span { color: var(--muted); font-size: .69rem; line-height: 1.3; }
+.emptyNotice { background: var(--surface-subtle); border: 1px dashed var(--line-strong); border-radius: .85rem; color: var(--muted); font-size: .8rem; line-height: 1.5; margin: 1rem 0 0; padding: .85rem 1rem; }
+.alert { background: var(--amber-100); border: 1px solid #e8d49e; border-radius: .85rem; color: var(--amber-800); font-size: .82rem; line-height: 1.45; margin: 0 0 1rem; padding: .85rem 1rem; }
+
+.progressPanel { background: #eef7f5; border-color: #b7dccc; }
+.progressHeading { align-items: start; display: flex; gap: 1rem; justify-content: space-between; }
+.progressHeading h2 { font-size: 1.35rem; letter-spacing: -.04em; margin: .35rem 0 0; }
+.progressHeading > strong { font-variant-numeric: tabular-nums; padding-top: .55rem; }
+.progressPanel progress { appearance: none; background: #d5e5e6; border: 0; border-radius: 999px; display: block; height: .62rem; margin: 1.1rem 0 .7rem; overflow: hidden; width: 100%; }
+.progressPanel progress::-webkit-progress-bar { background: #d5e5e6; border-radius: inherit; }
+.progressPanel progress::-webkit-progress-value { background: var(--teal-700); border-radius: inherit; }
+.progressPanel progress::-moz-progress-bar { background: var(--teal-700); border-radius: inherit; }
+.progressMeta { align-items: center; color: var(--muted); display: flex; flex-wrap: wrap; font-size: .72rem; gap: .7rem; justify-content: space-between; }
+.progressMeta span:first-child { color: var(--teal-700); font-weight: 780; }
+.progressPanel .stopButton { margin-top: 1rem; }
+
+.filterRow { display: flex; flex-wrap: wrap; gap: .45rem; margin: 1rem 0 .8rem; }
+.filterButton, .filterActive { align-items: center; background: white; box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); display: inline-flex; gap: .5rem; }
+.filterButton b, .filterActive b { background: rgba(82, 107, 125, .12); border-radius: 999px; font-size: .68rem; min-width: 1.35rem; padding: .17rem .3rem; text-align: center; }
+.filterActive { background: var(--navy-950); box-shadow: none; color: white; }
+.filterActive b { background: rgba(255, 255, 255, .14); }
+.issueList, .availabilityList { display: grid; gap: .65rem; }
+.issueCard, .availabilityCard, .lookupDetail { align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; display: flex; gap: 1rem; justify-content: space-between; min-width: 0; padding: .95rem 1rem; }
+.issueCard:hover, .availabilityCard:hover, .lookupDetail:hover { border-color: var(--line-strong); box-shadow: var(--shadow-card); }
+.issueCopy, .availabilityCard > div:first-child, .lookupDetail > div:first-child { min-width: 0; }
+.issueTitle { align-items: center; display: flex; flex-wrap: wrap; gap: .55rem; }
+.issueTitle h3, .availabilityCard h3, .lookupDetail h3 { font-size: .94rem; letter-spacing: -.015em; margin: 0; }
+.issueCopy > p, .availabilityCard p, .lookupDetail p { color: var(--muted); font-size: .78rem; line-height: 1.45; margin: .35rem 0 0; }
+.issueCopy small, .availabilityCard small, .lookupDetail small { color: var(--muted-light); display: block; font-size: .69rem; line-height: 1.45; margin-top: .45rem; }
+.statusPill { border-radius: 999px; font-size: .66rem; font-weight: 800; padding: .26rem .46rem; white-space: nowrap; }
+.statusAvailable, .statusHealthy { background: var(--teal-100); color: var(--teal-700); }
+.statusUnavailable { background: #f7e5e5; color: #8b3040; }
+.statusTemporary { background: var(--amber-100); color: var(--amber-800); }
+.issueActions { align-items: center; display: flex; flex: 0 0 auto; gap: .45rem; }
+.issueActions > a { color: var(--teal-700); font-size: .74rem; font-weight: 780; min-height: 44px; padding: .75rem .3rem; text-decoration: none; white-space: nowrap; }
+.issueActions > a:hover { text-decoration: underline; }
+
+.recoveredPanel { align-items: start; background: #eef7f5; border-color: #b7dccc; display: grid; gap: 1.2rem; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); }
+.recoveredPanel h2 { font-size: 1.35rem; letter-spacing: -.04em; margin: .35rem 0 .45rem; }
+.recoveredPanel p { color: var(--muted); font-size: .8rem; line-height: 1.5; margin: 0; }
+.recoveredPanel ul { display: grid; gap: .4rem; list-style: none; margin: 0; padding: 0; }
+.recoveredPanel li { align-items: center; background: rgba(255, 255, 255, .72); border: 1px solid #c6dddf; border-radius: .75rem; display: flex; gap: .7rem; justify-content: space-between; padding: .65rem .75rem; }
+.recoveredPanel li strong { font-size: .79rem; }
+.recoveredPanel li span { color: var(--teal-700); font-size: .7rem; }
+
+.availabilitySummary { align-items: baseline; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: .7rem 1rem; margin-bottom: .8rem; padding: .1rem .1rem .9rem; }
+.availabilitySummary strong { font-size: 1rem; }
+.availabilitySummary span { color: var(--muted); font-size: .76rem; }
+.availabilityCard { align-items: center; }
+.availabilityCard p { color: var(--navy-950); font-size: 1rem; font-weight: 790; margin-top: .45rem; }
+
+.lookupField { display: grid; gap: .35rem; margin: 1rem 0 .6rem; max-width: 34rem; }
+.lookupField span { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.lookupField input, .loginForm input { background: white; border: 1px solid var(--line-strong); border-radius: .7rem; color: var(--ink); font: inherit; font-size: .84rem; min-height: 48px; outline: none; padding: .7rem .8rem; width: 100%; }
+.lookupField input:focus, .loginForm input:focus { border-color: var(--teal-700); box-shadow: 0 0 0 3px rgba(0, 108, 117, .12); }
+.lookupMatches { border: 1px solid var(--line); border-radius: .8rem; display: grid; margin-bottom: .8rem; max-width: 34rem; overflow: hidden; }
+.lookupMatches button { align-items: center; background: white; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); cursor: pointer; display: flex; font: inherit; gap: .7rem; justify-content: space-between; min-height: 48px; padding: .65rem .75rem; text-align: left; }
+.lookupMatches button:last-child { border-bottom: 0; }
+.lookupMatches button:hover { background: var(--teal-50); }
+.lookupMatches button strong { font-size: .78rem; }
+.lookupMatches button span { color: var(--muted); font-size: .7rem; }
+.lookupDetail { margin-top: .75rem; }
+
+.referenceGrid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1rem; }
+.referenceCard h2 { font-size: 1.3rem; }
+.referenceCard dl { display: grid; gap: .55rem; margin: 1rem 0; }
+.referenceCard dl div { align-items: baseline; border-bottom: 1px solid var(--line); display: flex; gap: 1rem; justify-content: space-between; padding-bottom: .5rem; }
+.referenceCard dt, .referenceCard dd { font-size: .74rem; line-height: 1.4; }
+.referenceCard dt { color: var(--muted); }
+.referenceCard dd { font-weight: 750; margin: 0; text-align: right; }
+.referenceCard nav { display: grid; gap: .3rem; }
+.referenceCard nav a { color: var(--teal-700); font-size: .75rem; font-weight: 760; min-height: 40px; padding: .55rem 0; text-decoration: none; }
+.referenceCard nav a:hover { text-decoration: underline; }
+.referenceCard summary { color: var(--teal-700); cursor: pointer; font-size: .84rem; font-weight: 780; min-height: 44px; padding: .2rem 0; }
+.policyCopy { display: grid; gap: .55rem; padding: .7rem 0 .2rem 1rem; }
+.policyCopy p { color: var(--muted); font-size: .77rem; line-height: 1.5; margin: 0; }
+.policyCopy strong { color: var(--ink); }
+.adminFooter { color: var(--muted-light); display: flex; flex-wrap: wrap; font-size: .7rem; gap: .45rem 1.5rem; justify-content: space-between; line-height: 1.5; padding: 1.2rem .15rem 0; }
+
+.loginShell { align-items: center; background: var(--canvas); display: grid; min-height: 100vh; padding: 1rem; }
+.loginCard { background: var(--surface); border: 1px solid rgba(190, 205, 211, .65); border-radius: 1.35rem; box-shadow: var(--shadow-panel); margin: auto; max-width: 28rem; padding: clamp(1.2rem, 5vw, 2.25rem); width: 100%; }
+.backLink { color: var(--teal-700); font-size: .78rem; font-weight: 760; text-decoration: none; }
+.backLink:hover { text-decoration: underline; }
+.loginCard h1 { font-size: clamp(2rem, 7vw, 3rem); letter-spacing: -.06em; line-height: .98; margin: .6rem 0 .75rem; }
+.loginLead { color: var(--muted); font-size: .86rem; line-height: 1.5; margin: 0; }
+.loginForm { display: grid; gap: .8rem; margin-top: 1.4rem; }
+.loginForm label { display: grid; gap: .35rem; }
+.loginForm label span { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.loginForm button { background: var(--teal-700); border: 0; border-radius: .72rem; color: white; cursor: pointer; font: inherit; font-size: .8rem; font-weight: 780; min-height: 48px; padding: .7rem 1rem; }
+.loginForm button:hover { background: #005a62; }
+.loginForm button:disabled { cursor: wait; opacity: .65; }
+.loginError { background: var(--amber-100); border-radius: .65rem; color: var(--amber-800); font-size: .77rem; line-height: 1.45; margin: 0; padding: .65rem .75rem; }
+.loginFootnote { color: var(--muted-light); font-size: .7rem; line-height: 1.5; margin: 1rem 0 0; }
+
+@media (max-width: 900px) {
+  .statGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .recoveredPanel, .referenceGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 650px) {
+  .adminShell { padding: 1.15rem .8rem 2rem; }
+  .adminHeader, .sectionHeading { flex-direction: column; gap: .9rem; }
+  .adminHeader { padding-bottom: 1.4rem; }
+  .headerActions, .statusAction { align-items: stretch; justify-content: start; justify-items: stretch; width: 100%; }
+  .statusAction { grid-template-columns: 1fr; }
+  .statusAction > span { order: 2; }
+  .primaryButton, .secondaryButton { width: 100%; }
+  .statGrid { gap: .45rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .statGrid > div { min-height: 80px; padding: .65rem; }
+  .issueCard, .availabilityCard, .lookupDetail { align-items: stretch; flex-direction: column; }
+  .issueActions { justify-content: flex-start; }
+  .issueActions > a { flex: 1 1 auto; }
+  .progressMeta { align-items: start; flex-direction: column; gap: .25rem; }
+  .recoveredPanel li { align-items: start; flex-direction: column; gap: .2rem; }
+  .adminFooter { flex-direction: column; gap: .25rem; }
+}
+
+@media (max-width: 380px) {
+  .statGrid strong { font-size: 1.35rem; }
+  .filterRow { display: grid; grid-template-columns: 1fr; }
+  .filterButton, .filterActive { justify-content: space-between; width: 100%; }
+}

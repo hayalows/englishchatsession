@@ -1,3 +1,5 @@
+/* global self, caches, AbortController, setTimeout, clearTimeout, fetch, URL */
+
 const CACHE_VERSION = "english-chat-finder-v1";
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;

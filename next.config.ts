@@ -11,9 +11,11 @@ const securityHeaders = [
       "form-action 'self'",
       "frame-ancestors 'none'",
       "img-src 'self' data: blob:",
+      "manifest-src 'self'",
       "object-src 'none'",
       "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
       "style-src 'self' 'unsafe-inline'",
+      "worker-src 'self' blob:",
       "upgrade-insecure-requests",
     ].join("; "),
   },
@@ -26,7 +28,16 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
   },
 };
 

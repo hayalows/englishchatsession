@@ -1,0 +1,26 @@
+.page { background: var(--canvas); color: var(--ink); min-height: 100vh; }
+.main { margin: 0 auto; max-width: 1120px; padding: 2rem 1rem 4rem; }
+.header { display: grid; gap: .55rem; margin-bottom: 1.5rem; }
+.header h1 { font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.04em; line-height: 1.08; margin: 0; }
+.header p { color: var(--muted); line-height: 1.55; margin: 0; max-width: 64ch; }
+.metrics { display: grid; gap: .8rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.metric, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; box-shadow: var(--shadow-card); }
+.metric { display: grid; gap: .3rem; min-height: 120px; padding: 1rem; }
+.metric span { color: var(--muted); font-size: .8rem; font-weight: 650; }
+.metric strong { align-self: end; font-size: clamp(1.8rem, 4vw, 2.5rem); letter-spacing: -.04em; }
+.grid { display: grid; gap: 1rem; grid-template-columns: 1.25fr .75fr; margin-top: 1rem; }
+.stack { display: grid; gap: 1rem; }
+.panel { padding: 1rem; }
+.panel h2 { font-size: 1.05rem; margin: 0 0 .9rem; }
+.rows { display: grid; gap: .75rem; }
+.row { align-items: center; display: grid; gap: .8rem; grid-template-columns: minmax(0, 1fr) auto; }
+.rowLabel { min-width: 0; }
+.rowLabel strong, .rowLabel span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rowLabel strong { font-size: .88rem; }
+.rowLabel span { color: var(--muted); font-size: .76rem; margin-top: .12rem; }
+.barTrack { background: var(--teal-50); border-radius: 999px; height: 7px; margin-top: .35rem; overflow: hidden; }
+.bar { background: var(--teal-700); border-radius: inherit; height: 100%; min-width: 2px; }
+.notice { background: #fff8e8; border: 1px solid #e5d5a5; border-radius: 1rem; color: #775d1b; line-height: 1.5; margin-bottom: 1.25rem; padding: 1rem; }
+.empty, .privacy { color: var(--muted); font-size: .82rem; line-height: 1.55; }
+@media (max-width: 760px) { .metrics { grid-template-columns: 1fr 1fr; } .grid { grid-template-columns: 1fr; } }
+@media (max-width: 430px) { .main { padding-top: 1.35rem; } .metrics { gap: .6rem; } .metric { min-height: 105px; padding: .85rem; } .metric strong { font-size: 1.7rem; } }

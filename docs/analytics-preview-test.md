@@ -1,1 +1,0 @@
-Analytics preview verification marker. This file exists only to trigger a fresh Vercel preview after configuring the preview database environment variable.

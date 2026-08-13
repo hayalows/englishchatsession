@@ -23,6 +23,7 @@ export function AdminTopNav() {
             </span>
           </a>
           <nav className={`site-nav ${styles.adminNav}`} aria-label="Administrator navigation">
+            <a href="/admin/analytics">Analytics</a>
             <a href={PREPARE_PAGE} rel="noreferrer" target="_blank">
               Preparation guide <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
             </a>

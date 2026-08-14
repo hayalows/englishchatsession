@@ -25,10 +25,7 @@
   position: relative;
 }
 
-.titleBlock {
-  min-width: 0;
-}
-
+.titleBlock { min-width: 0; }
 .titleBlock h3 {
   font-size: 1.02rem;
   font-weight: 680;
@@ -36,7 +33,6 @@
   line-height: 1.2;
   margin: 0;
 }
-
 .titleBlock p {
   color: var(--muted-light);
   font-size: .76rem;
@@ -86,11 +82,7 @@
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.desktopActions button {
-  height: 2.35rem;
-  width: 2.35rem;
-}
-
+.desktopActions button { height: 2.35rem; width: 2.35rem; }
 .desktopActions button:hover,
 .mobileMenuButton:hover,
 .closeButton:hover {
@@ -98,7 +90,6 @@
   border-color: var(--line);
   color: var(--ink);
 }
-
 .desktopActions button:focus-visible,
 .mobileMenuButton:focus-visible,
 .closeButton:focus-visible,
@@ -119,16 +110,8 @@
   width: 1.12rem;
 }
 
-.mobileMenuButton {
-  display: none;
-  height: 2.75rem;
-  width: 2.75rem;
-}
-
-.mobileMenuButton .icon {
-  fill: currentColor;
-  stroke: none;
-}
+.mobileMenuButton { display: none; height: 2.75rem; width: 2.75rem; }
+.mobileMenuButton .icon { fill: currentColor; stroke: none; }
 
 .mobileMenu {
   background: var(--surface);
@@ -144,7 +127,6 @@
   top: calc(100% + .35rem);
   z-index: 20;
 }
-
 .mobileMenu button {
   align-items: center;
   appearance: none;
@@ -163,16 +145,9 @@
   text-align: left;
   width: 100%;
 }
+.mobileMenu button:hover { background: var(--surface-subtle); }
 
-.mobileMenu button:hover {
-  background: var(--surface-subtle);
-}
-
-.rows {
-  display: grid;
-  gap: .5rem;
-}
-
+.rows { display: grid; gap: .5rem; }
 .row {
   align-items: center;
   border-radius: .72rem;
@@ -184,7 +159,6 @@
   padding: 0 .72rem;
   position: relative;
 }
-
 .rowFill {
   background: color-mix(in srgb, var(--surface-subtle), var(--line) 14%);
   border-radius: inherit;
@@ -194,13 +168,8 @@
   top: 0;
   transition: width 220ms cubic-bezier(.2, .8, .2, 1);
 }
-
 .rowName,
-.row > strong {
-  position: relative;
-  z-index: 1;
-}
-
+.row > strong { position: relative; z-index: 1; }
 .rowName {
   align-items: center;
   display: flex;
@@ -209,13 +178,11 @@
   gap: .5rem;
   min-width: 0;
 }
-
 .rowName > span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .row > strong {
   font-size: .86rem;
   font-variant-numeric: tabular-nums;
@@ -239,13 +206,7 @@
   padding-inline: .28rem;
 }
 
-.empty {
-  color: var(--muted);
-  font-size: .86rem;
-  line-height: 1.5;
-  margin: 1rem 0;
-}
-
+.empty { color: var(--muted); font-size: .86rem; line-height: 1.5; margin: 1rem 0; }
 .footer {
   align-items: center;
   border-top: 1px solid color-mix(in srgb, var(--line), transparent 18%);
@@ -269,12 +230,7 @@
   padding: clamp(1rem, 4vw, 3rem);
   width: 100vw;
 }
-
-.dialog[open] {
-  display: grid;
-  place-items: center;
-}
-
+.dialog[open] { display: grid; place-items: center; }
 .dialog::backdrop {
   backdrop-filter: blur(10px);
   background: rgb(15 23 42 / 34%);
@@ -288,7 +244,7 @@
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   max-height: min(82dvh, 50rem);
-  max-width: 54rem;
+  max-width: 48rem;
   overflow: hidden;
   width: 100%;
 }
@@ -299,26 +255,20 @@
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  padding: 1.15rem 1.25rem 1rem;
+  padding: 1.1rem 1.15rem .95rem;
 }
-
 .dialogHeader h2 {
-  font-size: 1.22rem;
+  font-size: 1.2rem;
   letter-spacing: -.03em;
   margin: 0;
 }
-
 .dialogHeader p {
   color: var(--muted);
   font-size: .8rem;
   line-height: 1.4;
   margin: .25rem 0 0;
 }
-
-.closeButton {
-  height: 2.75rem;
-  width: 2.75rem;
-}
+.closeButton { height: 2.75rem; width: 2.75rem; }
 
 .searchWrap {
   align-items: center;
@@ -327,16 +277,14 @@
   border-radius: .8rem;
   display: flex;
   gap: .58rem;
-  margin: .8rem 1rem;
+  margin: .75rem .9rem;
   min-height: 2.9rem;
   padding: 0 .82rem;
 }
-
 .searchWrap:focus-within {
   border-color: color-mix(in srgb, var(--teal-700), var(--line) 45%);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal-50), transparent 10%);
 }
-
 .searchIcon {
   fill: none;
   flex: 0 0 auto;
@@ -347,7 +295,6 @@
   stroke-width: 1.8;
   width: 1.05rem;
 }
-
 .searchWrap input {
   appearance: none;
   background: transparent;
@@ -359,19 +306,17 @@
   outline: 0;
   width: 100%;
 }
-
-.searchWrap input::placeholder {
-  color: var(--muted-light);
-}
+.searchWrap input::placeholder { color: var(--muted-light); }
 
 .dialogTableWrap {
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 1rem .4rem;
+  padding: 0 .9rem .4rem;
   scrollbar-gutter: stable;
+  touch-action: pan-y;
 }
-
 .dialogTableWrap:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: -3px;
@@ -381,51 +326,31 @@
 .dialogRow {
   align-items: center;
   display: grid;
-  gap: .65rem;
-  grid-template-columns: minmax(12rem, 1fr) 4.6rem 5rem 5.4rem 5.4rem;
-  min-width: 38rem;
+  gap: .55rem;
+  grid-template-columns: minmax(10rem, 1fr) 4.4rem 4.8rem 4.8rem;
+  min-width: 0;
 }
-
 .dialogTableHeader {
+  background: var(--surface);
   color: var(--muted-light);
-  font-size: .69rem;
+  font-size: .67rem;
   font-weight: 760;
-  letter-spacing: .045em;
-  padding: .45rem .75rem .55rem;
+  letter-spacing: .035em;
+  padding: .42rem .7rem .5rem;
   position: sticky;
   text-transform: uppercase;
   top: 0;
   z-index: 5;
 }
-
-.dialogTableHeader::before {
-  background: var(--surface);
-  bottom: 0;
-  content: "";
-  left: -1rem;
-  position: absolute;
-  right: -1rem;
-  top: 0;
-  z-index: -1;
-}
-
-.dialogTableHeader span:not(:first-child) {
-  text-align: right;
-}
-
-.dialogRows {
-  display: grid;
-  gap: .38rem;
-}
-
+.dialogTableHeader span:not(:first-child) { text-align: right; }
+.dialogRows { display: grid; gap: .36rem; }
 .dialogRow {
   border-radius: .7rem;
   min-height: 2.75rem;
   overflow: hidden;
-  padding: 0 .75rem;
+  padding: 0 .7rem;
   position: relative;
 }
-
 .dialogRowFill {
   background: color-mix(in srgb, var(--surface-subtle), var(--line) 13%);
   border-radius: inherit;
@@ -434,12 +359,7 @@
   position: absolute;
   top: 0;
 }
-
-.dialogRow > * {
-  position: relative;
-  z-index: 1;
-}
-
+.dialogRow > * { position: relative; z-index: 1; }
 .dialogName {
   align-items: center;
   display: flex;
@@ -447,25 +367,18 @@
   gap: .5rem;
   min-width: 0;
 }
-
 .dialogName > span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .dialogRow > strong {
   font-size: .83rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   text-align: right;
 }
-
-.noResults {
-  color: var(--muted);
-  font-size: .88rem;
-  padding: 1.25rem .75rem;
-}
+.noResults { color: var(--muted); font-size: .88rem; padding: 1.25rem .7rem; }
 
 .dialogFooter {
   align-items: center;
@@ -473,15 +386,13 @@
   display: flex;
   gap: .55rem;
   justify-content: flex-end;
-  padding: .75rem 1rem;
+  padding: .72rem .9rem;
 }
-
 .dialogFooter > span:first-child {
   color: var(--muted-light);
   font-size: .74rem;
   margin-right: auto;
 }
-
 .dialogFooter button {
   align-items: center;
   appearance: none;
@@ -498,15 +409,10 @@
   min-height: 2.65rem;
   padding: .58rem .82rem;
 }
-
-.dialogFooter button:hover {
-  background: var(--surface-subtle);
-}
+.dialogFooter button:hover { background: var(--surface-subtle); }
 
 @media (max-width: 900px) {
-  .metricLabel {
-    display: none;
-  }
+  .metricLabel { display: none; }
 }
 
 @media (max-width: 760px) {
@@ -515,177 +421,86 @@
     min-height: 18rem;
     padding: .9rem;
   }
+  .header { margin-bottom: .72rem; }
+  .desktopActions { display: none; }
+  .mobileMenuButton { display: inline-flex; margin: -.35rem -.35rem 0 0; }
+  .metricLabel { display: inline-flex; font-size: .64rem; }
+  .row { min-height: 2.65rem; }
+  .rowName { font-size: .91rem; }
+  .row > strong { font-size: .88rem; }
+  .footer { font-size: .73rem; }
 
-  .header {
-    margin-bottom: .72rem;
-  }
-
-  .desktopActions {
-    display: none;
-  }
-
-  .mobileMenuButton {
-    display: inline-flex;
-    margin: -.35rem -.35rem 0 0;
-  }
-
-  .metricLabel {
-    display: inline-flex;
-    font-size: .64rem;
-  }
-
-  .row {
-    min-height: 2.65rem;
-  }
-
-  .rowName {
-    font-size: .91rem;
-  }
-
-  .row > strong {
-    font-size: .88rem;
-  }
-
-  .footer {
-    font-size: .73rem;
-  }
-
-  .dialog {
-    padding: 0;
-  }
-
+  .dialog { padding: 0; }
   .dialog[open] {
     align-items: end;
     justify-items: stretch;
   }
-
   .dialogSurface {
     border: 0;
     border-radius: 1.25rem 1.25rem 0 0;
-    max-height: 91dvh;
+    height: min(88dvh, 44rem);
+    max-height: 88dvh;
     max-width: none;
     width: 100%;
   }
-
-  .dialogHeader {
-    padding: 1rem 1rem .85rem;
-  }
-
-  .dialogHeader h2 {
-    font-size: 1.16rem;
-  }
-
-  .searchWrap {
-    margin: .7rem .8rem;
-    min-height: 3rem;
-  }
-
-  .searchWrap input {
-    font-size: 1rem;
-  }
-
+  .dialogHeader { padding: .9rem .9rem .78rem; }
+  .dialogHeader h2 { font-size: 1.14rem; }
+  .dialogHeader p { font-size: .76rem; }
+  .searchWrap { margin: .62rem .7rem; min-height: 2.85rem; }
+  .searchWrap input { font-size: 1rem; }
   .dialogTableWrap {
-    padding-inline: .8rem;
+    padding: 0 .6rem .35rem;
+    scrollbar-gutter: auto;
   }
-
-  .dialogTableHeader {
-    display: none;
-  }
-
-  .dialogRows {
-    gap: .46rem;
-  }
-
+  .dialogTableHeader,
   .dialogRow {
-    display: grid;
-    gap: .15rem .7rem;
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 4.35rem;
-    min-width: 0;
-    padding: .65rem .72rem;
+    gap: .32rem;
+    grid-template-columns: minmax(0, 1fr) 3rem 3.45rem 3.45rem;
   }
-
-  .dialogName {
-    font-size: .93rem;
-    grid-column: 1;
+  .dialogTableHeader {
+    font-size: .59rem;
+    letter-spacing: .01em;
+    padding: .4rem .52rem .46rem;
   }
-
-  .dialogRow > strong:nth-of-type(1) {
-    align-self: center;
-    font-size: .91rem;
-    grid-column: 2;
-    grid-row: 1;
+  .dialogRow {
+    min-height: 2.8rem;
+    padding: 0 .52rem;
   }
-
-  .dialogRow > strong:nth-of-type(2),
-  .dialogRow > strong:nth-of-type(3),
-  .dialogRow > strong:nth-of-type(4) {
-    color: var(--muted);
-    font-size: .73rem;
-    font-weight: 600;
-    grid-column: 1 / -1;
-    text-align: left;
+  .dialogName { font-size: .83rem; gap: .38rem; }
+  .dialogRow > strong { font-size: .78rem; }
+  .countryBadge {
+    border-radius: .34rem;
+    font-size: .53rem;
+    height: 1.3rem;
+    min-width: 1.55rem;
+    padding-inline: .2rem;
   }
-
-  .dialogRow > strong:nth-of-type(2)::before {
-    content: "Visitors  ";
-    font-weight: 450;
-  }
-
-  .dialogRow > strong:nth-of-type(3)::before {
-    content: "Page views  ";
-    font-weight: 450;
-  }
-
-  .dialogRow > strong:nth-of-type(4)::before {
-    content: "Scan usage  ";
-    font-weight: 450;
-  }
-
   .dialogFooter {
-    padding: .7rem .8rem max(.7rem, env(safe-area-inset-bottom));
+    padding: .65rem .7rem max(.65rem, env(safe-area-inset-bottom));
   }
-
-  .dialogFooter button {
-    min-height: 2.75rem;
-  }
+  .dialogFooter button { min-height: 2.75rem; }
 }
 
 @media (max-width: 420px) {
-  .headerMeta {
-    gap: .2rem;
+  .headerMeta { gap: .2rem; }
+  .metricLabel { font-size: .61rem; padding-inline: .48rem; }
+  .titleBlock h3 { font-size: 1rem; }
+  .titleBlock p { font-size: .74rem; }
+  .row { padding-inline: .62rem; }
+  .footer span:last-child { display: none; }
+  .dialogTableHeader,
+  .dialogRow {
+    gap: .22rem;
+    grid-template-columns: minmax(0, 1fr) 2.8rem 3.25rem 3.25rem;
   }
-
-  .metricLabel {
-    font-size: .61rem;
-    padding-inline: .48rem;
-  }
-
-  .titleBlock h3 {
-    font-size: 1rem;
-  }
-
-  .titleBlock p {
-    font-size: .74rem;
-  }
-
-  .row {
-    padding-inline: .62rem;
-  }
-
-  .footer span:last-child {
-    display: none;
-  }
+  .dialogTableHeader { font-size: .56rem; }
+  .dialogName { font-size: .8rem; }
+  .dialogRow > strong { font-size: .75rem; }
 }
 
 @media (hover: none) {
-  .desktopActions {
-    display: none;
-  }
-
-  .mobileMenuButton {
-    display: inline-flex;
-  }
+  .desktopActions { display: none; }
+  .mobileMenuButton { display: inline-flex; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -693,7 +508,5 @@
   .desktopActions button,
   .mobileMenuButton,
   .closeButton,
-  .rowFill {
-    transition: none;
-  }
+  .rowFill { transition: none; }
 }

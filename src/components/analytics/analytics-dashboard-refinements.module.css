@@ -56,6 +56,26 @@
 .tableViewport tbody tr:hover th,
 .tableViewport tbody tr:hover td { background: color-mix(in srgb, var(--teal-50), var(--surface) 72%); }
 
+.breakdownViewport {
+  max-height: 13.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: .18rem;
+  scrollbar-gutter: stable;
+}
+.breakdownViewport:focus-visible {
+  border-radius: .5rem;
+  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
+  outline-offset: 2px;
+}
+.breakdownHint {
+  color: var(--muted-light);
+  display: block;
+  font-size: .64rem;
+  line-height: 1.35;
+  margin-top: .48rem;
+}
+
 .scanSummary {
   border-block: 1px solid var(--line);
   display: grid;
@@ -156,6 +176,9 @@
   .tableViewport th,
   .tableViewport td { padding: .52rem .48rem; }
   .tableHint { font-size: .64rem; }
+
+  .breakdownViewport { max-height: 11.4rem; }
+  .breakdownHint { font-size: .61rem; }
 
   .scanSummaryStat { padding: .7rem .42rem; }
   .scanSummaryStat strong { font-size: 1.08rem; }

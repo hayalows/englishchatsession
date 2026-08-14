@@ -352,7 +352,7 @@ export function AnalyticsDashboard({
             <li><strong>Returning visitor:</strong> a visitor ID seen before the selected window. Browser storage resets and privacy controls can make this an undercount.</li>
             <li><strong>Active time:</strong> visible-page milestones at 10 seconds, 30 seconds, 60 seconds, and 3 minutes. Hidden tabs pause the clock.</li>
             <li><strong>Active now:</strong> distinct anonymous visitors with a visible-page heartbeat received in the last 90 seconds. It is an approximate live signal, not an exact count of people.</li>
-            <li><strong>Event time:</strong> Neon records <code>created_at</code> when the server accepts an event. The latest-event label is receipt time, and chart buckets use UTC.</li>
+            <li><strong>Event time:</strong> Neon records <code>created_at</code> when the server accepts an event. Chart buckets use UTC.</li>
             <li><strong>Country, device, browser, and source:</strong> coarse request-level categories. Raw IP addresses, names, searches, results, and booking choices are not stored.</li>
           </ul>
         </details>

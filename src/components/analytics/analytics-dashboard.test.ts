@@ -10,6 +10,7 @@ describe("analytics header hierarchy", () => {
     expect(source).toContain("active now");
     expect(source).toContain("className={styles.statusRow}");
     expect(source).not.toContain("Latest event");
+    expect(source).not.toContain("latest-event");
     expect(source).not.toContain("Checked");
     expect(source).not.toContain("displayGeneratedAt");
     expect(source).not.toContain("displayLatestEventAt");

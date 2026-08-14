@@ -47,9 +47,21 @@ function displayMilestone(seconds: number) {
   return seconds >= 60 ? `${seconds / 60} min active` : `${seconds} sec active`;
 }
 
-function MetricCard({ label, value, detail, live = false }: { label: string; value: string; detail: string; live?: boolean }) {
+function MetricCard({
+  label,
+  value,
+  detail,
+  live = false,
+  secondary = false,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  live?: boolean;
+  secondary?: boolean;
+}) {
   return (
-    <article className={`${styles.metric} ${live ? styles.liveMetric : ""}`}>
+    <article className={`${styles.metric} ${live ? styles.liveMetric : ""} ${secondary ? styles.secondaryMetric : ""}`}>
       <span className={styles.metricLabel}>{live ? <i className={styles.liveDot} aria-hidden="true" /> : null}{label}</span>
       <strong>{value}</strong>
       <small>{detail}</small>
@@ -66,7 +78,7 @@ function TrendPanel({ report }: { report: AnalyticsReport }) {
         <div>
           <p className={styles.eyebrow}>Movement</p>
           <h2 id="trend-title">Finder activity over time</h2>
-          <p>Compare unique visitors with the people who actually started a scan.</p>
+          <p>Visitors, page views, and the people who actually started a scan.</p>
         </div>
         <div className={styles.panelMeta}>
           <strong>{report.filters.trendLabel}</strong>
@@ -81,15 +93,15 @@ function TrendPanel({ report }: { report: AnalyticsReport }) {
             <summary>View exact trend data</summary>
             <div className={styles.tableWrap}>
               <table>
-                <caption className={styles.srOnly}>Visitors, scan starters, page views, and scan clicks for {report.filters.rangeLabel.toLowerCase()}</caption>
-                <thead><tr><th scope="col">Period</th><th scope="col">Visitors</th><th scope="col">Scan starters</th><th scope="col">Page views</th><th scope="col">Scan clicks</th></tr></thead>
+                <caption className={styles.srOnly}>Visitors, page views, scan starters, and scan clicks for {report.filters.rangeLabel.toLowerCase()}</caption>
+                <thead><tr><th scope="col">Period</th><th scope="col">Visitors</th><th scope="col">Views</th><th scope="col">Scan starters</th><th scope="col">Scan clicks</th></tr></thead>
                 <tbody>
                   {rows.map((row, index) => (
                     <tr key={`${row.label}-${index}`}>
                       <th scope="row">{displayTrendLabel(row.label, report.filters.granularity)}</th>
                       <td>{row.visitors.toLocaleString()}</td>
-                      <td>{row.scanStarters.toLocaleString()}</td>
                       <td>{row.pageViews.toLocaleString()}</td>
+                      <td>{row.scanStarters.toLocaleString()}</td>
                       <td>{row.scanStarts.toLocaleString()}</td>
                     </tr>
                   ))}
@@ -265,32 +277,44 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
             <p>A fast read on audience, scan intent, and repeat use. Calendar checks stay outside analytics.</p>
           </div>
           <div className={styles.freshness}>
-            <span>Selected window</span>
-            <strong>{report.filters.rangeLabel}</strong>
-            <small>Latest event {displayLatestEventAt(report.latestEventAt)}</small>
-            <small>Report refreshed {displayGeneratedAt(report.generatedAt)}</small>
+            <span className={styles.freshnessLabel}>Selected window</span>
+            <strong className={styles.freshnessRange}>{report.filters.rangeLabel}</strong>
+            <small className={styles.freshnessLatest}>Latest data {displayLatestEventAt(report.latestEventAt)}</small>
+            <small className={styles.freshnessRefresh}>Report refreshed {displayGeneratedAt(report.generatedAt)}</small>
           </div>
         </header>
 
         <StatusNotice report={report} />
         <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
 
-        <section className={styles.metrics} aria-label="Finder analytics summary">
+        <section className={styles.metrics} aria-label="Primary finder analytics">
           <MetricCard detail="Unique anonymous visitors" label="Visitors" value={metrics.visitors.toLocaleString()} />
-          <MetricCard detail="Recorded finder opens" label="Page views" value={metrics.pageViews.toLocaleString()} />
-          <MetricCard detail={`${metrics.activeNowSessions.toLocaleString()} visible sessions · last ${ACTIVE_NOW_WINDOW_SECONDS} seconds`} label="Active now" live value={metrics.activeNowVisitors.toLocaleString()} />
-          <MetricCard detail="One event per scan click" label="Scan starts" value={metrics.scanStarts.toLocaleString()} />
           <MetricCard detail="Unique starters ÷ visitors" label="Scan-start rate" value={metrics.visitors ? `${metrics.scanStartRate}%` : "—"} />
+          <MetricCard detail={`${metrics.activeNowSessions.toLocaleString()} visible sessions · last ${ACTIVE_NOW_WINDOW_SECONDS}s`} label="Active now" live value={metrics.activeNowVisitors.toLocaleString()} />
         </section>
 
         <div className={styles.primaryGrid}>
           <TrendPanel report={report} />
         </div>
 
-        <section className={styles.breakdownGrid} aria-label="Finder audience breakdowns">
-          <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.countries} title="Countries" />
-          <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.devices} title="Devices" />
-          <ListPanel caption={`Unique sessions · ${report.filters.rangeLabel}`} rows={report.referrers} title="Traffic sources" />
+        <section className={styles.secondaryMetrics} aria-label="Additional finder activity">
+          <MetricCard detail="Recorded finder opens" label="Page views" secondary value={metrics.pageViews.toLocaleString()} />
+          <MetricCard detail="One event per scan click" label="Scan starts" secondary value={metrics.scanStarts.toLocaleString()} />
+        </section>
+
+        <section className={styles.breakdownSection} aria-labelledby="audience-breakdown-title">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Audience</p>
+              <h2 id="audience-breakdown-title">Where usage comes from</h2>
+            </div>
+            <small>Swipe on mobile</small>
+          </div>
+          <div className={styles.breakdownGrid} aria-label="Finder audience breakdowns">
+            <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.countries} title="Countries" />
+            <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.devices} title="Devices" />
+            <ListPanel caption={`Unique sessions · ${report.filters.rangeLabel}`} rows={report.referrers} title="Traffic sources" />
+          </div>
         </section>
 
         <div className={styles.grid}>
@@ -315,6 +339,7 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
           <summary>How these numbers are defined</summary>
           <ul>
             <li><strong>Visitor:</strong> a pseudonymous browser ID. It is not a named person.</li>
+            <li><strong>Page view:</strong> one recorded opening/view of the finder page. One visitor can create multiple views.</li>
             <li><strong>Scan-start rate:</strong> unique visitors who started a scan divided by unique visitors who opened the finder in the selected window.</li>
             <li><strong>Scan start:</strong> one click/request by the user. Individual calendar checks are never recorded as analytics events.</li>
             <li><strong>Repeat scan:</strong> a visitor ID with at least 2 scan-start events in the selected window. Five or more is shown as a high-frequency signal, not an abuse verdict.</li>

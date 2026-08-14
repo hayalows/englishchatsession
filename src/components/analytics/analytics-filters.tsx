@@ -21,7 +21,7 @@ const SEGMENT_PLURALS: Record<AnalyticsSegment, string> = {
 };
 
 const RANGE_SHORT_LABELS: Record<AnalyticsRange, string> = {
-  "24h": "24H",
+  "24h": "Today",
   "7d": "7D",
   "30d": "30D",
   "60d": "60D",

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { ADMIN_SESSION_COOKIE, isValidAdminSessionToken } from "@/lib/admin/auth";
+import { displayCountryLabel } from "@/lib/analytics/filters";
 import {
   emptyAnalyticsReport,
   getAnalyticsReport,
@@ -33,5 +34,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: An
     // Keep the visitor dashboard renderable if the report changes later.
   }
 
-  return <AnalyticsDashboard report={report} />;
+  const displayReport = {
+    ...report,
+    countries: report.countries.map((row) => ({
+      ...row,
+      label: displayCountryLabel(row.label),
+    })),
+  };
+
+  return <AnalyticsDashboard report={displayReport} />;
 }

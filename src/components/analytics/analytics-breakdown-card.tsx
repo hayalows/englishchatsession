@@ -153,7 +153,7 @@ export function AnalyticsBreakdownCard({
 
   return (
     <section className={styles.card} aria-label={`${title}, ${METRIC_LABELS[activeMetric]}`}>
-      <header className={styles.header}>
+      <header className={styles.header} style={{ gridTemplateColumns: "minmax(0, 1fr) auto auto" }}>
         <div>
           <h3>{title}</h3>
           <p>{rangeLabel}</p>
@@ -217,6 +217,7 @@ export function AnalyticsBreakdownCard({
         onClick={(event) => { if (event.target === event.currentTarget) setDialogOpen(false); }}
         onClose={() => setDialogOpen(false)}
         ref={dialogRef}
+        style={dialogOpen ? { display: "grid", placeItems: "center" } : undefined}
       >
         <div className={styles.dialogSurface}>
           <header className={styles.dialogHeader}>

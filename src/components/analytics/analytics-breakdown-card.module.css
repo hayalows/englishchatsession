@@ -469,6 +469,7 @@
 .dialogRows { display: grid; gap: .36rem; }
 .dialogRow {
   border-radius: .7rem;
+  isolation: isolate;
   min-height: 2.75rem;
   overflow: hidden;
   padding: 0 .7rem;
@@ -479,10 +480,12 @@
   border-radius: inherit;
   bottom: 0;
   left: 0;
+  pointer-events: none;
   position: absolute;
   top: 0;
+  z-index: 0;
 }
-.dialogRow > * { position: relative; z-index: 1; }
+.dialogRow > *:not(.dialogRowFill) { position: relative; z-index: 1; }
 .dialogName {
   align-items: center;
   display: flex;
@@ -532,9 +535,12 @@
   font-size: .82rem;
   font-weight: 650;
   gap: .42rem;
-  min-height: 2.65rem;
+  min-height: 2.75rem;
   padding: .58rem .82rem;
 }
+.moreButton:active,
+.closeButton:active,
+.dialogFooter button:active { transform: scale(.96); }
 .dialogFooter button:hover { background: var(--surface-subtle); }
 .dialogFooter button:disabled { cursor: not-allowed; opacity: .55; }
 

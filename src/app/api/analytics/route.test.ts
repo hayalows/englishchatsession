@@ -40,7 +40,7 @@ describe("POST /api/analytics", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
-  it("accepts one scan-start event and visible-time milestones", async () => {
+  it("accepts one scan-start event, visible-time milestones, and presence", async () => {
     vi.stubEnv("DATABASE_URL", "");
 
     const scanResponse = await POST(request(JSON.stringify({
@@ -57,9 +57,16 @@ describe("POST /api/analytics", () => {
       pagePath: "/",
       metadata: { milestoneSeconds: 60 },
     })));
+    const presenceResponse = await POST(request(JSON.stringify({
+      visitorId: "visitor-1234",
+      sessionId: "session-1234",
+      eventName: "presence",
+      pagePath: "/",
+    })));
 
     expect(scanResponse.status).toBe(204);
     expect(engagementResponse.status).toBe(204);
+    expect(presenceResponse.status).toBe(204);
   });
 
   it("rejects unsupported events, metadata, and non-finder paths", async () => {

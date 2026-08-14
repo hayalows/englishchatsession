@@ -7,7 +7,7 @@ import { createFixedWindowRateLimiter } from "../../../lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const EVENT_NAMES = new Set(["page_view", "scan_started", "engagement"]);
+const EVENT_NAMES = new Set(["page_view", "scan_started", "engagement", "presence"]);
 const SCAN_MODES = new Set(["all", "name"]);
 const ENGAGEMENT_MILESTONES = new Set([10, 30, 60, 180]);
 const ID_PATTERN = /^[a-zA-Z0-9_-]{8,80}$/;
@@ -67,7 +67,7 @@ function browserName(userAgent: string) {
 }
 
 function safeMetadata(eventName: string, value: unknown) {
-  if (eventName === "page_view") return {};
+  if (eventName === "page_view" || eventName === "presence") return {};
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const input = value as Record<string, unknown>;

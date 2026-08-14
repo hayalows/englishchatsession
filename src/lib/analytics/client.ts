@@ -2,10 +2,11 @@ const VISITOR_KEY = "english-chat-anonymous-visitor:v1";
 const SESSION_KEY = "english-chat-anonymous-session:v1";
 const ID_PATTERN = /^[a-zA-Z0-9_-]{8,80}$/;
 export const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
+export const PRESENCE_INTERVAL_MS = 30_000;
 
 export type ScanMode = "all" | "name";
 type AnalyticsIds = { visitorId: string; sessionId: string };
-type AnalyticsEventName = "page_view" | "scan_started" | "engagement";
+type AnalyticsEventName = "page_view" | "scan_started" | "engagement" | "presence";
 type EventMetadata = { scanMode?: ScanMode; milestoneSeconds?: number };
 
 let fallbackVisitorId: string | null = null;
@@ -117,15 +118,32 @@ export function startFirstPartyAnalytics() {
   if (!ids) return () => undefined;
 
   sendEvent("page_view", ids);
+  sendEvent("presence", ids);
 
   let activeSince = document.visibilityState === "hidden" ? null : performance.now();
   let activeMilliseconds = 0;
   let milestoneIndex = 0;
   let timer: number | null = null;
+  let presenceTimer: number | null = null;
 
   const stopTimer = () => {
     if (timer !== null) window.clearTimeout(timer);
     timer = null;
+  };
+
+  const stopPresenceTimer = () => {
+    if (presenceTimer !== null) window.clearTimeout(presenceTimer);
+    presenceTimer = null;
+  };
+
+  const schedulePresence = () => {
+    if (activeSince === null) return;
+    presenceTimer = window.setTimeout(() => {
+      presenceTimer = null;
+      if (activeSince === null || document.visibilityState === "hidden") return;
+      sendEvent("presence", ids);
+      schedulePresence();
+    }, PRESENCE_INTERVAL_MS);
   };
 
   const pauseClock = () => {
@@ -159,17 +177,23 @@ export function startFirstPartyAnalytics() {
     if (document.visibilityState === "hidden") {
       pauseClock();
       stopTimer();
+      stopPresenceTimer();
       return;
     }
     resumeClock();
     scheduleNextMilestone();
+    sendEvent("presence", ids);
+    stopPresenceTimer();
+    schedulePresence();
   };
 
   document.addEventListener("visibilitychange", handleVisibilityChange);
   scheduleNextMilestone();
+  schedulePresence();
 
   return () => {
     stopTimer();
+    stopPresenceTimer();
     document.removeEventListener("visibilitychange", handleVisibilityChange);
   };
 }

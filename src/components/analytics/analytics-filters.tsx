@@ -50,8 +50,8 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
       <div className={styles.header}>
         <div>
           <p className={styles.eyebrow}>View</p>
-          <h2 id="analytics-filters-title">Choose the slice to understand</h2>
-          <p>Start with a time window, then narrow the audience only when you need to investigate a pattern.</p>
+          <h2 id="analytics-filters-title">View data</h2>
+          <p>Change the time range or audience filter. The dashboard updates immediately.</p>
         </div>
         {filters.segment !== "all" || filters.value ? (
           <a className={styles.reset} href={`/analytics?range=${filters.range}`}>Clear audience filter</a>
@@ -100,7 +100,6 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
             </label>
           ) : null}
 
-          <button className={styles.apply} type="submit">Apply view</button>
         </div>
       </form>
 

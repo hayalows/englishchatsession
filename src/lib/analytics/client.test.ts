@@ -99,6 +99,7 @@ describe("first-party analytics client", () => {
     const events = fetchMock.mock.calls.map((call) => JSON.parse(String(call[1]?.body)));
     expect(events).toEqual(expect.arrayContaining([
       expect.objectContaining({ eventName: "page_view" }),
+      expect.objectContaining({ eventName: "presence" }),
       expect.objectContaining({ eventName: "engagement", metadata: { milestoneSeconds: 10 } }),
     ]));
 

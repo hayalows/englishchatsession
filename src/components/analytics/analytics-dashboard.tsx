@@ -2,6 +2,7 @@ import styles from "./analytics-dashboard.module.css";
 
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
+import { AnalyticsTrendChart } from "@/components/analytics/analytics-trend-chart";
 import { ACTIVE_NOW_WINDOW_SECONDS, type AnalyticsReport } from "@/lib/analytics/report";
 
 const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
@@ -29,10 +30,10 @@ function displayLatestEventAt(value: string | null) {
     }).format(date) + " UTC";
 }
 
-function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"]["granularity"], compact = false) {
+function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"]["granularity"]) {
   if (granularity === "week") {
     const [year, week] = value.split("-W");
-    return compact ? `W${week ?? value}` : `Week ${week ?? value}${year ? ` · ${year}` : ""}`;
+    return `Week ${week ?? value}${year ? ` · ${year}` : ""}`;
   }
 
   const date = new Date(granularity === "hour" ? `${value.replace(" ", "T")}:00Z` : `${value}T12:00:00Z`);
@@ -58,73 +59,26 @@ function MetricCard({ label, value, detail, live = false }: { label: string; val
 
 function TrendPanel({ report }: { report: AnalyticsReport }) {
   const rows = report.trend;
-  const width = 760;
-  const height = 248;
-  const padding = { top: 22, right: 18, bottom: 44, left: 42 };
-  const max = Math.max(1, ...rows.map((row) => row.visitors), ...rows.map((row) => row.scanStarters));
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-  const labelEvery = rows.length > 16 ? Math.ceil(rows.length / 6) : 1;
-  const pointsFor = (field: "visitors" | "scanStarters") => rows.map((row, index) => {
-    const x = rows.length === 1 ? padding.left + chartWidth / 2 : padding.left + (index / (rows.length - 1)) * chartWidth;
-    const y = padding.top + chartHeight - (row[field] / max) * chartHeight;
-    return { ...row, x, y };
-  });
-  const visitorPoints = pointsFor("visitors");
-  const scanPoints = pointsFor("scanStarters");
 
   return (
     <section className={`${styles.panel} ${styles.trendPanel}`} aria-labelledby="trend-title">
-      <div className={styles.panelHeader}>
+      <div className={`${styles.panelHeader} ${styles.trendHeader}`}>
         <div>
           <p className={styles.eyebrow}>Movement</p>
-          <h2 id="trend-title">Visitors and scan starters</h2>
-          <p>{report.filters.trendLabel} · {report.filters.rangeLabel} · {report.filters.segmentLabel}</p>
+          <h2 id="trend-title">Finder activity over time</h2>
+          <p>Compare unique visitors with the people who actually started a scan.</p>
         </div>
-        <div className={styles.legend} aria-label="Chart legend">
-          <span><i className={styles.legendVisitor} aria-hidden="true" /> Visitors</span>
-          <span><i className={styles.legendScan} aria-hidden="true" /> Scan starters</span>
+        <div className={styles.panelMeta}>
+          <strong>{report.filters.trendLabel}</strong>
+          <span>{report.filters.rangeLabel} · {report.filters.segmentLabel}</span>
         </div>
       </div>
+
       {rows.length ? (
         <>
-          <div
-            aria-label={`Line chart comparing unique finder visitors with unique visitors who started a scan during ${report.filters.rangeLabel.toLowerCase()}`}
-            className={styles.chartFrame}
-            role="img"
-          >
-            <svg aria-hidden="true" className={styles.chart} preserveAspectRatio="none" viewBox={`0 0 ${width} ${height}`}>
-              {[0, 0.5, 1].map((ratio) => {
-                const y = padding.top + chartHeight * ratio;
-                const value = Math.round(max * (1 - ratio));
-                return (
-                  <g key={ratio}>
-                    <line className={styles.gridLine} x1={padding.left} x2={width - padding.right} y1={y} y2={y} />
-                    <text className={styles.axisLabel} x={padding.left - 10} y={y + 4} textAnchor="end">{value}</text>
-                  </g>
-                );
-              })}
-              <polygon
-                className={styles.trendArea}
-                points={`${padding.left},${padding.top + chartHeight} ${visitorPoints.map((point) => `${point.x},${point.y}`).join(" ")} ${visitorPoints.at(-1)?.x ?? padding.left},${padding.top + chartHeight}`}
-              />
-              <polyline className={styles.trendLine} fill="none" points={visitorPoints.map((point) => `${point.x},${point.y}`).join(" ")} />
-              <polyline className={styles.scanLine} fill="none" points={scanPoints.map((point) => `${point.x},${point.y}`).join(" ")} />
-              {visitorPoints.map((point, index) => (
-                <g key={`${point.label}-${index}`}>
-                  <circle className={styles.trendPoint} cx={point.x} cy={point.y} r="4.5" />
-                  <circle className={styles.scanPoint} cx={scanPoints[index]?.x} cy={scanPoints[index]?.y} r="4" />
-                  {index % labelEvery === 0 || index === rows.length - 1 ? (
-                    <text className={styles.dayLabel} x={point.x} y={height - 15} textAnchor="middle">
-                      {displayTrendLabel(point.label, report.filters.granularity, true)}
-                    </text>
-                  ) : null}
-                </g>
-              ))}
-            </svg>
-          </div>
+          <AnalyticsTrendChart granularity={report.filters.granularity} rows={rows} />
           <details className={styles.dataDisclosure}>
-            <summary>Show trend data table</summary>
+            <summary>View exact trend data</summary>
             <div className={styles.tableWrap}>
               <table>
                 <caption className={styles.srOnly}>Visitors, scan starters, page views, and scan clicks for {report.filters.rangeLabel.toLowerCase()}</caption>

@@ -2,31 +2,90 @@
 
 import { useId, useMemo, useState, type KeyboardEvent, type PointerEvent } from "react";
 
+import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
 import styles from "./analytics-trend-chart.module.css";
 
 type TrendRow = AnalyticsReport["trend"][number];
 type Granularity = AnalyticsReport["filters"]["granularity"];
-type MetricKey = "visitors" | "pageViews" | "scanStarters";
+type MetricKey = "visitors" | "pageViews";
+type DeltaTone = "positive" | "negative" | "neutral" | "pending";
+type Delta = { text: string; tone: DeltaTone; title: string };
 
 type Point = TrendRow & {
   x: number;
   y: number;
 };
 
+const ACTIVE_NOW_WINDOW_SECONDS = 90;
 const WIDTH = 880;
-const HEIGHT = 292;
-const PADDING = { top: 24, right: 24, bottom: 42, left: 42 };
+const HEIGHT = 270;
+const PADDING = { top: 22, right: 22, bottom: 40, left: 40 };
 
 const METRICS: Array<{ key: MetricKey; label: string; valueLabel: string }> = [
   { key: "visitors", label: "Visitors", valueLabel: "visitors" },
-  { key: "pageViews", label: "Views", valueLabel: "views" },
-  { key: "scanStarters", label: "Scan starters", valueLabel: "scan starters" },
+  { key: "pageViews", label: "Page views", valueLabel: "page views" },
 ];
 
 function metricValue(row: TrendRow, metric: MetricKey) {
   return row[metric];
+}
+
+function countDelta(current: number, previous: number, ready: boolean, comparisonLabel: string): Delta {
+  if (!ready) return {
+    text: "—",
+    tone: "pending",
+    title: `Comparison with ${comparisonLabel} is still building`,
+  };
+  if (previous === 0 && current === 0) return {
+    text: "0%",
+    tone: "neutral",
+    title: `No change vs ${comparisonLabel}`,
+  };
+  if (previous === 0) return {
+    text: "New",
+    tone: "positive",
+    title: `${current.toLocaleString()} now, no recorded value in ${comparisonLabel}`,
+  };
+
+  const change = Math.round(((current - previous) / previous) * 100);
+  if (change === 0) return {
+    text: "0%",
+    tone: "neutral",
+    title: `No change vs ${comparisonLabel}`,
+  };
+  return {
+    text: `${change > 0 ? "+" : "−"}${Math.abs(change)}%`,
+    tone: change > 0 ? "positive" : "negative",
+    title: `${Math.abs(change)}% ${change > 0 ? "higher" : "lower"} than ${comparisonLabel}`,
+  };
+}
+
+function rateDelta(
+  current: number,
+  previous: number,
+  previousVisitors: number,
+  ready: boolean,
+  comparisonLabel: string,
+): Delta {
+  if (!ready || !previousVisitors) return {
+    text: "—",
+    tone: "pending",
+    title: `Scan-rate comparison with ${comparisonLabel} is still building`,
+  };
+
+  const change = current - previous;
+  if (change === 0) return {
+    text: "0 pts",
+    tone: "neutral",
+    title: `No scan-start-rate change vs ${comparisonLabel}`,
+  };
+  return {
+    text: `${change > 0 ? "+" : "−"}${Math.abs(change)} pts`,
+    tone: change > 0 ? "positive" : "negative",
+    title: `Scan-start rate is ${Math.abs(change)} percentage points ${change > 0 ? "higher" : "lower"} than ${comparisonLabel}`,
+  };
 }
 
 function displayTrendLabel(value: string, granularity: Granularity, compact = false) {
@@ -61,16 +120,37 @@ function uniqueTicks(max: number) {
   return Array.from(new Set([max, Math.round(max / 2), 0])).sort((a, b) => b - a);
 }
 
+function DeltaBadge({ delta }: { delta: Delta }) {
+  return (
+    <span className={`${styles.delta} ${styles[delta.tone]}`} title={delta.title} aria-label={delta.title}>
+      {delta.text}
+    </span>
+  );
+}
+
 export function AnalyticsTrendChart({
-  rows,
-  granularity,
+  report,
+  comparison,
 }: {
-  rows: TrendRow[];
-  granularity: Granularity;
+  report: AnalyticsReport;
+  comparison: AnalyticsComparison;
 }) {
+  const rows = report.trend;
+  const granularity = report.filters.granularity;
+  const metrics = report.metrics;
   const gradientId = useId().replaceAll(":", "");
   const [activeMetric, setActiveMetric] = useState<MetricKey>("visitors");
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, rows.length - 1));
+
+  const visitorsDelta = countDelta(metrics.visitors, comparison.previous.visitors, comparison.audienceReady, comparison.label);
+  const viewsDelta = countDelta(metrics.pageViews, comparison.previous.pageViews, comparison.audienceReady, comparison.label);
+  const scanRateChange = rateDelta(
+    metrics.scanStartRate,
+    comparison.previous.scanStartRate,
+    comparison.previous.visitors,
+    comparison.scanReady,
+    comparison.label,
+  );
 
   const geometry = useMemo(() => {
     const maxValue = Math.max(1, ...rows.map((row) => metricValue(row, activeMetric)));
@@ -137,29 +217,39 @@ export function AnalyticsTrendChart({
 
   return (
     <div className={styles.chartExperience}>
-      <div className={styles.metricTabs} aria-label="Chart metric" role="group">
-        {METRICS.map((metric) => (
-          <button
-            aria-pressed={activeMetric === metric.key}
-            className={styles.metricTab}
-            key={metric.key}
-            onClick={() => chooseMetric(metric.key)}
-            type="button"
-          >
-            {metric.label}
-          </button>
-        ))}
+      <div className={styles.summaryStrip} aria-label="Primary finder analytics">
+        <div className={`${styles.summaryCell} ${styles.liveSummary}`}>
+          <div className={styles.summaryLabel}><i className={styles.liveDot} aria-hidden="true" />Active now</div>
+          <strong>{metrics.activeNowVisitors.toLocaleString()}</strong>
+          <small>{metrics.activeNowSessions.toLocaleString()} visible sessions · last {ACTIVE_NOW_WINDOW_SECONDS}s</small>
+        </div>
+
+        <button
+          aria-pressed={activeMetric === "visitors"}
+          className={`${styles.summaryCell} ${styles.summaryButton}`}
+          onClick={() => chooseMetric("visitors")}
+          type="button"
+        >
+          <span className={styles.summaryTopline}><span className={styles.summaryLabel}>Visitors</span><DeltaBadge delta={visitorsDelta} /></span>
+          <strong>{metrics.visitors.toLocaleString()}</strong>
+          <small>Unique anonymous visitors</small>
+        </button>
+
+        <button
+          aria-pressed={activeMetric === "pageViews"}
+          className={`${styles.summaryCell} ${styles.summaryButton}`}
+          onClick={() => chooseMetric("pageViews")}
+          type="button"
+        >
+          <span className={styles.summaryTopline}><span className={styles.summaryLabel}>Page views</span><DeltaBadge delta={viewsDelta} /></span>
+          <strong>{metrics.pageViews.toLocaleString()}</strong>
+          <small>Recorded finder opens</small>
+        </button>
       </div>
 
-      <div className={styles.chartReadout} aria-live="polite">
-        <div>
-          <span className={styles.chartReadoutLabel}>Selected period</span>
-          <strong>{displayTrendLabel(selected.label, granularity)}</strong>
-        </div>
-        <div className={styles.selectedMetricValue}>
-          <span>{active.label}</span>
-          <strong>{selectedValue.toLocaleString()}</strong>
-        </div>
+      <div className={styles.chartContext} aria-live="polite">
+        <span><strong>{active.label}</strong> · {displayTrendLabel(selected.label, granularity)}</span>
+        <strong>{selectedValue.toLocaleString()} {active.valueLabel}</strong>
       </div>
 
       <div className={styles.chartFrame}>
@@ -198,7 +288,7 @@ export function AnalyticsTrendChart({
 
           {geometry.points.map((point, index) => (
             index % labelEvery === 0 || index === rows.length - 1 ? (
-              <text className={styles.dayLabel} key={`${point.label}-${index}`} textAnchor="middle" x={point.x} y={HEIGHT - 14}>
+              <text className={styles.dayLabel} key={`${point.label}-${index}`} textAnchor="middle" x={point.x} y={HEIGHT - 13}>
                 {displayTrendLabel(point.label, granularity, true)}
               </text>
             ) : null
@@ -206,10 +296,21 @@ export function AnalyticsTrendChart({
         </svg>
       </div>
 
-      <div className={styles.chartFooter}>
-        <strong>{active.label}</strong>
-        <p>Tap or move across the chart, or use ← →, to inspect values.</p>
+      <div className={styles.scanIntent}>
+        <div>
+          <span className={styles.scanIntentLabel}>Scan-start rate</span>
+          <strong>{metrics.visitors ? `${metrics.scanStartRate}%` : "—"}</strong>
+          <DeltaBadge delta={scanRateChange} />
+        </div>
+        <p>
+          {metrics.visitors
+            ? `${metrics.scanStarters.toLocaleString()} of ${metrics.visitors.toLocaleString()} visitors started a scan.`
+            : "The share of visitors who started a scan will appear once visits are recorded."}
+          {metrics.scanStarts ? ` ${metrics.scanStarts.toLocaleString()} total scan starts.` : ""}
+        </p>
       </div>
+
+      <p className={styles.chartHint}>Tap Visitors or Page views to switch the chart. Tap or move across the graph to inspect a point.</p>
     </div>
   );
 }

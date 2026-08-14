@@ -33,6 +33,18 @@ export const ANALYTICS_SEGMENT_LABELS: Record<AnalyticsSegment, string> = {
   source: "Traffic source",
 };
 
+export function displayCountryLabel(value: string) {
+  const code = value.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return value;
+
+  try {
+    const name = new Intl.DisplayNames(["en"], { type: "region" }).of(code);
+    return name && name !== code ? `${name} (${code})` : code;
+  } catch {
+    return code;
+  }
+}
+
 function firstQueryValue(value: unknown) {
   if (Array.isArray(value)) return value[0];
   return value;
@@ -65,5 +77,6 @@ export function parseAnalyticsSearchParams(searchParams: Record<string, string |
 
 export function analyticsFilterLabel(filters: ReturnType<typeof normalizeAnalyticsFilters>) {
   if (filters.segment === "all" || !filters.value) return "All traffic";
-  return `${ANALYTICS_SEGMENT_LABELS[filters.segment]}: ${filters.value}`;
+  const value = filters.segment === "country" ? displayCountryLabel(filters.value) : filters.value;
+  return `${ANALYTICS_SEGMENT_LABELS[filters.segment]}: ${value}`;
 }

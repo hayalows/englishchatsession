@@ -147,6 +147,46 @@ export function AnalyticsBreakdownCard({
   }, [dialogOpen]);
 
   useEffect(() => {
+    if (!dialogOpen) return;
+
+    const body = document.body;
+    const root = document.documentElement;
+    const scrollY = window.scrollY;
+    const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
+    const previousBody = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+      paddingRight: body.style.paddingRight,
+    };
+    const previousRootOverscroll = root.style.overscrollBehavior;
+
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    if (scrollbarGap > 0) body.style.paddingRight = `${scrollbarGap}px`;
+    root.style.overscrollBehavior = "none";
+
+    return () => {
+      body.style.position = previousBody.position;
+      body.style.top = previousBody.top;
+      body.style.left = previousBody.left;
+      body.style.right = previousBody.right;
+      body.style.width = previousBody.width;
+      body.style.overflow = previousBody.overflow;
+      body.style.paddingRight = previousBody.paddingRight;
+      root.style.overscrollBehavior = previousRootOverscroll;
+      window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
+    };
+  }, [dialogOpen]);
+
+  useEffect(() => {
     if (!menuOpen) return;
 
     function onPointerDown(event: PointerEvent) {
@@ -340,7 +380,10 @@ export function AnalyticsBreakdownCard({
 
           <div className={styles.dialogTableWrap} tabIndex={0}>
             <div className={styles.dialogTableHeader} aria-hidden="true">
-              <span>{title}</span><span>{activeMetric === "scanUsage" ? "Rate" : "Share"}</span><span>Visitors</span><span>Page views</span><span>Scan usage</span>
+              <span>{title}</span>
+              <span>{activeMetric === "scanUsage" ? "Rate" : "Share"}</span>
+              <span>Visitors</span>
+              <span>Views</span>
             </div>
             <div className={styles.dialogRows}>
               {filteredRows.map((row) => {
@@ -360,7 +403,6 @@ export function AnalyticsBreakdownCard({
                     <strong>{`${share}%`}</strong>
                     <strong>{row.visitors.toLocaleString()}</strong>
                     <strong>{row.pageViews.toLocaleString()}</strong>
-                    <strong>{`${scanUsage(row)}%`}</strong>
                   </div>
                 );
               })}

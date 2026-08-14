@@ -38,6 +38,16 @@ function countryCodeFromLabel(label: string) {
   return label.match(/\(([A-Z]{2})\)$/)?.[1] ?? null;
 }
 
+function countryFlagFromCode(code: string) {
+  return String.fromCodePoint(
+    ...code.toUpperCase().split("").map((letter) => 127397 + letter.charCodeAt(0)),
+  );
+}
+
+function CountryFlag({ code }: { code: string }) {
+  return <span aria-hidden="true" className={styles.countryFlag}>{countryFlagFromCode(code)}</span>;
+}
+
 function displayLabel(label: string, kind?: Props["kind"]) {
   if (kind !== "country") return label;
   return label.replace(/\s*\([A-Z]{2}\)$/, "");
@@ -333,7 +343,7 @@ export function AnalyticsBreakdownCard({
               <div className={styles.row} key={row.label}>
                 <span className={styles.rowFill} style={{ width: `${Math.min(100, fill)}%` }} />
                 <span className={styles.rowName}>
-                  {countryCode ? <span aria-hidden="true" className={styles.countryBadge}>{countryCode}</span> : null}
+                  {countryCode ? <CountryFlag code={countryCode} /> : null}
                   <span>{displayLabel(row.label, kind)}</span>
                 </span>
                 <strong>{activeMetric === "scanUsage" ? `${value}%` : `${share}%`}</strong>
@@ -415,7 +425,7 @@ export function AnalyticsBreakdownCard({
                       <div className={styles.dialogRow} key={row.label} role="listitem">
                         <span aria-hidden="true" className={styles.dialogRowFill} style={{ width: `${Math.min(100, fill)}%` }} />
                         <span className={styles.dialogName}>
-                          {countryCode ? <span aria-hidden="true" className={styles.countryBadge}>{countryCode}</span> : null}
+                          {countryCode ? <CountryFlag code={countryCode} /> : null}
                           <span>{displayLabel(row.label, kind)}</span>
                         </span>
                         <strong>{`${share}%`}</strong>

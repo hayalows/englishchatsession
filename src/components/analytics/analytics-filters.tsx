@@ -20,14 +20,6 @@ const SEGMENT_PLURALS: Record<AnalyticsSegment, string> = {
   source: "sources",
 };
 
-const RANGE_SHORT_LABELS: Record<AnalyticsRange, string> = {
-  "24h": "Today",
-  "7d": "7D",
-  "30d": "30D",
-  "60d": "60D",
-  "90d": "90D",
-};
-
 type AnalyticsFiltersProps = {
   filters: {
     range: AnalyticsRange;
@@ -54,6 +46,48 @@ function displayOptionLabel(segment: AnalyticsSegment, value: string) {
   return segment === "country" ? displayCountryLabel(value) : value;
 }
 
+function rangeHref(filters: AnalyticsFiltersProps["filters"], range: AnalyticsRange) {
+  const params = new URLSearchParams({ range });
+  if (filters.segment !== "all") {
+    params.set("segment", filters.segment);
+    if (filters.value) params.set("value", filters.value);
+  }
+  return `/analytics?${params.toString()}`;
+}
+
+function CalendarIcon() {
+  return (
+    <svg aria-hidden="true" className={styles.controlIcon} fill="none" viewBox="0 0 24 24">
+      <rect height="16" rx="2.5" width="17" x="3.5" y="5" />
+      <path d="M7.5 3.5v3M16.5 3.5v3M3.5 9.5h17" />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg aria-hidden="true" className={`${styles.controlIcon} ${styles.chevronIcon}`} fill="none" viewBox="0 0 24 24">
+      <path d="m7 9 5 5 5-5" />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg aria-hidden="true" className={styles.controlIcon} fill="none" viewBox="0 0 24 24">
+      <path d="M4 6h16M7 12h10M10 18h4" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg aria-hidden="true" className={styles.checkIcon} fill="none" viewBox="0 0 24 24">
+      <path d="m5 12 4.2 4.2L19 6.5" />
+    </svg>
+  );
+}
+
 export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
   const hasCurrentValue = Boolean(filters.value && !options.some((option) => option.label === filters.value));
   const segmentName = filters.segment === "source" ? "traffic source" : filters.segment;
@@ -62,40 +96,42 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
 
   return (
     <section className={styles.filters} aria-label="Analytics controls">
-      <form action="/analytics" className={styles.form} method="get">
-        <div className={styles.toolbar}>
-          <fieldset className={styles.rangeFieldset}>
-            <legend className={styles.srOnly}>Time range</legend>
-            <div className={styles.rangeChoices}>
-              {ANALYTICS_RANGE_OPTIONS.map((option) => (
-                <label className={styles.rangeChoice} key={option.value}>
-                  <input
-                    defaultChecked={filters.range === option.value}
-                    name="range"
-                    onChange={submitOnChange}
-                    type="radio"
-                    value={option.value}
-                  />
-                  <span>
-                    <span className={styles.fullRangeLabel}>{option.label}</span>
-                    <span className={styles.compactRangeLabel}>{RANGE_SHORT_LABELS[option.value]}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+      <div className={styles.toolbar}>
+        <details className={styles.rangeDisclosure}>
+          <summary aria-label={`Time range: ${filters.rangeLabel}`}>
+            <CalendarIcon />
+            <span className={styles.rangeSummaryLabel}>{filters.rangeLabel}</span>
+            <ChevronIcon />
+          </summary>
+          <div className={styles.rangePanel}>
+            <span className={styles.rangePanelLabel}>Time range</span>
+            {ANALYTICS_RANGE_OPTIONS.map((option) => (
+              <a
+                aria-current={filters.range === option.value ? "true" : undefined}
+                className={styles.rangeOption}
+                href={rangeHref(filters, option.value)}
+                key={option.value}
+              >
+                <span>{option.label}</span>
+                {filters.range === option.value ? <CheckIcon /> : null}
+              </a>
+            ))}
+          </div>
+        </details>
 
-          <details className={styles.filterDisclosure} open={filters.segment !== "all" && !filters.value}>
-            <summary>
-              <span aria-hidden="true" className={styles.filterIcon}>⌁</span>
-              <span>Filter</span>
-              {hasActiveFilter ? <span className={styles.filterBadge} aria-label="1 active filter">1</span> : null}
-            </summary>
-            <div className={styles.filterPanel}>
+        <details className={styles.filterDisclosure} open={filters.segment !== "all" && !filters.value}>
+          <summary title="Filter traffic">
+            <FilterIcon />
+            <span className={styles.filterText}>Filter</span>
+            {hasActiveFilter ? <span className={styles.filterBadge} aria-label="1 active filter">1</span> : null}
+          </summary>
+          <div className={styles.filterPanel}>
+            <form action="/analytics" className={styles.form} method="get">
+              <input name="range" type="hidden" value={filters.range} />
               <div className={styles.filterPanelHeader}>
                 <div>
                   <strong>Filter traffic</strong>
-                  <span>Focus every metric and chart on one audience segment.</span>
+                  <span>Narrow the report by audience.</span>
                 </div>
                 {hasActiveFilter ? <a className={styles.clearLink} href={clearHref}>Clear</a> : null}
               </div>
@@ -125,10 +161,10 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
                   </select>
                 </label>
               ) : null}
-            </div>
-          </details>
-        </div>
-      </form>
+            </form>
+          </div>
+        </details>
+      </div>
 
       {hasActiveFilter ? (
         <div className={styles.activeFilter} aria-live="polite">

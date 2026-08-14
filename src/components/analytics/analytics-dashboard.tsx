@@ -49,6 +49,20 @@ function displayLatestEventAt(value: string | null) {
     }).format(date) + " UTC";
 }
 
+function displayCompactTimestamp(value: string | null) {
+  if (!value) return "No events yet";
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf())
+    ? "Not available"
+    : new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      timeStyle: "short",
+      timeZone: "UTC",
+      hour12: false,
+    }).format(date) + " UTC";
+}
+
 function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"]["granularity"]) {
   if (granularity === "week") {
     const [year, week] = value.split("-W");
@@ -302,21 +316,27 @@ export function AnalyticsDashboard({
       <AnalyticsTopNav activeNowVisitors={metrics.activeNowVisitors} />
       <main className={styles.main} id="analytics-main" aria-labelledby="analytics-title">
         <header className={styles.header}>
-          <div>
+          <div className={styles.headerCopy}>
             <p className={styles.eyebrow}>English Chat Finder</p>
             <h1 id="analytics-title">Finder analytics</h1>
-            <p>A fast read on audience, scan intent, and repeat use. Calendar checks stay outside analytics.</p>
+            <p>Audience, scan intent, and repeat use in one view.</p>
           </div>
-          <div className={styles.freshness}>
-            <span className={styles.freshnessLabel}>Selected window</span>
-            <strong className={styles.freshnessRange}>{report.filters.rangeLabel}</strong>
-            <small className={styles.freshnessLatest}>Latest data {displayLatestEventAt(report.latestEventAt)}</small>
-            <small className={styles.freshnessRefresh}>Report refreshed {displayGeneratedAt(report.generatedAt)}</small>
+          <div className={styles.headerTools}>
+            <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
+            <div
+              aria-label={`Latest data ${displayLatestEventAt(report.latestEventAt)}. Report refreshed ${displayGeneratedAt(report.generatedAt)}.`}
+              className={styles.freshness}
+              title={`Latest data ${displayLatestEventAt(report.latestEventAt)} · Report refreshed ${displayGeneratedAt(report.generatedAt)}`}
+            >
+              <span aria-hidden="true" className={styles.freshnessDot} />
+              <span>Updated {displayCompactTimestamp(report.latestEventAt)}</span>
+              <span aria-hidden="true">·</span>
+              <span>Refreshed {displayCompactTimestamp(report.generatedAt)}</span>
+            </div>
           </div>
         </header>
 
         <StatusNotice report={report} />
-        <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
 
         <div className={styles.primaryGrid}>
           <TrendPanel

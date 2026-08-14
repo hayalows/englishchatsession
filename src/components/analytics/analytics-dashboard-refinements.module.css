@@ -1,13 +1,13 @@
 .tableHint {
   color: var(--muted-light);
-  font-size: .68rem;
-  line-height: 1.4;
+  font-size: .72rem;
+  line-height: 1.45;
   margin: .05rem 0 .55rem;
 }
 
 .tableViewport {
   border: 1px solid var(--line);
-  border-radius: .8rem;
+  border-radius: .85rem;
   max-height: min(42vh, 22rem);
   overflow: auto;
   overscroll-behavior: contain;
@@ -17,7 +17,7 @@
 .tableViewport table {
   border-collapse: separate;
   border-spacing: 0;
-  font-size: .76rem;
+  font-size: .8rem;
   min-width: 620px;
   width: 100%;
 }
@@ -26,7 +26,7 @@
 .tableViewport td {
   background: var(--surface);
   border-bottom: 1px solid var(--line);
-  padding: .58rem .55rem;
+  padding: .62rem .58rem;
   text-align: right;
 }
 
@@ -41,15 +41,14 @@
 .tableViewport thead th {
   background: var(--surface-subtle);
   color: var(--muted);
-  font-size: .67rem;
-  font-weight: 750;
+  font-size: .7rem;
+  font-weight: 760;
   letter-spacing: .045em;
   position: sticky;
   text-transform: uppercase;
   top: 0;
   z-index: 2;
 }
-
 .tableViewport thead th:first-child { z-index: 3; }
 .tableViewport tbody tr:last-child th,
 .tableViewport tbody tr:last-child td { border-bottom: 0; }
@@ -71,8 +70,8 @@
 .breakdownHint {
   color: var(--muted-light);
   display: block;
-  font-size: .64rem;
-  line-height: 1.35;
+  font-size: .7rem;
+  line-height: 1.4;
   margin-top: .48rem;
 }
 
@@ -82,25 +81,24 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: -.15rem;
 }
-
 .scanSummaryStat {
   display: grid;
-  gap: .22rem;
+  gap: .25rem;
   min-width: 0;
-  padding: .82rem .72rem;
+  padding: .85rem .75rem;
 }
 .scanSummaryStat + .scanSummaryStat { border-left: 1px solid var(--line); }
 .scanSummaryStat strong {
   color: var(--teal-700);
-  font-size: 1.28rem;
+  font-size: 1.3rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: -.04em;
   line-height: 1;
 }
 .scanSummaryStat span {
   color: var(--muted);
-  font-size: .66rem;
-  line-height: 1.35;
+  font-size: .72rem;
+  line-height: 1.4;
 }
 
 .scanDetailDisclosure,
@@ -109,25 +107,22 @@
   margin-top: .72rem;
   padding-top: .28rem;
 }
-
 .scanDetailDisclosure summary,
 .panelRowsDisclosure summary {
   align-items: center;
   color: var(--teal-700);
   cursor: pointer;
   display: flex;
-  font-size: .74rem;
-  font-weight: 750;
-  min-height: 40px;
+  font-size: .78rem;
+  font-weight: 760;
+  min-height: 44px;
   width: fit-content;
 }
-
 .scanDetailDisclosure summary:focus-visible,
 .panelRowsDisclosure summary:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: 3px;
 }
-
 .scanDetailRows {
   display: grid;
   gap: 0;
@@ -139,30 +134,28 @@
   display: flex;
   gap: .8rem;
   justify-content: space-between;
-  min-height: 40px;
-  padding: .45rem 0;
+  min-height: 42px;
+  padding: .48rem 0;
 }
 .scanDetailRow:first-child { border-top: 0; }
 .scanDetailRow span {
   color: var(--muted);
-  font-size: .72rem;
+  font-size: .76rem;
 }
 .scanDetailRow strong {
-  font-size: .82rem;
+  font-size: .84rem;
   font-variant-numeric: tabular-nums;
 }
 .scanDetailLabel {
   color: var(--muted-light);
-  font-size: .64rem;
+  font-size: .7rem;
   font-weight: 800;
   letter-spacing: .06em;
   margin: .75rem 0 .1rem;
   text-transform: uppercase;
 }
-
 .moreRows { padding-top: .55rem; }
 .panelRowsDisclosure { margin-top: .55rem; }
-.panelRowsDisclosure summary { min-height: 36px; }
 
 @media (max-width: 560px) {
   .tableViewport {
@@ -170,17 +163,19 @@
     margin-inline: -.1rem;
   }
   .tableViewport table {
-    font-size: .72rem;
+    font-size: .76rem;
     min-width: 570px;
   }
   .tableViewport th,
-  .tableViewport td { padding: .52rem .48rem; }
-  .tableHint { font-size: .64rem; }
+  .tableViewport td { padding: .56rem .5rem; }
+  .tableHint { font-size: .7rem; }
 
   .breakdownViewport { max-height: 11.4rem; }
-  .breakdownHint { font-size: .61rem; }
+  .breakdownHint { font-size: .69rem; }
 
-  .scanSummaryStat { padding: .7rem .42rem; }
-  .scanSummaryStat strong { font-size: 1.08rem; }
-  .scanSummaryStat span { font-size: .61rem; }
+  .scanSummaryStat { padding: .74rem .46rem; }
+  .scanSummaryStat strong { font-size: 1.1rem; }
+  .scanSummaryStat span { font-size: .7rem; }
+  .scanDetailDisclosure summary { font-size: .76rem; }
+  .scanDetailRow span { font-size: .74rem; }
 }

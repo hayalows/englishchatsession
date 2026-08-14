@@ -1,0 +1,163 @@
+.tableHint {
+  color: var(--muted-light);
+  font-size: .68rem;
+  line-height: 1.4;
+  margin: .05rem 0 .55rem;
+}
+
+.tableViewport {
+  border: 1px solid var(--line);
+  border-radius: .8rem;
+  max-height: min(42vh, 22rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.tableViewport table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .76rem;
+  min-width: 620px;
+  width: 100%;
+}
+
+.tableViewport th,
+.tableViewport td {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: .58rem .55rem;
+  text-align: right;
+}
+
+.tableViewport th:first-child,
+.tableViewport td:first-child {
+  left: 0;
+  position: sticky;
+  text-align: left;
+  z-index: 1;
+}
+
+.tableViewport thead th {
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: .67rem;
+  font-weight: 750;
+  letter-spacing: .045em;
+  position: sticky;
+  text-transform: uppercase;
+  top: 0;
+  z-index: 2;
+}
+
+.tableViewport thead th:first-child { z-index: 3; }
+.tableViewport tbody tr:last-child th,
+.tableViewport tbody tr:last-child td { border-bottom: 0; }
+.tableViewport tbody tr:hover th,
+.tableViewport tbody tr:hover td { background: color-mix(in srgb, var(--teal-50), var(--surface) 72%); }
+
+.scanSummary {
+  border-block: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: -.15rem;
+}
+
+.scanSummaryStat {
+  display: grid;
+  gap: .22rem;
+  min-width: 0;
+  padding: .82rem .72rem;
+}
+.scanSummaryStat + .scanSummaryStat { border-left: 1px solid var(--line); }
+.scanSummaryStat strong {
+  color: var(--teal-700);
+  font-size: 1.28rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.04em;
+  line-height: 1;
+}
+.scanSummaryStat span {
+  color: var(--muted);
+  font-size: .66rem;
+  line-height: 1.35;
+}
+
+.scanDetailDisclosure,
+.panelRowsDisclosure {
+  border-top: 1px solid var(--line);
+  margin-top: .72rem;
+  padding-top: .28rem;
+}
+
+.scanDetailDisclosure summary,
+.panelRowsDisclosure summary {
+  align-items: center;
+  color: var(--teal-700);
+  cursor: pointer;
+  display: flex;
+  font-size: .74rem;
+  font-weight: 750;
+  min-height: 40px;
+  width: fit-content;
+}
+
+.scanDetailDisclosure summary:focus-visible,
+.panelRowsDisclosure summary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
+  outline-offset: 3px;
+}
+
+.scanDetailRows {
+  display: grid;
+  gap: 0;
+  padding-top: .2rem;
+}
+.scanDetailRow {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--line), transparent 24%);
+  display: flex;
+  gap: .8rem;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: .45rem 0;
+}
+.scanDetailRow:first-child { border-top: 0; }
+.scanDetailRow span {
+  color: var(--muted);
+  font-size: .72rem;
+}
+.scanDetailRow strong {
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+}
+.scanDetailLabel {
+  color: var(--muted-light);
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  margin: .75rem 0 .1rem;
+  text-transform: uppercase;
+}
+
+.moreRows { padding-top: .55rem; }
+.panelRowsDisclosure { margin-top: .55rem; }
+.panelRowsDisclosure summary { min-height: 36px; }
+
+@media (max-width: 560px) {
+  .tableViewport {
+    max-height: 16.5rem;
+    margin-inline: -.1rem;
+  }
+  .tableViewport table {
+    font-size: .72rem;
+    min-width: 570px;
+  }
+  .tableViewport th,
+  .tableViewport td { padding: .52rem .48rem; }
+  .tableHint { font-size: .64rem; }
+
+  .scanSummaryStat { padding: .7rem .42rem; }
+  .scanSummaryStat strong { font-size: 1.08rem; }
+  .scanSummaryStat span { font-size: .61rem; }
+}

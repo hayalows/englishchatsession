@@ -11,6 +11,7 @@
   display: flex;
   gap: .5rem;
   justify-content: flex-end;
+  position: relative;
 }
 
 .rangeDisclosure,
@@ -231,10 +232,11 @@
 @media (max-width: 640px) {
   .toolbar { gap: .4rem; justify-content: stretch; }
   .rangeDisclosure { flex: 1 1 auto; min-width: 0; }
+  .filterDisclosure { position: static; }
   .rangeDisclosure > .controlTrigger { justify-content: flex-start; min-width: 0; width: 100%; }
   .rangeSummaryLabel { flex: 1 1 auto; }
   .rangePanel { left: 0; right: auto; width: min(18rem, calc(100vw - 1.6rem)); }
-  .filterPanel { width: min(23rem, calc(100vw - 1.6rem)); }
+  .filterPanel { left: 0; right: 0; width: auto; }
 }
 
 @media (max-width: 390px) {

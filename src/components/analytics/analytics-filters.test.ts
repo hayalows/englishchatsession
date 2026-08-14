@@ -23,5 +23,7 @@ describe("analytics header filters", () => {
     expect(source).toContain("aria-expanded={openPanel === \"filter\"}");
     expect(styles).toContain('.rangeDisclosure[data-open="true"]');
     expect(styles).toContain('.filterDisclosure[data-open="true"]');
+    expect(styles).toContain(".filterDisclosure { position: static; }");
+    expect(styles).toContain(".filterPanel { left: 0; right: 0; width: auto; }");
   });
 });

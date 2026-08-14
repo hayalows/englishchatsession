@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe("analytics filter normalization", () => {
-  it("accepts the supported rolling windows and audience dimensions", () => {
+  it("accepts the supported windows and audience dimensions", () => {
     expect(normalizeAnalyticsFilters({ range: "90d", segment: "country", value: "GH" })).toEqual({
       range: "90d",
       segment: "country",
@@ -98,13 +98,26 @@ describe("getAnalyticsReport", () => {
     expect(analyticsQueryMock.mock.calls.some(([query, params]) => String(query).includes("60 days") && JSON.stringify(params) === JSON.stringify(["GH"]))).toBe(true);
   });
 
+  it("uses the current UTC calendar day for Today", async () => {
+    analyticsDatabaseStatusMock.mockReturnValue("configured");
+    analyticsQueryMock.mockResolvedValue([]);
+
+    const report = await getAnalyticsReport({ range: "24h" });
+
+    expect(report.filters.rangeLabel).toBe("Today");
+    expect(analyticsQueryMock.mock.calls.length).toBeGreaterThan(0);
+    for (const [query] of analyticsQueryMock.mock.calls) {
+      expect(String(query)).toContain("date_trunc('day', now())");
+    }
+  });
+
   it("keeps the report renderable when analytics is disabled", async () => {
     analyticsDatabaseStatusMock.mockReturnValue("disabled");
 
     const report = await getAnalyticsReport({ range: "24h" });
 
     expect(report.status).toBe("disabled");
-    expect(report.filters.rangeLabel).toBe("Last 24 hours");
+    expect(report.filters.rangeLabel).toBe("Today");
     expect(report.metrics.visitors).toBe(0);
     expect(analyticsQueryMock).not.toHaveBeenCalled();
   });

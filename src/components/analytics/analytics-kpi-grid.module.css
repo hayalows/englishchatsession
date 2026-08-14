@@ -1,0 +1,113 @@
+.grid {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1.05rem;
+  box-shadow: var(--shadow-card);
+  display: grid;
+  gap: .32rem;
+  min-height: 112px;
+  padding: .95rem 1rem;
+}
+
+.liveCard {
+  border-color: color-mix(in srgb, var(--teal-700), var(--line) 70%);
+}
+
+.cardHeader {
+  align-items: center;
+  display: flex;
+  gap: .5rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.label {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: .76rem;
+  font-weight: 750;
+  gap: .4rem;
+  letter-spacing: .02em;
+  min-width: 0;
+}
+
+.value {
+  align-self: end;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.05em;
+  line-height: 1;
+}
+
+.card small {
+  color: var(--muted-light);
+  font-size: .7rem;
+  line-height: 1.4;
+}
+
+.delta {
+  border-radius: 999px;
+  flex: 0 0 auto;
+  font-size: .7rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 780;
+  letter-spacing: -.01em;
+  line-height: 1;
+  padding: .32rem .45rem;
+  white-space: nowrap;
+}
+
+.positive {
+  background: color-mix(in srgb, #1a8f5b, transparent 90%);
+  color: #157149;
+}
+
+.negative {
+  background: color-mix(in srgb, #c14949, transparent 91%);
+  color: #a43838;
+}
+
+.neutral,
+.pending {
+  background: var(--surface-subtle);
+  color: var(--muted);
+}
+
+.liveDot {
+  background: #1ca66a;
+  border-radius: 50%;
+  display: inline-block;
+  height: .48rem;
+  width: .48rem;
+}
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .grid { gap: .45rem; }
+  .card {
+    border-radius: .9rem;
+    min-height: 88px;
+    padding: .65rem .62rem;
+  }
+  .label { font-size: .65rem; gap: .25rem; }
+  .value { font-size: 1.45rem; }
+  .card small { display: none; }
+  .delta { font-size: .63rem; padding: .28rem .38rem; }
+}
+
+@media (max-width: 380px) {
+  .card { padding-inline: .52rem; }
+  .label { font-size: .61rem; }
+  .value { font-size: 1.34rem; }
+  .delta { font-size: .59rem; padding-inline: .32rem; }
+}

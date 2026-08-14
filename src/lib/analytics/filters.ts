@@ -1,5 +1,5 @@
 export const ANALYTICS_RANGE_OPTIONS = [
-  { value: "24h", label: "Last 24 hours" },
+  { value: "24h", label: "Today" },
   { value: "7d", label: "Last 7 days" },
   { value: "30d", label: "Last 30 days" },
   { value: "60d", label: "Last 60 days" },

@@ -13,12 +13,14 @@ import {
 const PAGE_VIEW_PRODUCTION_START = Date.parse("2026-08-14T06:45:34Z");
 const SCAN_PRODUCTION_START = Date.parse("2026-08-14T07:37:18Z");
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const RANGE_CONFIG: Record<AnalyticsRange, { interval: string; durationMs: number; label: string }> = {
-  "24h": { interval: "24 hours", durationMs: 24 * 60 * 60 * 1000, label: "previous 24 hours" },
-  "7d": { interval: "7 days", durationMs: 7 * 24 * 60 * 60 * 1000, label: "previous 7 days" },
-  "30d": { interval: "30 days", durationMs: 30 * 24 * 60 * 60 * 1000, label: "previous 30 days" },
-  "60d": { interval: "60 days", durationMs: 60 * 24 * 60 * 60 * 1000, label: "previous 60 days" },
-  "90d": { interval: "90 days", durationMs: 90 * 24 * 60 * 60 * 1000, label: "previous 90 days" },
+  "24h": { interval: "24 hours", durationMs: DAY_MS, label: "yesterday" },
+  "7d": { interval: "7 days", durationMs: 7 * DAY_MS, label: "previous 7 days" },
+  "30d": { interval: "30 days", durationMs: 30 * DAY_MS, label: "previous 30 days" },
+  "60d": { interval: "60 days", durationMs: 60 * DAY_MS, label: "previous 60 days" },
+  "90d": { interval: "90 days", durationMs: 90 * DAY_MS, label: "previous 90 days" },
 };
 
 const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
@@ -55,7 +57,25 @@ function number(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function utcDayStart(valueMs: number) {
+  const value = new Date(valueMs);
+  return Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
+}
+
 function readiness(range: AnalyticsRange, nowMs = Date.now()) {
+  if (range === "24h") {
+    // Today is a UTC/Ghana calendar day. A clean same-time-yesterday baseline
+    // exists once we reach the second calendar day after production tracking began.
+    const audienceReadyAtMs = utcDayStart(PAGE_VIEW_PRODUCTION_START) + DAY_MS * 2;
+    const scanReadyAtMs = utcDayStart(SCAN_PRODUCTION_START) + DAY_MS * 2;
+    return {
+      audienceReady: nowMs >= audienceReadyAtMs,
+      scanReady: nowMs >= scanReadyAtMs,
+      audienceReadyAt: new Date(audienceReadyAtMs).toISOString(),
+      scanReadyAt: new Date(scanReadyAtMs).toISOString(),
+    };
+  }
+
   const durationMs = RANGE_CONFIG[range].durationMs;
   const audienceReadyAtMs = PAGE_VIEW_PRODUCTION_START + durationMs * 2;
   const scanReadyAtMs = SCAN_PRODUCTION_START + durationMs * 2;
@@ -95,12 +115,18 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
     ? { clause: `${column} = $1`, params: [filters.value] as unknown[] }
     : { clause: "TRUE", params: [] as unknown[] };
 
+  const boundsSql = filters.range === "24h"
+    ? `SELECT
+        date_trunc('day', now()) - interval '1 day' AS previous_start,
+        now() - interval '1 day' AS previous_end`
+    : `SELECT
+        now() - interval '${config.interval}' AS previous_end,
+        now() - (interval '${config.interval}' * 2) AS previous_start`;
+
   try {
     const rows = await analyticsQuery<PreviousRow>(`
       WITH bounds AS (
-        SELECT
-          now() - interval '${config.interval}' AS previous_end,
-          now() - (interval '${config.interval}' * 2) AS previous_start
+        ${boundsSql}
       ),
       previous_events AS (
         SELECT events.*

@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe("getAnalyticsComparison", () => {
-  it("waits until a complete production baseline exists", async () => {
+  it("waits until a complete production calendar-day baseline exists", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-15T12:00:00Z"));
     analyticsDatabaseStatusMock.mockReturnValue("configured");
@@ -29,11 +29,11 @@ describe("getAnalyticsComparison", () => {
 
     expect(comparison.audienceReady).toBe(false);
     expect(comparison.scanReady).toBe(false);
-    expect(comparison.label).toBe("previous 24 hours");
+    expect(comparison.label).toBe("yesterday");
     expect(analyticsQueryMock).not.toHaveBeenCalled();
   });
 
-  it("reads the immediately preceding equal window with the same audience filter", async () => {
+  it("compares Today with the same elapsed portion of yesterday using the same audience filter", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-16T08:00:00Z"));
     analyticsDatabaseStatusMock.mockReturnValue("configured");
@@ -52,6 +52,8 @@ describe("getAnalyticsComparison", () => {
     });
     expect(analyticsQueryMock).toHaveBeenCalledTimes(1);
     expect(analyticsQueryMock.mock.calls[0]?.[1]).toEqual(["GH"]);
-    expect(String(analyticsQueryMock.mock.calls[0]?.[0])).toContain("interval '24 hours'");
+    const query = String(analyticsQueryMock.mock.calls[0]?.[0]);
+    expect(query).toContain("date_trunc('day', now()) - interval '1 day'");
+    expect(query).toContain("now() - interval '1 day'");
   });
 });

@@ -112,6 +112,7 @@ export function AnalyticsBreakdownCard({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -269,15 +270,9 @@ export function AnalyticsBreakdownCard({
           <span className={styles.metricLabel}>{METRIC_LABELS[activeMetric]}</span>
 
           <div className={styles.desktopActions} aria-label={`${title} actions`}>
-            <button aria-label={`View all ${title}`} onClick={(event) => openDetails(event.currentTarget)} title={`View all ${title}`} type="button">
-              <ExpandIcon />
-            </button>
-            <button aria-label={`Switch ${title} to ${METRIC_LABELS[nextMetric]}`} onClick={switchMetric} title={`Switch to ${METRIC_LABELS[nextMetric]}`} type="button">
-              <SwitchIcon />
-            </button>
-            <button aria-label={`Export ${title} as CSV`} onClick={exportCsv} title="Export CSV" type="button">
-              <DownloadIcon />
-            </button>
+            <button aria-label={`View all ${title}`} onClick={(event) => openDetails(event.currentTarget)} title={`View all ${title}`} type="button"><ExpandIcon /></button>
+            <button aria-label={`Switch ${title} to ${METRIC_LABELS[nextMetric]}`} onClick={switchMetric} title={`Switch to ${METRIC_LABELS[nextMetric]}`} type="button"><SwitchIcon /></button>
+            <button aria-label={`Export ${title} as CSV`} onClick={exportCsv} title="Export CSV" type="button"><DownloadIcon /></button>
           </div>
 
           <button
@@ -286,6 +281,7 @@ export function AnalyticsBreakdownCard({
             aria-label={`${title} actions`}
             className={styles.mobileMenuButton}
             onClick={() => setMenuOpen((value) => !value)}
+            ref={mobileMenuTriggerRef}
             type="button"
           >
             <MoreIcon />
@@ -294,7 +290,7 @@ export function AnalyticsBreakdownCard({
 
         {menuOpen ? (
           <div className={styles.mobileMenu} role="menu">
-            <button onClick={(event) => openDetails(event.currentTarget)} role="menuitem" type="button"><ExpandIcon /><span>View all</span></button>
+            <button onClick={() => openDetails(mobileMenuTriggerRef.current)} role="menuitem" type="button"><ExpandIcon /><span>View all</span></button>
             <button onClick={switchMetric} role="menuitem" type="button"><SwitchIcon /><span>Switch to {METRIC_LABELS[nextMetric]}</span></button>
             <button onClick={exportCsv} role="menuitem" type="button"><DownloadIcon /><span>Export CSV</span></button>
           </div>

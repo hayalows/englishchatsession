@@ -1,0 +1,191 @@
+.chartExperience {
+  animation: chartReveal 300ms cubic-bezier(.2, .8, .2, 1);
+  display: grid;
+  gap: .72rem;
+}
+
+.metricTabs {
+  align-items: center;
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: .78rem;
+  display: inline-flex;
+  gap: .2rem;
+  max-width: 100%;
+  padding: .22rem;
+  width: fit-content;
+}
+
+.metricTab {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: .58rem;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: .74rem;
+  font-weight: 720;
+  min-height: 38px;
+  padding: .5rem .78rem;
+  transition: background 140ms ease, box-shadow 140ms ease, color 140ms ease;
+  white-space: nowrap;
+}
+
+.metricTab:hover { color: var(--ink); }
+.metricTab[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink), transparent 90%), 0 0 0 1px color-mix(in srgb, var(--line), transparent 20%);
+  color: var(--teal-700);
+}
+.metricTab:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
+  outline-offset: 2px;
+}
+
+.chartReadout {
+  align-items: end;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: .02rem .12rem;
+}
+
+.chartReadout > div:first-child,
+.selectedMetricValue {
+  display: grid;
+  gap: .12rem;
+}
+
+.chartReadoutLabel,
+.selectedMetricValue span {
+  color: var(--muted-light);
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.chartReadout > div:first-child strong {
+  font-size: .92rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+
+.selectedMetricValue { text-align: right; }
+.selectedMetricValue strong {
+  color: var(--ink);
+  font-size: 1.08rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.035em;
+}
+
+.chartFrame {
+  background: var(--surface-subtle);
+  border-radius: 1rem;
+  min-height: 292px;
+  overflow: hidden;
+  padding: 0 .15rem;
+}
+
+.chart {
+  display: block;
+  height: 292px;
+  outline: none;
+  touch-action: pan-y;
+  width: 100%;
+}
+
+.chart:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 16%);
+  outline-offset: -3px;
+}
+
+.gridLine {
+  stroke: color-mix(in srgb, var(--line), transparent 16%);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.axisLabel,
+.dayLabel {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.areaStopStrong { stop-color: var(--teal-100); stop-opacity: .76; }
+.areaStopSoft { stop-color: var(--surface-subtle); stop-opacity: .06; }
+.trendArea { pointer-events: none; }
+.trendLine {
+  stroke: var(--teal-700);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.1;
+  vector-effect: non-scaling-stroke;
+}
+.selectionLine {
+  opacity: .46;
+  stroke: var(--muted-light);
+  stroke-dasharray: 3 5;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.trendPoint {
+  fill: var(--surface);
+  stroke: var(--teal-700);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.chartFooter {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0 .12rem;
+}
+.chartFooter strong {
+  color: var(--teal-700);
+  font-size: .72rem;
+}
+.chartFooter p {
+  color: var(--muted-light);
+  font-size: .69rem;
+  line-height: 1.4;
+  margin: 0;
+  text-align: right;
+}
+
+@keyframes chartReveal {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 560px) {
+  .chartExperience { gap: .55rem; }
+  .metricTabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  .metricTab {
+    font-size: .68rem;
+    min-height: 36px;
+    padding: .43rem .38rem;
+  }
+  .chartReadout { min-height: 40px; }
+  .chartReadoutLabel, .selectedMetricValue span { font-size: .6rem; }
+  .chartReadout > div:first-child strong { font-size: .8rem; }
+  .selectedMetricValue strong { font-size: .92rem; }
+  .chartFrame { min-height: 228px; }
+  .chart { height: 228px; }
+  .axisLabel, .dayLabel { font-size: 10.5px; }
+  .chartFooter p { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chartExperience { animation: none; }
+  .metricTab { transition: none; }
+}

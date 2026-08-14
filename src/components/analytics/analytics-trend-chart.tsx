@@ -4,21 +4,30 @@ import { useId, useMemo, useState, type KeyboardEvent, type PointerEvent } from 
 
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
-import styles from "./analytics-dashboard.module.css";
+import styles from "./analytics-trend-chart.module.css";
 
 type TrendRow = AnalyticsReport["trend"][number];
 type Granularity = AnalyticsReport["filters"]["granularity"];
+type MetricKey = "visitors" | "pageViews" | "scanStarters";
 
 type Point = TrendRow & {
   x: number;
-  visitorY: number;
-  pageViewY: number;
-  scanY: number;
+  y: number;
 };
 
 const WIDTH = 880;
 const HEIGHT = 292;
 const PADDING = { top: 24, right: 24, bottom: 42, left: 42 };
+
+const METRICS: Array<{ key: MetricKey; label: string; valueLabel: string }> = [
+  { key: "visitors", label: "Visitors", valueLabel: "visitors" },
+  { key: "pageViews", label: "Views", valueLabel: "views" },
+  { key: "scanStarters", label: "Scan starters", valueLabel: "scan starters" },
+];
+
+function metricValue(row: TrendRow, metric: MetricKey) {
+  return row[metric];
+}
 
 function displayTrendLabel(value: string, granularity: Granularity, compact = false) {
   if (granularity === "week") {
@@ -60,15 +69,11 @@ export function AnalyticsTrendChart({
   granularity: Granularity;
 }) {
   const gradientId = useId().replaceAll(":", "");
+  const [activeMetric, setActiveMetric] = useState<MetricKey>("visitors");
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, rows.length - 1));
 
   const geometry = useMemo(() => {
-    const maxValue = Math.max(
-      1,
-      ...rows.map((row) => row.visitors),
-      ...rows.map((row) => row.pageViews),
-      ...rows.map((row) => row.scanStarters),
-    );
+    const maxValue = Math.max(1, ...rows.map((row) => metricValue(row, activeMetric)));
     const chartWidth = WIDTH - PADDING.left - PADDING.right;
     const chartHeight = HEIGHT - PADDING.top - PADDING.bottom;
     const points: Point[] = rows.map((row, index) => {
@@ -78,28 +83,31 @@ export function AnalyticsTrendChart({
       return {
         ...row,
         x,
-        visitorY: PADDING.top + chartHeight - (row.visitors / maxValue) * chartHeight,
-        pageViewY: PADDING.top + chartHeight - (row.pageViews / maxValue) * chartHeight,
-        scanY: PADDING.top + chartHeight - (row.scanStarters / maxValue) * chartHeight,
+        y: PADDING.top + chartHeight - (metricValue(row, activeMetric) / maxValue) * chartHeight,
       };
     });
 
-    const visitorPath = smoothPath(points.map((point) => ({ x: point.x, y: point.visitorY })));
-    const pageViewPath = smoothPath(points.map((point) => ({ x: point.x, y: point.pageViewY })));
-    const scanPath = smoothPath(points.map((point) => ({ x: point.x, y: point.scanY })));
+    const path = smoothPath(points.map((point) => ({ x: point.x, y: point.y })));
     const baseline = PADDING.top + chartHeight;
-    const visitorArea = points.length
-      ? `${visitorPath} L ${points.at(-1)?.x ?? PADDING.left} ${baseline} L ${points[0].x} ${baseline} Z`
+    const area = points.length
+      ? `${path} L ${points.at(-1)?.x ?? PADDING.left} ${baseline} L ${points[0].x} ${baseline} Z`
       : "";
 
-    return { maxValue, chartHeight, points, visitorPath, pageViewPath, scanPath, visitorArea, baseline };
-  }, [rows]);
+    return { maxValue, chartHeight, points, path, area, baseline };
+  }, [activeMetric, rows]);
 
   if (!rows.length) return null;
 
   const clampedIndex = Math.min(selectedIndex, rows.length - 1);
   const selected = geometry.points[clampedIndex] ?? geometry.points.at(-1)!;
+  const active = METRICS.find((metric) => metric.key === activeMetric) ?? METRICS[0];
+  const selectedValue = metricValue(selected, activeMetric);
   const labelEvery = rows.length > 12 ? Math.ceil(rows.length / 6) : rows.length > 7 ? 2 : 1;
+
+  function chooseMetric(metric: MetricKey) {
+    setActiveMetric(metric);
+    setSelectedIndex(Math.max(0, rows.length - 1));
+  }
 
   function selectFromPointer(event: PointerEvent<SVGSVGElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -129,21 +137,34 @@ export function AnalyticsTrendChart({
 
   return (
     <div className={styles.chartExperience}>
+      <div className={styles.metricTabs} aria-label="Chart metric" role="group">
+        {METRICS.map((metric) => (
+          <button
+            aria-pressed={activeMetric === metric.key}
+            className={styles.metricTab}
+            key={metric.key}
+            onClick={() => chooseMetric(metric.key)}
+            type="button"
+          >
+            {metric.label}
+          </button>
+        ))}
+      </div>
+
       <div className={styles.chartReadout} aria-live="polite">
         <div>
           <span className={styles.chartReadoutLabel}>Selected period</span>
           <strong>{displayTrendLabel(selected.label, granularity)}</strong>
         </div>
-        <div className={styles.chartReadoutValues}>
-          <span><i className={styles.readoutVisitor} aria-hidden="true" /><strong>{selected.visitors.toLocaleString()}</strong> visitors</span>
-          <span><i className={styles.readoutView} aria-hidden="true" /><strong>{selected.pageViews.toLocaleString()}</strong> views</span>
-          <span><i className={styles.readoutScan} aria-hidden="true" /><strong>{selected.scanStarters.toLocaleString()}</strong> scan starters</span>
+        <div className={styles.selectedMetricValue}>
+          <span>{active.label}</span>
+          <strong>{selectedValue.toLocaleString()}</strong>
         </div>
       </div>
 
       <div className={styles.chartFrame}>
         <svg
-          aria-label={`Interactive line chart. ${displayTrendLabel(selected.label, granularity)} has ${selected.visitors} visitors, ${selected.pageViews} page views, and ${selected.scanStarters} scan starters. Use left and right arrow keys to inspect other periods.`}
+          aria-label={`Interactive ${active.label.toLowerCase()} line chart. ${displayTrendLabel(selected.label, granularity)} has ${selectedValue} ${active.valueLabel}. Use left and right arrow keys to inspect other periods.`}
           className={styles.chart}
           onKeyDown={handleKeyDown}
           onPointerDown={selectFromPointer}
@@ -169,15 +190,11 @@ export function AnalyticsTrendChart({
             );
           })}
 
-          <path className={styles.trendArea} d={geometry.visitorArea} fill={`url(#${gradientId})`} />
-          <path className={styles.viewLine} d={geometry.pageViewPath} fill="none" pathLength="1" />
-          <path className={styles.trendLine} d={geometry.visitorPath} fill="none" pathLength="1" />
-          <path className={styles.scanLine} d={geometry.scanPath} fill="none" pathLength="1" />
+          <path className={styles.trendArea} d={geometry.area} fill={`url(#${gradientId})`} />
+          <path className={styles.trendLine} d={geometry.path} fill="none" pathLength="1" />
 
           <line className={styles.selectionLine} x1={selected.x} x2={selected.x} y1={PADDING.top} y2={geometry.baseline} />
-          <circle className={styles.viewPoint} cx={selected.x} cy={selected.pageViewY} r="4.5" />
-          <circle className={styles.trendPoint} cx={selected.x} cy={selected.visitorY} r="5" />
-          <circle className={styles.scanPoint} cx={selected.x} cy={selected.scanY} r="4.5" />
+          <circle className={styles.trendPoint} cx={selected.x} cy={selected.y} r="5" />
 
           {geometry.points.map((point, index) => (
             index % labelEvery === 0 || index === rows.length - 1 ? (
@@ -190,12 +207,8 @@ export function AnalyticsTrendChart({
       </div>
 
       <div className={styles.chartFooter}>
-        <div className={styles.legend} aria-label="Chart legend">
-          <span><i className={styles.legendVisitor} aria-hidden="true" /> Visitors</span>
-          <span><i className={styles.legendView} aria-hidden="true" /> Views</span>
-          <span><i className={styles.legendScan} aria-hidden="true" /> Scan starters</span>
-        </div>
-        <p>Move across the chart, tap a date, or use ← → to inspect values.</p>
+        <strong>{active.label}</strong>
+        <p>Tap or move across the chart, or use ← →, to inspect values.</p>
       </div>
     </div>
   );

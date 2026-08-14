@@ -38,16 +38,10 @@
 }
 
 .brandMark {
-  align-items: center;
-  background: var(--navy-950);
   border-radius: .9rem;
-  color: white;
-  display: inline-flex;
-  font-size: .78rem;
-  font-weight: 850;
+  display: block;
+  object-fit: cover;
   height: 46px;
-  justify-content: center;
-  letter-spacing: .02em;
   width: 46px;
 }
 

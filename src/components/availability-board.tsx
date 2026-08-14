@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 
 import { CompletedScanOutcome } from "@/components/completed-scan-outcome";
 import { CopyIconButton } from "@/components/copy-icon-button";
@@ -825,9 +826,9 @@ export function AvailabilityBoard() {
       <header className="site-header">
         <div className="nav-shell">
           <a className="site-brand" href="#top" aria-label="English Chat Finder home">
-            <span className="brand-mark" aria-hidden="true">EC</span>
+            <Image className="brand-mark" src="/app-icon.svg" alt="" aria-hidden="true" width={40} height={40} priority />
             <span>
-              <strong>English Chat Finder</strong>
+              <strong><span className="brand-full">English Chat Finder</span><span className="brand-short">ECF</span></strong>
               <small>Find available volunteer sessions</small>
             </span>
           </a>

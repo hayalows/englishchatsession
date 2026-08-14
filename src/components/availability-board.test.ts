@@ -49,6 +49,11 @@ describe("availability request retry", () => {
 });
 
 describe("finder state cues", () => {
+  it("uses the shared Finder app icon and compact mobile brand label", () => {
+    expect(boardSource).toContain('src="/app-icon.svg"');
+    expect(boardSource).toContain('className="brand-short">ECF</span>');
+  });
+
   it("records one user scan request without instrumenting calendar checks", () => {
     expect(boardSource).toContain("trackScanStarted(scanMode)");
     expect(boardSource).not.toContain("trackScanStarted(page.bookingUrl)");

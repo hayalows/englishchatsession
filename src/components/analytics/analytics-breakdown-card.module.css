@@ -1,85 +1,181 @@
 .card {
-  --card-radius: 20px;
-  background: color-mix(in srgb, var(--surface), white 8%);
+  background: var(--surface);
   border: 1px solid color-mix(in srgb, var(--line), transparent 4%);
-  border-radius: var(--card-radius);
+  border-radius: 20px;
   box-shadow: 0 1px 2px rgb(15 23 42 / 4%), 0 10px 28px rgb(15 23 42 / 5%);
-  min-height: 19rem;
+  min-height: 18.5rem;
   padding: 1rem;
   position: relative;
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
+
 .card:hover,
 .card:focus-within {
   border-color: color-mix(in srgb, var(--teal-700), var(--line) 78%);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 5%), 0 16px 42px rgb(15 23 42 / 9%);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 5%), 0 14px 38px rgb(15 23 42 / 8%);
 }
 
 .header {
-  align-items: start;
-  display: grid;
-  gap: .75rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  margin-bottom: .9rem;
-  min-height: 2.9rem;
+  align-items: flex-start;
+  display: flex;
+  gap: .8rem;
+  justify-content: space-between;
+  margin-bottom: .85rem;
+  min-height: 2.75rem;
   position: relative;
 }
-.header h3 {
+
+.titleBlock { min-width: 0; }
+.titleBlock h3 {
   font-size: 1.02rem;
-  font-weight: 650;
+  font-weight: 680;
   letter-spacing: -.022em;
   line-height: 1.2;
   margin: 0;
 }
-.header p {
+.titleBlock p {
   color: var(--muted-light);
-  font-size: .75rem;
-  line-height: 1.35;
-  margin: .18rem 0 0;
+  font-size: .76rem;
+  line-height: 1.4;
+  margin: .2rem 0 0;
 }
+
+.headerMeta {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: .45rem;
+}
+
 .metricLabel {
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: 999px;
   color: var(--muted);
-  font-size: .72rem;
-  font-weight: 760;
-  letter-spacing: .045em;
+  font-size: .68rem;
+  font-weight: 780;
+  letter-spacing: .04em;
   line-height: 1;
-  padding-top: .15rem;
+  padding: .42rem .55rem;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
+.desktopActions {
+  align-items: center;
+  display: flex;
+  gap: .2rem;
+}
+
+.desktopActions button,
+.mobileMenuButton,
+.closeButton {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: .65rem;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.desktopActions button { height: 2.35rem; width: 2.35rem; }
+.desktopActions button:hover,
+.mobileMenuButton:hover,
+.closeButton:hover {
+  background: var(--surface-subtle);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.desktopActions button:focus-visible,
+.mobileMenuButton:focus-visible,
+.closeButton:focus-visible,
+.mobileMenu button:focus-visible,
+.dialogFooter button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
+  outline-offset: 2px;
+}
+
+.icon {
+  fill: none;
+  flex: 0 0 auto;
+  height: 1.12rem;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 1.12rem;
+}
+
+.mobileMenuButton { display: none; height: 2.75rem; width: 2.75rem; }
+.mobileMenuButton .icon { fill: currentColor; stroke: none; }
+
+.mobileMenu {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: .9rem;
+  box-shadow: 0 16px 42px rgb(15 23 42 / 16%);
+  display: grid;
+  min-width: 13.5rem;
+  overflow: hidden;
+  padding: .32rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + .35rem);
+  z-index: 20;
+}
+.mobileMenu button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: .65rem;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 560;
+  gap: .65rem;
+  min-height: 2.75rem;
+  padding: .65rem .72rem;
+  text-align: left;
+  width: 100%;
+}
+.mobileMenu button:hover { background: var(--surface-subtle); }
+
 .rows { display: grid; gap: .5rem; }
 .row {
   align-items: center;
-  border-radius: .7rem;
+  border-radius: .72rem;
   display: grid;
   gap: .65rem;
   grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 2.45rem;
+  min-height: 2.55rem;
   overflow: hidden;
   padding: 0 .72rem;
   position: relative;
 }
 .rowFill {
-  background: color-mix(in srgb, var(--surface-subtle), var(--line) 18%);
+  background: color-mix(in srgb, var(--surface-subtle), var(--line) 14%);
   border-radius: inherit;
   bottom: 0;
   left: 0;
   position: absolute;
   top: 0;
-  transition: width 240ms cubic-bezier(.2, .8, .2, 1);
+  transition: width 220ms cubic-bezier(.2, .8, .2, 1);
 }
 .rowName,
-.row > strong {
-  position: relative;
-  z-index: 1;
-}
+.row > strong { position: relative; z-index: 1; }
 .rowName {
   align-items: center;
   display: flex;
-  font-size: .86rem;
-  font-weight: 520;
-  gap: .48rem;
+  font-size: .88rem;
+  font-weight: 540;
+  gap: .5rem;
   min-width: 0;
 }
 .rowName > span:last-child {
@@ -88,116 +184,41 @@
   white-space: nowrap;
 }
 .row > strong {
-  font-size: .84rem;
+  font-size: .86rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 720;
+  font-weight: 730;
 }
-.flag { font-size: 1rem; line-height: 1; }
-.empty { color: var(--muted); font-size: .86rem; line-height: 1.5; margin: 1rem 0; }
 
+.countryBadge {
+  align-items: center;
+  background: color-mix(in srgb, var(--teal-50), var(--surface) 35%);
+  border: 1px solid color-mix(in srgb, var(--teal-700), var(--line) 84%);
+  border-radius: .42rem;
+  color: var(--teal-700);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: .58rem;
+  font-weight: 820;
+  height: 1.45rem;
+  justify-content: center;
+  letter-spacing: .025em;
+  min-width: 1.72rem;
+  padding-inline: .28rem;
+}
+
+.empty { color: var(--muted); font-size: .86rem; line-height: 1.5; margin: 1rem 0; }
 .footer {
   align-items: center;
   border-top: 1px solid color-mix(in srgb, var(--line), transparent 18%);
   color: var(--muted-light);
   display: flex;
-  font-size: .7rem;
+  font-size: .72rem;
   gap: .65rem;
   justify-content: space-between;
-  line-height: 1.35;
+  line-height: 1.4;
   margin-top: .8rem;
-  padding-top: .7rem;
+  padding-top: .72rem;
 }
-
-.actionDock {
-  align-items: center;
-  backdrop-filter: blur(18px) saturate(130%);
-  background: color-mix(in srgb, var(--surface), transparent 8%);
-  border: 1px solid color-mix(in srgb, var(--line), transparent 4%);
-  border-radius: 999px;
-  bottom: .78rem;
-  box-shadow: 0 10px 28px rgb(15 23 42 / 12%);
-  display: flex;
-  gap: .15rem;
-  left: 50%;
-  opacity: 0;
-  padding: .25rem;
-  pointer-events: none;
-  position: absolute;
-  transform: translate(-50%, .45rem) scale(.97);
-  transition: opacity 150ms ease, transform 180ms cubic-bezier(.2, .8, .2, 1);
-  z-index: 4;
-}
-.card:hover .actionDock,
-.card:focus-within .actionDock {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translate(-50%, 0) scale(1);
-}
-.actionDock button,
-.mobileMenuButton,
-.closeButton {
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  color: var(--muted);
-  cursor: pointer;
-  display: inline-flex;
-  justify-content: center;
-}
-.actionDock button { height: 2.25rem; width: 2.25rem; }
-.actionDock button:hover { background: var(--surface-subtle); color: var(--ink); }
-.actionDock button:focus-visible,
-.mobileMenuButton:focus-visible,
-.closeButton:focus-visible,
-.dialogFooter button:focus-visible,
-.mobileMenu button:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
-  outline-offset: 2px;
-}
-.actionDock svg,
-.mobileMenuButton svg,
-.dialogFooter svg {
-  fill: none;
-  height: 1.05rem;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.55;
-  width: 1.05rem;
-}
-
-.mobileMenuButton { display: none; height: 2.75rem; width: 2.75rem; }
-.mobileMenuButton svg circle { fill: currentColor; stroke: none; }
-.mobileMenu {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: .9rem;
-  box-shadow: 0 16px 42px rgb(15 23 42 / 16%);
-  display: grid;
-  min-width: 12rem;
-  overflow: hidden;
-  padding: .3rem;
-  position: absolute;
-  right: 0;
-  top: 2.9rem;
-  z-index: 8;
-}
-.mobileMenu button {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: .65rem;
-  color: var(--ink);
-  cursor: pointer;
-  font: inherit;
-  font-size: .84rem;
-  min-height: 2.65rem;
-  padding: .6rem .75rem;
-  text-align: left;
-}
-.mobileMenu button:hover { background: var(--surface-subtle); }
 
 .dialog {
   background: transparent;
@@ -209,10 +230,12 @@
   padding: clamp(1rem, 4vw, 3rem);
   width: 100vw;
 }
+.dialog[open] { display: grid; place-items: center; }
 .dialog::backdrop {
   backdrop-filter: blur(10px);
   background: rgb(15 23 42 / 34%);
 }
+
 .dialogSurface {
   background: var(--surface);
   border: 1px solid color-mix(in srgb, var(--line), transparent 2%);
@@ -220,33 +243,32 @@
   box-shadow: 0 30px 80px rgb(15 23 42 / 22%);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  margin: auto;
   max-height: min(82dvh, 50rem);
-  max-width: 54rem;
+  max-width: 48rem;
   overflow: hidden;
   width: 100%;
 }
+
 .dialogHeader {
-  align-items: start;
+  align-items: flex-start;
   border-bottom: 1px solid var(--line);
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  padding: 1.15rem 1.25rem 1rem;
+  padding: 1.1rem 1.15rem .95rem;
 }
 .dialogHeader h2 {
-  font-size: 1.22rem;
+  font-size: 1.2rem;
   letter-spacing: -.03em;
   margin: 0;
 }
 .dialogHeader p {
   color: var(--muted);
-  font-size: .78rem;
+  font-size: .8rem;
   line-height: 1.4;
   margin: .25rem 0 0;
 }
-.closeButton { font-size: 1.35rem; height: 2.75rem; width: 2.75rem; }
-.closeButton:hover { background: var(--surface-subtle); color: var(--ink); }
+.closeButton { height: 2.75rem; width: 2.75rem; }
 
 .searchWrap {
   align-items: center;
@@ -254,22 +276,24 @@
   border: 1px solid var(--line);
   border-radius: .8rem;
   display: flex;
-  gap: .55rem;
-  margin: .8rem 1rem;
-  min-height: 2.85rem;
-  padding: 0 .8rem;
+  gap: .58rem;
+  margin: .75rem .9rem;
+  min-height: 2.9rem;
+  padding: 0 .82rem;
 }
 .searchWrap:focus-within {
   border-color: color-mix(in srgb, var(--teal-700), var(--line) 45%);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal-50), transparent 10%);
 }
-.searchWrap svg {
+.searchIcon {
   fill: none;
-  height: 1rem;
+  flex: 0 0 auto;
+  height: 1.05rem;
   stroke: var(--muted);
   stroke-linecap: round;
-  stroke-width: 1.7;
-  width: 1rem;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 1.05rem;
 }
 .searchWrap input {
   appearance: none;
@@ -277,7 +301,7 @@
   border: 0;
   color: var(--ink);
   font: inherit;
-  font-size: .92rem;
+  font-size: .94rem;
   min-width: 0;
   outline: 0;
   width: 100%;
@@ -286,55 +310,49 @@
 
 .dialogTableWrap {
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 1rem .4rem;
+  padding: 0 .9rem .4rem;
   scrollbar-gutter: stable;
+  touch-action: pan-y;
 }
 .dialogTableWrap:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: -3px;
 }
+
 .dialogTableHeader,
 .dialogRow {
   align-items: center;
   display: grid;
-  gap: .65rem;
-  grid-template-columns: minmax(12rem, 1fr) 4.6rem 5rem 5.4rem 5.4rem;
-  min-width: 38rem;
+  gap: .55rem;
+  grid-template-columns: minmax(10rem, 1fr) 4.4rem 4.8rem 4.8rem;
+  min-width: 0;
 }
 .dialogTableHeader {
+  background: var(--surface);
   color: var(--muted-light);
   font-size: .67rem;
   font-weight: 760;
-  letter-spacing: .045em;
-  padding: .45rem .75rem .55rem;
+  letter-spacing: .035em;
+  padding: .42rem .7rem .5rem;
   position: sticky;
   text-transform: uppercase;
   top: 0;
   z-index: 5;
 }
-.dialogTableHeader::before {
-  background: var(--surface);
-  bottom: 0;
-  content: "";
-  left: -1rem;
-  position: absolute;
-  right: -1rem;
-  top: 0;
-  z-index: -1;
-}
 .dialogTableHeader span:not(:first-child) { text-align: right; }
-.dialogRows { display: grid; gap: .38rem; }
+.dialogRows { display: grid; gap: .36rem; }
 .dialogRow {
-  border-radius: .68rem;
-  min-height: 2.65rem;
+  border-radius: .7rem;
+  min-height: 2.75rem;
   overflow: hidden;
-  padding: 0 .75rem;
+  padding: 0 .7rem;
   position: relative;
 }
 .dialogRowFill {
-  background: color-mix(in srgb, var(--surface-subtle), var(--line) 15%);
+  background: color-mix(in srgb, var(--surface-subtle), var(--line) 13%);
   border-radius: inherit;
   bottom: 0;
   left: 0;
@@ -345,18 +363,22 @@
 .dialogName {
   align-items: center;
   display: flex;
-  font-size: .85rem;
+  font-size: .87rem;
   gap: .5rem;
   min-width: 0;
 }
-.dialogName > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialogName > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .dialogRow > strong {
-  font-size: .82rem;
+  font-size: .83rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   text-align: right;
 }
-.noResults { color: var(--muted); font-size: .86rem; padding: 1.25rem .75rem; }
+.noResults { color: var(--muted); font-size: .88rem; padding: 1.25rem .7rem; }
 
 .dialogFooter {
   align-items: center;
@@ -364,11 +386,11 @@
   display: flex;
   gap: .55rem;
   justify-content: flex-end;
-  padding: .75rem 1rem;
+  padding: .72rem .9rem;
 }
-.dialogFooter span {
+.dialogFooter > span:first-child {
   color: var(--muted-light);
-  font-size: .72rem;
+  font-size: .74rem;
   margin-right: auto;
 }
 .dialogFooter button {
@@ -376,89 +398,115 @@
   appearance: none;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: .7rem;
+  border-radius: .72rem;
   color: var(--ink);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
-  font-size: .8rem;
+  font-size: .82rem;
   font-weight: 650;
-  gap: .4rem;
-  min-height: 2.5rem;
-  padding: .55rem .8rem;
+  gap: .42rem;
+  min-height: 2.65rem;
+  padding: .58rem .82rem;
 }
 .dialogFooter button:hover { background: var(--surface-subtle); }
 
+@media (max-width: 900px) {
+  .metricLabel { display: none; }
+}
+
 @media (max-width: 760px) {
-  .card { min-height: 18.25rem; padding: .9rem; }
-  .header { grid-template-columns: minmax(0, 1fr) auto auto; margin-bottom: .72rem; }
-  .metricLabel { align-self: center; font-size: .68rem; padding-top: 0; }
-  .mobileMenuButton { display: inline-flex; margin: -.45rem -.45rem 0 0; }
-  .actionDock { display: none; }
-  .row { min-height: 2.55rem; }
-  .rowName { font-size: .9rem; }
-  .row > strong { font-size: .86rem; }
-  .footer { font-size: .72rem; }
+  .card {
+    border-radius: 18px;
+    min-height: 18rem;
+    padding: .9rem;
+  }
+  .header { margin-bottom: .72rem; }
+  .desktopActions { display: none; }
+  .mobileMenuButton { display: inline-flex; margin: -.35rem -.35rem 0 0; }
+  .metricLabel { display: inline-flex; font-size: .64rem; }
+  .row { min-height: 2.65rem; }
+  .rowName { font-size: .91rem; }
+  .row > strong { font-size: .88rem; }
+  .footer { font-size: .73rem; }
 
   .dialog { padding: 0; }
+  .dialog[open] {
+    align-items: end;
+    justify-items: stretch;
+  }
   .dialogSurface {
     border: 0;
     border-radius: 1.25rem 1.25rem 0 0;
-    bottom: 0;
-    max-height: 91dvh;
+    height: min(88dvh, 44rem);
+    max-height: 88dvh;
     max-width: none;
-    position: absolute;
     width: 100%;
   }
-  .dialogHeader { padding: 1rem 1rem .85rem; }
-  .dialogHeader h2 { font-size: 1.15rem; }
-  .searchWrap { margin: .7rem .8rem; min-height: 3rem; }
+  .dialogHeader { padding: .9rem .9rem .78rem; }
+  .dialogHeader h2 { font-size: 1.14rem; }
+  .dialogHeader p { font-size: .76rem; }
+  .searchWrap { margin: .62rem .7rem; min-height: 2.85rem; }
   .searchWrap input { font-size: 1rem; }
-  .dialogTableWrap { padding-inline: .8rem; }
-  .dialogTableHeader { display: none; }
-  .dialogRows { gap: .46rem; }
+  .dialogTableWrap {
+    padding: 0 .6rem .35rem;
+    scrollbar-gutter: auto;
+  }
+  .dialogTableHeader,
   .dialogRow {
-    display: grid;
-    gap: .15rem .7rem;
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 4.2rem;
-    min-width: 0;
-    padding: .62rem .72rem;
+    gap: .32rem;
+    grid-template-columns: minmax(0, 1fr) 3rem 3.45rem 3.45rem;
   }
-  .dialogName { font-size: .92rem; grid-column: 1; }
-  .dialogRow > strong:nth-of-type(1) { align-self: center; font-size: .9rem; grid-column: 2; grid-row: 1; }
-  .dialogRow > strong:nth-of-type(2),
-  .dialogRow > strong:nth-of-type(3),
-  .dialogRow > strong:nth-of-type(4) {
-    color: var(--muted);
-    font-size: .72rem;
-    font-weight: 600;
-    grid-column: 1 / -1;
-    text-align: left;
+  .dialogTableHeader {
+    font-size: .59rem;
+    letter-spacing: .01em;
+    padding: .4rem .52rem .46rem;
   }
-  .dialogRow > strong:nth-of-type(2)::before { content: "Visitors  "; font-weight: 450; }
-  .dialogRow > strong:nth-of-type(3)::before { content: "Page views  "; font-weight: 450; }
-  .dialogRow > strong:nth-of-type(4)::before { content: "Scan usage  "; font-weight: 450; }
-  .dialogFooter { padding: .7rem .8rem max(.7rem, env(safe-area-inset-bottom)); }
+  .dialogRow {
+    min-height: 2.8rem;
+    padding: 0 .52rem;
+  }
+  .dialogName { font-size: .83rem; gap: .38rem; }
+  .dialogRow > strong { font-size: .78rem; }
+  .countryBadge {
+    border-radius: .34rem;
+    font-size: .53rem;
+    height: 1.3rem;
+    min-width: 1.55rem;
+    padding-inline: .2rem;
+  }
+  .dialogFooter {
+    padding: .65rem .7rem max(.65rem, env(safe-area-inset-bottom));
+  }
   .dialogFooter button { min-height: 2.75rem; }
 }
 
 @media (max-width: 420px) {
-  .card { --card-radius: 18px; min-height: 17.7rem; }
-  .header h3 { font-size: 1rem; }
-  .header p { font-size: .72rem; }
-  .metricLabel { font-size: .63rem; }
+  .headerMeta { gap: .2rem; }
+  .metricLabel { font-size: .61rem; padding-inline: .48rem; }
+  .titleBlock h3 { font-size: 1rem; }
+  .titleBlock p { font-size: .74rem; }
   .row { padding-inline: .62rem; }
   .footer span:last-child { display: none; }
+  .dialogTableHeader,
+  .dialogRow {
+    gap: .22rem;
+    grid-template-columns: minmax(0, 1fr) 2.8rem 3.25rem 3.25rem;
+  }
+  .dialogTableHeader { font-size: .56rem; }
+  .dialogName { font-size: .8rem; }
+  .dialogRow > strong { font-size: .75rem; }
 }
 
 @media (hover: none) {
-  .actionDock { display: none; }
+  .desktopActions { display: none; }
   .mobileMenuButton { display: inline-flex; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .card,
-  .actionDock,
+  .desktopActions button,
+  .mobileMenuButton,
+  .closeButton,
   .rowFill { transition: none; }
 }

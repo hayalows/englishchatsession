@@ -16,7 +16,6 @@ import {
 import type { AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
-import { displayCompactAnalyticsTimestamp } from "@/lib/analytics/timestamps";
 
 const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
 
@@ -27,29 +26,6 @@ const METRIC_LABELS: Record<AnalyticsPrimaryMetric, string> = {
   pageViews: "Page views",
   scanUsage: "Scan usage",
 };
-
-function displayGeneratedAt(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf())
-    ? "Not available"
-    : new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "UTC",
-    }).format(date) + " UTC";
-}
-
-function displayLatestEventAt(value: string | null) {
-  if (!value) return "No events yet";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf())
-    ? "Not available"
-    : new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "UTC",
-    }).format(date) + " UTC";
-}
 
 function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"]["granularity"]) {
   if (granularity === "week") {
@@ -320,15 +296,6 @@ export function AnalyticsDashboard({
                 <i aria-hidden="true" className={styles.activeDot} />
                 {metrics.activeNowVisitors.toLocaleString()} active now
               </span>
-              <div
-                aria-label={`Latest event ${displayLatestEventAt(report.latestEventAt)}. Dashboard checked ${displayGeneratedAt(report.generatedAt)}.`}
-                className={styles.freshness}
-                title={`Latest event ${displayLatestEventAt(report.latestEventAt)} · Dashboard checked ${displayGeneratedAt(report.generatedAt)}`}
-              >
-                <span>Latest event {displayCompactAnalyticsTimestamp(report.latestEventAt)}</span>
-                <span aria-hidden="true">·</span>
-                <span>Checked {displayCompactAnalyticsTimestamp(report.generatedAt)}</span>
-              </div>
             </div>
           </div>
         </header>

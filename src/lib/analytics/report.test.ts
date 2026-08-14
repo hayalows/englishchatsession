@@ -72,7 +72,7 @@ describe("getAnalyticsReport", () => {
       rangeLabel: "Last 60 days",
       segment: "country",
       value: "GH",
-      segmentLabel: "Country: GH",
+      segmentLabel: "Country: Ghana (GH)",
       granularity: "week",
     });
     expect(report.metrics).toMatchObject({

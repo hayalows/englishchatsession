@@ -5,6 +5,7 @@ import type { ChangeEvent } from "react";
 import {
   ANALYTICS_RANGE_OPTIONS,
   ANALYTICS_SEGMENT_OPTIONS,
+  displayCountryLabel,
   type AnalyticsRange,
   type AnalyticsSegment,
 } from "@/lib/analytics/filters";
@@ -39,6 +40,10 @@ function submitOnChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
     if (valueField instanceof HTMLSelectElement) valueField.value = "";
   }
   form?.requestSubmit();
+}
+
+function displayOptionLabel(segment: AnalyticsSegment, value: string) {
+  return segment === "country" ? displayCountryLabel(value) : value;
 }
 
 export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
@@ -92,9 +97,13 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
               <span>Choose {segmentName}</span>
               <select defaultValue={filters.value ?? ""} disabled={!options.length} name="value" onChange={submitOnChange}>
                 <option value="">All {SEGMENT_PLURALS[filters.segment]}</option>
-                {hasCurrentValue ? <option value={filters.value ?? ""}>{filters.value}</option> : null}
+                {hasCurrentValue ? (
+                  <option value={filters.value ?? ""}>{displayOptionLabel(filters.segment, filters.value ?? "")}</option>
+                ) : null}
                 {options.map((option) => (
-                  <option key={option.label} value={option.label}>{option.label} · {option.total.toLocaleString()}</option>
+                  <option key={option.label} value={option.label}>
+                    {displayOptionLabel(filters.segment, option.label)} · {option.total.toLocaleString()}
+                  </option>
                 ))}
               </select>
             </label>

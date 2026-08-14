@@ -8,7 +8,9 @@ import {
   emptyAnalyticsComparison,
   getAnalyticsComparison,
 } from "@/lib/analytics/comparison";
+import { EMPTY_ANALYTICS_METRIC_BREAKDOWNS } from "@/lib/analytics/breakdown-types";
 import { displayCountryLabel } from "@/lib/analytics/filters";
+import { getAnalyticsMetricBreakdowns } from "@/lib/analytics/metric-breakdowns";
 import {
   emptyAnalyticsReport,
   getAnalyticsReport,
@@ -33,13 +35,16 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: An
   const filters = parseAnalyticsSearchParams(await searchParams);
   let report = emptyAnalyticsReport("error", filters);
   let comparison = emptyAnalyticsComparison(filters);
+  let breakdowns = EMPTY_ANALYTICS_METRIC_BREAKDOWNS;
 
-  const [reportResult, comparisonResult] = await Promise.allSettled([
+  const [reportResult, comparisonResult, breakdownResult] = await Promise.allSettled([
     getAnalyticsReport(filters),
     getAnalyticsComparison(filters),
+    getAnalyticsMetricBreakdowns(filters),
   ]);
   if (reportResult.status === "fulfilled") report = reportResult.value;
   if (comparisonResult.status === "fulfilled") comparison = comparisonResult.value;
+  if (breakdownResult.status === "fulfilled") breakdowns = breakdownResult.value;
 
   const displayReport = {
     ...report,
@@ -49,5 +54,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: An
     })),
   };
 
-  return <AnalyticsDashboard comparison={comparison} report={displayReport} />;
+  const displayBreakdowns = {
+    ...breakdowns,
+    countries: breakdowns.countries.map((row) => ({
+      ...row,
+      label: displayCountryLabel(row.label),
+    })),
+  };
+
+  return <AnalyticsDashboard breakdowns={displayBreakdowns} comparison={comparison} report={displayReport} />;
 }

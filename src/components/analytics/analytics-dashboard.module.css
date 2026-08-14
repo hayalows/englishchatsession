@@ -6,7 +6,7 @@
 
 .main {
   margin: 0 auto;
-  max-width: 1160px;
+  max-width: 1240px;
   padding: clamp(1.5rem, 4vw, 2.75rem) clamp(1rem, 3vw, 1.75rem) 4rem;
 }
 
@@ -36,14 +36,17 @@
   padding: .9rem 1rem;
 }
 
-.metrics { display: grid; gap: .8rem; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.metrics { display: grid; gap: .8rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .metric, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; box-shadow: var(--shadow-card); }
 .metric { display: grid; gap: .35rem; min-height: 132px; padding: 1rem; }
-.metricLabel { color: var(--muted); font-size: .78rem; font-weight: 750; letter-spacing: .02em; }
+.metricLabel { align-items: center; color: var(--muted); display: inline-flex; font-size: .78rem; font-weight: 750; gap: .4rem; letter-spacing: .02em; }
 .metric strong { align-self: end; font-size: clamp(1.8rem, 4vw, 2.45rem); font-variant-numeric: tabular-nums; letter-spacing: -.05em; line-height: 1; }
 .metric small { color: var(--muted-light); font-size: .72rem; line-height: 1.4; }
+.liveMetric { border-color: color-mix(in srgb, var(--teal-700), var(--line) 70%); }
+.liveDot { background: #1ca66a; border-radius: 50%; display: inline-block; height: .48rem; width: .48rem; }
 
 .grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1.25fr) minmax(18rem, .75fr); margin-top: 1rem; }
+.primaryGrid { margin-top: 1rem; }
 .stack { display: grid; gap: 1rem; align-content: start; }
 .panel { min-width: 0; padding: 1rem; }
 .panelHeader { align-items: start; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1rem; }
@@ -56,11 +59,12 @@
 .legendScan { border-color: var(--gold-500); border-top-style: dashed; }
 
 .chartFrame { background: var(--surface-subtle); border: 1px solid var(--line); border-radius: .8rem; min-height: 220px; padding: .4rem .55rem .25rem; }
-.chart { display: block; height: 220px; overflow: visible; width: 100%; }
+.chart { display: block; height: 248px; overflow: visible; width: 100%; }
 .gridLine { stroke: var(--line); stroke-width: 1; }
 .axisLabel, .dayLabel { fill: var(--muted); font-size: 12px; }
 .pointLabel { fill: var(--ink); font-size: 12px; font-weight: 750; }
 .trendLine { stroke: var(--teal-700); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+.trendArea { fill: color-mix(in srgb, var(--teal-100), transparent 20%); fill-opacity: .62; }
 .trendPoint { fill: var(--surface); stroke: var(--teal-700); stroke-width: 3; }
 .scanLine { stroke: var(--gold-500); stroke-dasharray: 8 5; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
 .scanPoint { fill: var(--surface); stroke: var(--gold-500); stroke-width: 3; }
@@ -110,7 +114,7 @@
 .flowConnector span { font-size: 1rem; }
 .flowConnector strong { color: var(--amber-800); font-size: .86rem; font-variant-numeric: tabular-nums; }
 
-.breakdownGrid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.breakdownGrid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 1rem; }
 .detailDisclosure, .definitions { border-top: 1px solid var(--line); margin-top: 1rem; padding-top: .85rem; }
 .detailDisclosure summary, .definitions summary { align-items: center; color: var(--teal-700); cursor: pointer; display: flex; font-size: .82rem; font-weight: 750; min-height: 44px; }
 .detailDisclosure summary:focus-visible, .definitions summary:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 3px; }
@@ -121,12 +125,11 @@
 @media (max-width: 900px) {
   .header { align-items: start; flex-direction: column; gap: 1rem; }
   .freshness { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; padding-top: .7rem; width: 100%; }
-  .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .detailGrid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 760px) {
-  .metrics { grid-template-columns: 1fr 1fr; }
   .grid { grid-template-columns: 1fr; }
   .breakdownGrid { grid-template-columns: 1fr 1fr; }
 }

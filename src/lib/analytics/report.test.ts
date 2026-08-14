@@ -50,7 +50,7 @@ describe("getAnalyticsReport", () => {
     analyticsDatabaseStatusMock.mockReturnValue("configured");
     analyticsQueryMock.mockImplementation(async (query: string) => {
       if (query.includes("repeat_scan_visitors")) {
-        return [{ visitors: 10, sessions: 8, page_views: 12, scan_starts: 6, scan_starters: 4, repeat_scan_visitors: 2, frequent_scan_visitors: 1, engaged_sessions_60s: 3, returning_visitors: 4 }];
+        return [{ visitors: 10, sessions: 8, page_views: 12, scan_starts: 6, scan_starters: 4, repeat_scan_visitors: 2, frequent_scan_visitors: 1, engaged_sessions_60s: 3, returning_visitors: 4, active_now_visitors: 2, active_now_sessions: 2, latest_event_at: "2026-08-14T10:08:11.251Z" }];
       }
       if (query.includes("bucket_label")) {
         return [
@@ -88,7 +88,10 @@ describe("getAnalyticsReport", () => {
       engagedSessions60s: 3,
       returningVisitors: 4,
       returningVisitorRate: 40,
+      activeNowVisitors: 2,
+      activeNowSessions: 2,
     });
+    expect(report.latestEventAt).toBe("2026-08-14T10:08:11.251Z");
     expect(report.trend).toHaveLength(2);
     expect(report.engagement.map((row) => row.milestoneSeconds)).toEqual([10, 60]);
     expect(report.filterOptions.map((row) => row.label)).toEqual(["GH", "US"]);

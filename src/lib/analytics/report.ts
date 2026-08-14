@@ -25,6 +25,7 @@ export {
 export type { AnalyticsFilterInput, AnalyticsRange, AnalyticsSegment } from "./filters";
 
 type TrendGranularity = "hour" | "day" | "week";
+export const ACTIVE_NOW_WINDOW_SECONDS = 90;
 type RangeConfig = {
   label: string;
   interval: string;
@@ -94,6 +95,9 @@ type MetricRow = {
   frequent_scan_visitors: unknown;
   engaged_sessions_60s: unknown;
   returning_visitors: unknown;
+  active_now_visitors: unknown;
+  active_now_sessions: unknown;
+  latest_event_at: unknown;
 };
 
 type TrendRow = {
@@ -111,6 +115,12 @@ type EngagementRow = { milestone_seconds: unknown; visitors: unknown; sessions: 
 function number(value: unknown) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toIsoDate(value: unknown) {
+  if (value === null || value === undefined) return null;
+  const date = new Date(String(value));
+  return Number.isNaN(date.valueOf()) ? null : date.toISOString();
 }
 
 function filterLabel(filters: ReturnType<typeof normalizeAnalyticsFilters>) {
@@ -150,7 +160,10 @@ function emptyReport(status: AnalyticsDatabaseStatus | "error", filtersInput: An
       engagedSessions60s: 0,
       returningVisitors: 0,
       returningVisitorRate: 0,
+      activeNowVisitors: 0,
+      activeNowSessions: 0,
     },
+    latestEventAt: null,
     trend: [],
     countries: [],
     referrers: [],
@@ -170,6 +183,7 @@ export function emptyAnalyticsReport(status: AnalyticsDatabaseStatus | "error", 
 export type AnalyticsReport = {
   status: AnalyticsDatabaseStatus | "error";
   generatedAt: string;
+  latestEventAt: string | null;
   filters: {
     range: AnalyticsRange;
     rangeLabel: string;
@@ -193,6 +207,8 @@ export type AnalyticsReport = {
     engagedSessions60s: number;
     returningVisitors: number;
     returningVisitorRate: number;
+    activeNowVisitors: number;
+    activeNowSessions: number;
   };
   trend: Array<{
     label: string;
@@ -230,6 +246,13 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           SELECT events.*
           FROM analytics_events events CROSS JOIN bounds
           WHERE events.created_at >= bounds.start_at
+            AND ${scope.clause}
+        ),
+        active_presence AS (
+          SELECT DISTINCT events.visitor_id, events.session_id
+          FROM analytics_events events
+          WHERE events.event_name = 'presence'
+            AND events.created_at >= now() - interval '${ACTIVE_NOW_WINDOW_SECONDS} seconds'
             AND ${scope.clause}
         ),
         page_views AS (
@@ -270,6 +293,9 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           (SELECT count(*) FROM scan_frequency WHERE scan_starts >= 2) AS repeat_scan_visitors,
           (SELECT count(*) FROM scan_frequency WHERE scan_starts >= 5) AS frequent_scan_visitors,
           (SELECT count(*) FROM page_view_visitor_status WHERE is_returning) AS returning_visitors,
+          (SELECT count(DISTINCT visitor_id) FROM active_presence) AS active_now_visitors,
+          (SELECT count(DISTINCT session_id) FROM active_presence) AS active_now_sessions,
+          (SELECT max(created_at) FROM filtered_events) AS latest_event_at,
           (SELECT count(DISTINCT events.session_id)
             FROM filtered_events events
             INNER JOIN page_view_sessions sessions ON sessions.session_id = events.session_id
@@ -402,10 +428,12 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
     const scanStarts = number(metrics?.scan_starts);
     const repeatScanVisitors = number(metrics?.repeat_scan_visitors);
     const returningVisitors = number(metrics?.returning_visitors);
+    const latestEventAt = toIsoDate(metrics?.latest_event_at);
 
     return {
       status: "configured",
       generatedAt: new Date().toISOString(),
+      latestEventAt,
       filters: {
         ...filters,
         rangeLabel: config.label,
@@ -427,6 +455,8 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
         engagedSessions60s: number(metrics?.engaged_sessions_60s),
         returningVisitors,
         returningVisitorRate: visitors ? Math.round((returningVisitors / visitors) * 100) : 0,
+        activeNowVisitors: number(metrics?.active_now_visitors),
+        activeNowSessions: number(metrics?.active_now_sessions),
       },
       trend: trendRows.flatMap((row) => typeof row.bucket_label === "string"
         ? [{

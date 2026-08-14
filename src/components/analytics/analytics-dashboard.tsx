@@ -2,11 +2,23 @@ import styles from "./analytics-dashboard.module.css";
 
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
-import type { AnalyticsReport } from "@/lib/analytics/report";
+import { ACTIVE_NOW_WINDOW_SECONDS, type AnalyticsReport } from "@/lib/analytics/report";
 
 const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
 
 function displayGeneratedAt(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf())
+    ? "Not available"
+    : new Intl.DateTimeFormat("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC",
+    }).format(date) + " UTC";
+}
+
+function displayLatestEventAt(value: string | null) {
+  if (!value) return "No events yet";
   const date = new Date(value);
   return Number.isNaN(date.valueOf())
     ? "Not available"
@@ -34,10 +46,10 @@ function displayMilestone(seconds: number) {
   return seconds >= 60 ? `${seconds / 60} min active` : `${seconds} sec active`;
 }
 
-function MetricCard({ label, value, detail }: { label: string; value: string; detail: string }) {
+function MetricCard({ label, value, detail, live = false }: { label: string; value: string; detail: string; live?: boolean }) {
   return (
-    <article className={styles.metric}>
-      <span className={styles.metricLabel}>{label}</span>
+    <article className={`${styles.metric} ${live ? styles.liveMetric : ""}`}>
+      <span className={styles.metricLabel}>{live ? <i className={styles.liveDot} aria-hidden="true" /> : null}{label}</span>
       <strong>{value}</strong>
       <small>{detail}</small>
     </article>
@@ -92,6 +104,10 @@ function TrendPanel({ report }: { report: AnalyticsReport }) {
                   </g>
                 );
               })}
+              <polygon
+                className={styles.trendArea}
+                points={`${padding.left},${padding.top + chartHeight} ${visitorPoints.map((point) => `${point.x},${point.y}`).join(" ")} ${visitorPoints.at(-1)?.x ?? padding.left},${padding.top + chartHeight}`}
+              />
               <polyline className={styles.trendLine} fill="none" points={visitorPoints.map((point) => `${point.x},${point.y}`).join(" ")} />
               <polyline className={styles.scanLine} fill="none" points={scanPoints.map((point) => `${point.x},${point.y}`).join(" ")} />
               {visitorPoints.map((point, index) => (
@@ -286,18 +302,19 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
 
   return (
     <div className={styles.page}>
-      <AnalyticsTopNav />
+      <AnalyticsTopNav activeNowVisitors={metrics.activeNowVisitors} />
       <main className={styles.main} id="analytics-main" aria-labelledby="analytics-title">
         <header className={styles.header}>
           <div>
             <p className={styles.eyebrow}>English Chat Finder</p>
             <h1 id="analytics-title">Finder analytics</h1>
-            <p>See who opens the finder, whether they start a scan, how deeply they use it, and whether repeated scans deserve investigation. Calendar checks are never counted as separate actions.</p>
+            <p>A fast read on audience, scan intent, and repeat use. Calendar checks stay outside analytics.</p>
           </div>
           <div className={styles.freshness}>
-            <span>Current view</span>
+            <span>Selected window</span>
             <strong>{report.filters.rangeLabel}</strong>
-            <small>Updated {displayGeneratedAt(report.generatedAt)} · {metrics.pageViews.toLocaleString()} page views</small>
+            <small>Latest event {displayLatestEventAt(report.latestEventAt)}</small>
+            <small>Report refreshed {displayGeneratedAt(report.generatedAt)}</small>
           </div>
         </header>
 
@@ -306,24 +323,29 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
 
         <section className={styles.metrics} aria-label="Finder analytics summary">
           <MetricCard detail="Unique anonymous visitors" label="Visitors" value={metrics.visitors.toLocaleString()} />
-          <MetricCard detail="Scan starters ÷ visitors" label="Scan-start rate" value={metrics.visitors ? `${metrics.scanStartRate}%` : "—"} />
+          <MetricCard detail="Recorded finder opens" label="Page views" value={metrics.pageViews.toLocaleString()} />
+          <MetricCard detail={`${metrics.activeNowSessions.toLocaleString()} visible sessions · last ${ACTIVE_NOW_WINDOW_SECONDS} seconds`} label="Active now" live value={metrics.activeNowVisitors.toLocaleString()} />
           <MetricCard detail="One event per scan click" label="Scan starts" value={metrics.scanStarts.toLocaleString()} />
-          <MetricCard detail="Visitors with at least 2 starts" label="Repeat scan rate" value={metrics.scanStarters ? `${metrics.repeatScanRate}%` : "—"} />
-          <MetricCard detail="Active for at least 60 seconds" label="Engaged sessions" value={metrics.engagedSessions60s.toLocaleString()} />
+          <MetricCard detail="Unique starters ÷ visitors" label="Scan-start rate" value={metrics.visitors ? `${metrics.scanStartRate}%` : "—"} />
+        </section>
+
+        <div className={styles.primaryGrid}>
+          <TrendPanel report={report} />
+        </div>
+
+        <section className={styles.breakdownGrid} aria-label="Finder audience breakdowns">
+          <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.countries} title="Countries" />
+          <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.devices} title="Devices" />
+          <ListPanel caption={`Unique sessions · ${report.filters.rangeLabel}`} rows={report.referrers} title="Traffic sources" />
         </section>
 
         <div className={styles.grid}>
           <div className={styles.stack}>
-            <TrendPanel report={report} />
             <FunnelPanel report={report} />
+            <EngagementPanel report={report} />
           </div>
           <div className={styles.stack}>
-            <EngagementPanel report={report} />
             <ScanHealthPanel report={report} />
-            <div className={styles.breakdownGrid}>
-              <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.countries} title="Countries" />
-              <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.devices} title="Devices" />
-            </div>
           </div>
         </div>
 
@@ -331,7 +353,6 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
           <summary>Explore traffic detail</summary>
           <div className={styles.detailGrid}>
             <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.browsers} title="Browsers" />
-            <ListPanel caption={`Unique sessions · ${report.filters.rangeLabel}`} rows={report.referrers} title="Traffic sources" />
             <ListPanel caption={`Recorded scan clicks · ${report.filters.rangeLabel}`} rows={report.scanModes} title="Scan mode mix" />
           </div>
         </details>
@@ -345,6 +366,8 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
             <li><strong>Repeat scan:</strong> a visitor ID with at least 2 scan-start events in the selected window. Five or more is shown as a high-frequency signal, not an abuse verdict.</li>
             <li><strong>Returning visitor:</strong> a visitor ID seen before the selected window. Browser storage resets and privacy controls can make this an undercount.</li>
             <li><strong>Active time:</strong> visible-page milestones at 10 seconds, 30 seconds, 60 seconds, and 3 minutes. Hidden tabs pause the clock.</li>
+            <li><strong>Active now:</strong> distinct anonymous visitors with a visible-page heartbeat received in the last 90 seconds. It is an approximate live signal, not an exact count of people.</li>
+            <li><strong>Event time:</strong> Neon records <code>created_at</code> when the server accepts an event. The latest-event label is receipt time, and chart buckets use UTC.</li>
             <li><strong>Country, device, browser, and source:</strong> coarse request-level categories. Raw IP addresses, names, searches, results, and booking choices are not stored.</li>
           </ul>
         </details>

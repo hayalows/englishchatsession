@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   id BIGSERIAL PRIMARY KEY,
   visitor_id VARCHAR(80) NOT NULL,
   session_id VARCHAR(80) NOT NULL,
-  event_name VARCHAR(40) NOT NULL CHECK (event_name IN ('page_view', 'scan_started', 'engagement')),
+  event_name VARCHAR(40) NOT NULL CHECK (event_name IN ('page_view', 'scan_started', 'engagement', 'presence')),
   page_path VARCHAR(200) NOT NULL,
   referrer_host VARCHAR(120),
   country VARCHAR(8),
@@ -33,7 +33,7 @@ BEGIN
 
   ALTER TABLE public.analytics_events
     ADD CONSTRAINT analytics_events_event_name_check CHECK (
-      event_name IN ('page_view', 'scan_started', 'engagement')
+      event_name IN ('page_view', 'scan_started', 'engagement', 'presence')
     );
 END
 $$;

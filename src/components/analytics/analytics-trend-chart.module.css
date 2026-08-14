@@ -75,16 +75,6 @@
   font-size: .72rem;
   line-height: 1.4;
 }
-.liveDot {
-  background: #1ca66a;
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #1ca66a, transparent 86%);
-  display: inline-block;
-  flex: 0 0 auto;
-  height: .45rem;
-  width: .45rem;
-}
-
 .delta {
   border-radius: .42rem;
   flex: 0 0 auto;
@@ -168,35 +158,6 @@
   vector-effect: non-scaling-stroke;
 }
 
-.liveNowBar {
-  align-items: center;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  display: flex;
-  gap: .5rem;
-  min-height: 44px;
-  padding: .58rem .12rem .02rem;
-}
-.liveNowLabel {
-  align-items: center;
-  display: inline-flex;
-  font-size: .74rem;
-  font-weight: 750;
-  gap: .38rem;
-  white-space: nowrap;
-}
-.liveNowBar > strong {
-  color: var(--ink);
-  font-size: 1rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -.03em;
-}
-.liveNowBar small {
-  color: var(--muted-light);
-  font-size: .72rem;
-  margin-left: auto;
-  text-align: right;
-}
 .chartHint {
   color: var(--muted-light);
   font-size: .7rem;
@@ -225,7 +186,6 @@
   .summaryButton > strong { font-size: 1.4rem; }
   .summaryCell small { display: none; }
   .delta { font-size: .62rem; padding: .24rem .29rem; }
-  .liveDot { height: .4rem; width: .4rem; }
 
   .chartContext { min-height: 28px; padding-inline: .02rem; }
   .chartContext span { font-size: .7rem; }
@@ -234,14 +194,6 @@
   .chart { height: 214px; }
   .axisLabel, .dayLabel { font-size: 10.5px; }
 
-  .liveNowBar {
-    gap: .38rem;
-    min-height: 42px;
-    padding-top: .48rem;
-  }
-  .liveNowLabel { font-size: .7rem; gap: .28rem; }
-  .liveNowBar > strong { font-size: .92rem; }
-  .liveNowBar small { font-size: .68rem; }
   .chartHint { display: none; }
 }
 
@@ -251,7 +203,6 @@
   .summaryCell > strong,
   .summaryButton > strong { font-size: 1.3rem; }
   .delta { font-size: .58rem; padding-inline: .24rem; }
-  .liveNowBar small { max-width: 9.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

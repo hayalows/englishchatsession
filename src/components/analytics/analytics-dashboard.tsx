@@ -1,3 +1,4 @@
+import refinements from "./analytics-dashboard-refinements.module.css";
 import styles from "./analytics-dashboard.module.css";
 
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
@@ -8,6 +9,9 @@ import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
 const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
+const DEFAULT_LIST_ROWS = 5;
+
+type ListRow = { label: string; total: number };
 
 function displayGeneratedAt(value: string) {
   const date = new Date(value);
@@ -58,7 +62,7 @@ function TrendPanel({ report }: { report: AnalyticsReport }) {
         <div>
           <p className={styles.eyebrow}>Movement</p>
           <h2 id="trend-title">Finder activity over time</h2>
-          <p>Visitors, page views, and the people who actually started a scan.</p>
+          <p>Choose one metric to focus on its movement, then inspect exact values only when needed.</p>
         </div>
         <div className={styles.panelMeta}>
           <strong>{report.filters.trendLabel}</strong>
@@ -70,8 +74,11 @@ function TrendPanel({ report }: { report: AnalyticsReport }) {
         <>
           <AnalyticsTrendChart granularity={report.filters.granularity} rows={rows} />
           <details className={styles.dataDisclosure}>
-            <summary>View exact trend data</summary>
-            <div className={styles.tableWrap}>
+            <summary>View exact trend data ({rows.length})</summary>
+            {rows.length > 6 ? (
+              <p className={refinements.tableHint}>{rows.length} periods · scroll inside the table to inspect more without extending the page.</p>
+            ) : null}
+            <div className={refinements.tableViewport} tabIndex={0}>
               <table>
                 <caption className={styles.srOnly}>Visitors, page views, scan starters, and scan clicks for {report.filters.rangeLabel.toLowerCase()}</caption>
                 <thead><tr><th scope="col">Period</th><th scope="col">Visitors</th><th scope="col">Views</th><th scope="col">Scan starters</th><th scope="col">Scan clicks</th></tr></thead>
@@ -182,39 +189,66 @@ function ScanHealthPanel({ report }: { report: AnalyticsReport }) {
       <div className={styles.panelHeader}>
         <div>
           <p className={styles.eyebrow}>Scanner signal</p>
-          <h2 id="scan-health-title">Repeat scan activity</h2>
-          <p>One visitor can create multiple scan clicks · {report.filters.rangeLabel}</p>
+          <h2 id="scan-health-title">Scan activity</h2>
+          <p>Repeat use and scan intensity · {report.filters.rangeLabel}</p>
         </div>
       </div>
-      <div className={styles.healthStats}>
-        <div className={styles.healthStat}><strong>{scanStarts.toLocaleString()}</strong><span>Total scan starts</span></div>
-        <div className={styles.healthStat}><strong>{repeatScanVisitors.toLocaleString()}</strong><span>Visitors with 2+ scans</span></div>
-        <div className={styles.healthStat}><strong>{repeatScanRate ? `${repeatScanRate}%` : "—"}</strong><span>Repeat-scan rate</span></div>
-        <div className={styles.healthStat}><strong>{frequentScanVisitors.toLocaleString()}</strong><span>Visitors with 5+ scans</span></div>
-        <div className={styles.healthStat}><strong>{scansPerStarter ? `${scansPerStarter}×` : "—"}</strong><span>Scans per starter</span></div>
-        <div className={styles.healthStat}><strong>{returningVisitors.toLocaleString()}</strong><span>Returning visitor IDs · {returningVisitorRate}%</span></div>
+
+      <div className={refinements.scanSummary}>
+        <div className={refinements.scanSummaryStat}><strong>{scanStarts.toLocaleString()}</strong><span>Total starts</span></div>
+        <div className={refinements.scanSummaryStat}><strong>{repeatScanRate ? `${repeatScanRate}%` : "—"}</strong><span>Repeat rate</span></div>
+        <div className={refinements.scanSummaryStat}><strong>{scansPerStarter ? `${scansPerStarter}×` : "—"}</strong><span>Scans / starter</span></div>
       </div>
-      {report.scanFrequency.length ? (
-        <details className={styles.frequencyDisclosure}>
-          <summary>Show scan-frequency mix</summary>
-          <div className={styles.rows}>
-            {report.scanFrequency.map((row) => (
-              <div className={styles.row} key={row.label}>
-                <div className={styles.rowLabel}><strong>{row.label}</strong></div>
-                <strong>{row.total.toLocaleString()}</strong>
-              </div>
-            ))}
-          </div>
-        </details>
-      ) : null}
-      <p className={styles.panelNote}>Repeated use can mean strong intent, uncertainty, or a technical problem. It is an investigation signal, not proof of abuse.</p>
+
+      <details className={refinements.scanDetailDisclosure}>
+        <summary>More scan details</summary>
+        <div className={refinements.scanDetailRows}>
+          <div className={refinements.scanDetailRow}><span>Visitors with 2+ scans</span><strong>{repeatScanVisitors.toLocaleString()}</strong></div>
+          <div className={refinements.scanDetailRow}><span>Visitors with 5+ scans</span><strong>{frequentScanVisitors.toLocaleString()}</strong></div>
+          <div className={refinements.scanDetailRow}><span>Returning visitor IDs</span><strong>{returningVisitors.toLocaleString()} · {returningVisitorRate}%</strong></div>
+          {report.scanFrequency.length ? (
+            <>
+              <p className={refinements.scanDetailLabel}>Scan-frequency mix</p>
+              {report.scanFrequency.map((row) => (
+                <div className={refinements.scanDetailRow} key={row.label}>
+                  <span>{row.label}</span>
+                  <strong>{row.total.toLocaleString()}</strong>
+                </div>
+              ))}
+            </>
+          ) : null}
+        </div>
+      </details>
+
+      <p className={styles.panelNote}>Repeated use can signal strong intent, uncertainty, or a technical issue. Treat it as an investigation signal, not a verdict.</p>
     </section>
   );
 }
 
-function ListPanel({ title, caption, rows }: { title: string; caption: string; rows: Array<{ label: string; total: number }> }) {
+function ListRows({ rows, max }: { rows: ListRow[]; max: number }) {
+  return (
+    <div className={styles.rows}>
+      {rows.map((row, index) => (
+        <div className={styles.row} key={`${row.label}-${index}`}>
+          <div className={styles.rowLabel}>
+            <strong>{row.label}</strong>
+            <div aria-hidden="true" className={styles.barTrack}>
+              <div className={styles.bar} style={{ width: `${Math.max(2, (row.total / max) * 100)}%` }} />
+            </div>
+          </div>
+          <strong>{row.total.toLocaleString()}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ListPanel({ title, caption, rows }: { title: string; caption: string; rows: ListRow[] }) {
   const max = Math.max(1, ...rows.map((row) => row.total));
   const titleId = `${title.replaceAll(" ", "-").toLowerCase()}-title`;
+  const visibleRows = rows.slice(0, DEFAULT_LIST_ROWS);
+  const hiddenRows = rows.slice(DEFAULT_LIST_ROWS);
+
   return (
     <section className={styles.panel} aria-labelledby={titleId}>
       <div className={styles.panelHeader}>
@@ -224,19 +258,17 @@ function ListPanel({ title, caption, rows }: { title: string; caption: string; r
         </div>
       </div>
       {rows.length ? (
-        <div className={styles.rows}>
-          {rows.map((row, index) => (
-            <div className={styles.row} key={`${row.label}-${index}`}>
-              <div className={styles.rowLabel}>
-                <strong>{row.label}</strong>
-                <div aria-hidden="true" className={styles.barTrack}>
-                  <div className={styles.bar} style={{ width: `${Math.max(2, (row.total / max) * 100)}%` }} />
-                </div>
+        <>
+          <ListRows max={max} rows={visibleRows} />
+          {hiddenRows.length ? (
+            <details className={refinements.panelRowsDisclosure}>
+              <summary>View all {rows.length}</summary>
+              <div className={refinements.moreRows}>
+                <ListRows max={max} rows={hiddenRows} />
               </div>
-              <strong>{row.total.toLocaleString()}</strong>
-            </div>
-          ))}
-        </div>
+            </details>
+          ) : null}
+        </>
       ) : <p className={styles.empty}>No data in this period yet.</p>}
     </section>
   );

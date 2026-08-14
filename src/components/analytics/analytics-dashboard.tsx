@@ -7,6 +7,7 @@ import styles from "./analytics-dashboard.module.css";
 
 import { AnalyticsBreakdownCard } from "@/components/analytics/analytics-breakdown-card";
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
+import { AnalyticsLiveRefresh } from "@/components/analytics/analytics-live-refresh";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
 import {
   AnalyticsTrendChart,
@@ -301,7 +302,7 @@ export function AnalyticsDashboard({
 
   return (
     <div className={styles.page}>
-      <AnalyticsTopNav activeNowVisitors={metrics.activeNowVisitors} />
+      <AnalyticsTopNav />
       <main className={styles.main} id="analytics-main" aria-labelledby="analytics-title">
         <header className={styles.header}>
           <div className={styles.headerCopy}>
@@ -310,16 +311,24 @@ export function AnalyticsDashboard({
             <p>Reach, scan intent, and repeat use at a glance.</p>
           </div>
           <div className={styles.headerTools}>
-            <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
-            <div
-              aria-label={`Latest data ${displayLatestEventAt(report.latestEventAt)}. Report refreshed ${displayGeneratedAt(report.generatedAt)}.`}
-              className={styles.freshness}
-              title={`Latest data ${displayLatestEventAt(report.latestEventAt)} · Report refreshed ${displayGeneratedAt(report.generatedAt)}`}
-            >
-              <span aria-hidden="true" className={styles.freshnessDot} />
-              <span>Updated {displayCompactAnalyticsTimestamp(report.latestEventAt)}</span>
-              <span aria-hidden="true">·</span>
-              <span>Refreshed {displayCompactAnalyticsTimestamp(report.generatedAt)}</span>
+            <div className={styles.controlRow}>
+              <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
+              <AnalyticsLiveRefresh />
+            </div>
+            <div className={styles.statusRow}>
+              <span className={styles.activeNow} aria-live="polite">
+                <i aria-hidden="true" className={styles.activeDot} />
+                {metrics.activeNowVisitors.toLocaleString()} active now
+              </span>
+              <div
+                aria-label={`Latest event ${displayLatestEventAt(report.latestEventAt)}. Dashboard checked ${displayGeneratedAt(report.generatedAt)}.`}
+                className={styles.freshness}
+                title={`Latest event ${displayLatestEventAt(report.latestEventAt)} · Dashboard checked ${displayGeneratedAt(report.generatedAt)}`}
+              >
+                <span>Latest event {displayCompactAnalyticsTimestamp(report.latestEventAt)}</span>
+                <span aria-hidden="true">·</span>
+                <span>Checked {displayCompactAnalyticsTimestamp(report.generatedAt)}</span>
+              </div>
             </div>
           </div>
         </header>

@@ -1,29 +1,20 @@
 .controls {
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: .55rem;
-  margin-top: .45rem;
-}
-
-.controls span {
-  color: var(--muted);
-  font-size: .72rem;
-  line-height: 1.4;
+  display: inline-flex;
 }
 
 .controls button {
   background: var(--surface);
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: .72rem;
   color: var(--teal-700);
   cursor: pointer;
   font: inherit;
-  font-size: .72rem;
-  font-weight: 750;
   min-height: 44px;
-  padding: .55rem .75rem;
-  transition: background 180ms ease, border-color 180ms ease, opacity 180ms ease;
+  min-width: 44px;
+  padding: .55rem;
+  touch-action: manipulation;
+  transition: background 180ms ease, border-color 180ms ease, opacity 180ms ease, transform 100ms ease;
 }
 
 .controls button:hover:not(:disabled) {
@@ -36,18 +27,43 @@
   outline-offset: 2px;
 }
 
+.controls button:active:not(:disabled) { transform: scale(.96); }
+
 .controls button:disabled {
   cursor: wait;
   opacity: .65;
 }
 
-.compact {
-  margin-top: 0;
+.refreshIcon {
+  display: block;
+  height: 1.1rem;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 1.1rem;
 }
 
-.compact span { font-size: .7rem; }
-.compact button { min-height: 44px; padding-inline: .72rem; }
+.spinning { animation: spin 800ms linear infinite; }
+
+.srOnly {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .controls button { transition: none; }
+  .spinning { animation: none; }
 }

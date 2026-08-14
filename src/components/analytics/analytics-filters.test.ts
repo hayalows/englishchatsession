@@ -14,4 +14,14 @@ describe("analytics header filters", () => {
     expect(styles).toContain("min-height: 44px;");
     expect(styles).toContain(".rangePanel");
   });
+
+  it("keeps the time and traffic panels exclusive and dismissible", () => {
+    expect(source).toContain('type OpenPanel = "range" | "filter" | null;');
+    expect(source).toContain('document.addEventListener("pointerdown", handlePointerDown)');
+    expect(source).toContain('event.key !== "Escape" || !openPanel');
+    expect(source).toContain("aria-expanded={openPanel === \"range\"}");
+    expect(source).toContain("aria-expanded={openPanel === \"filter\"}");
+    expect(styles).toContain('.rangeDisclosure[data-open="true"]');
+    expect(styles).toContain('.filterDisclosure[data-open="true"]');
+  });
 });

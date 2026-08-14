@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import {
   ANALYTICS_RANGE_OPTIONS,
@@ -31,6 +31,8 @@ type AnalyticsFiltersProps = {
   };
   options: Array<{ label: string; total: number }>;
 };
+
+type OpenPanel = "range" | "filter" | null;
 
 function submitOnChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
   const control = event.currentTarget;
@@ -89,21 +91,72 @@ function CheckIcon() {
 }
 
 export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
+  const initialPanel: OpenPanel = filters.segment !== "all" && !filters.value ? "filter" : null;
+  const [openPanel, setOpenPanel] = useState<OpenPanel>(initialPanel);
+  const filtersRef = useRef<HTMLElement>(null);
+  const rangeTriggerRef = useRef<HTMLButtonElement>(null);
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
+  const filterKey = `${filters.range}:${filters.segment}:${filters.value ?? ""}`;
+  const previousFilterKey = useRef(filterKey);
+
+  useEffect(() => {
+    if (previousFilterKey.current === filterKey) return;
+    previousFilterKey.current = filterKey;
+    setOpenPanel(null);
+  }, [filterKey]);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (event.target instanceof Node && !filtersRef.current?.contains(event.target)) {
+        setOpenPanel(null);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || !openPanel) return;
+      event.preventDefault();
+      const trigger = openPanel === "range" ? rangeTriggerRef : filterTriggerRef;
+      setOpenPanel(null);
+      requestAnimationFrame(() => trigger.current?.focus());
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [openPanel]);
+
   const hasCurrentValue = Boolean(filters.value && !options.some((option) => option.label === filters.value));
   const segmentName = filters.segment === "source" ? "traffic source" : filters.segment;
   const hasActiveFilter = Boolean(filters.value);
   const clearHref = `/analytics?range=${filters.range}`;
 
+  function handleFilterChange(event: ChangeEvent<HTMLSelectElement>) {
+    setOpenPanel(null);
+    submitOnChange(event);
+  }
+
   return (
-    <section className={styles.filters} aria-label="Analytics controls">
+    <section ref={filtersRef} className={styles.filters} aria-label="Analytics controls">
       <div className={styles.toolbar}>
-        <details className={styles.rangeDisclosure}>
-          <summary aria-label={`Time range: ${filters.rangeLabel}`}>
+        <div className={styles.rangeDisclosure} data-open={openPanel === "range" ? "true" : undefined}>
+          <button
+            aria-controls="analytics-range-panel"
+            aria-expanded={openPanel === "range"}
+            aria-label={`Time range: ${filters.rangeLabel}`}
+            className={styles.controlTrigger}
+            onClick={() => setOpenPanel((current) => current === "range" ? null : "range")}
+            ref={rangeTriggerRef}
+            type="button"
+          >
             <CalendarIcon />
             <span className={styles.rangeSummaryLabel}>{filters.rangeLabel}</span>
             <ChevronIcon />
-          </summary>
-          <div className={styles.rangePanel}>
+          </button>
+          {openPanel === "range" ? <div className={styles.rangePanel} id="analytics-range-panel" role="group" aria-label="Time range options">
             <span className={styles.rangePanelLabel}>Time range</span>
             {ANALYTICS_RANGE_OPTIONS.map((option) => (
               <a
@@ -111,22 +164,31 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
                 className={styles.rangeOption}
                 href={rangeHref(filters, option.value)}
                 key={option.value}
+                onClick={() => setOpenPanel(null)}
               >
                 <span>{option.label}</span>
                 {filters.range === option.value ? <CheckIcon /> : null}
               </a>
             ))}
-          </div>
-        </details>
+          </div> : null}
+        </div>
 
-        <details className={styles.filterDisclosure} open={filters.segment !== "all" && !filters.value}>
-          <summary title="Filter traffic">
+        <div className={styles.filterDisclosure} data-open={openPanel === "filter" ? "true" : undefined}>
+          <button
+            aria-controls="analytics-filter-panel"
+            aria-expanded={openPanel === "filter"}
+            className={styles.controlTrigger}
+            onClick={() => setOpenPanel((current) => current === "filter" ? null : "filter")}
+            ref={filterTriggerRef}
+            title="Filter traffic"
+            type="button"
+          >
             <FilterIcon />
             <span className={styles.filterText}>Filter</span>
             {hasActiveFilter ? <span className={styles.filterBadge} aria-label="1 active filter">1</span> : null}
-          </summary>
-          <div className={styles.filterPanel}>
-            <form action="/analytics" className={styles.form} method="get">
+          </button>
+          {openPanel === "filter" ? <div className={styles.filterPanel} id="analytics-filter-panel" role="group" aria-label="Traffic filter options">
+            <form action="/analytics" className={styles.form} method="get" onSubmit={() => setOpenPanel(null)}>
               <input name="range" type="hidden" value={filters.range} />
               <div className={styles.filterPanelHeader}>
                 <div>
@@ -138,7 +200,7 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
 
               <label className={styles.field}>
                 <span>Dimension</span>
-                <select defaultValue={filters.segment} name="segment" onChange={submitOnChange}>
+                <select defaultValue={filters.segment} name="segment" onChange={handleFilterChange}>
                   {ANALYTICS_SEGMENT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
@@ -148,7 +210,7 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
               {filters.segment !== "all" ? (
                 <label className={styles.field}>
                   <span>Choose {segmentName}</span>
-                  <select defaultValue={filters.value ?? ""} disabled={!options.length} name="value" onChange={submitOnChange}>
+                  <select defaultValue={filters.value ?? ""} disabled={!options.length} name="value" onChange={handleFilterChange}>
                     <option value="">All {SEGMENT_PLURALS[filters.segment]}</option>
                     {hasCurrentValue ? (
                       <option value={filters.value ?? ""}>{displayOptionLabel(filters.segment, filters.value ?? "")}</option>
@@ -162,8 +224,8 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
                 </label>
               ) : null}
             </form>
-          </div>
-        </details>
+          </div> : null}
+        </div>
       </div>
 
       {hasActiveFilter ? (

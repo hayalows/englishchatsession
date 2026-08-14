@@ -41,12 +41,8 @@
 .shortName { display: none; }
 .copy small { color: var(--muted); font-size: .72rem; }
 
-.online { align-items: center; color: var(--muted); display: inline-flex; font-size: .72rem; gap: .35rem; margin-left: auto; white-space: nowrap; }
-.online i { background: #1ca66a; border-radius: 50%; display: inline-block; height: .45rem; width: .45rem; }
-
-.actions { align-items: center; display: flex; gap: .45rem; }
-.desktopLinks { align-items: center; display: flex; gap: .45rem; }
-.actions a, .logoutButton {
+.actions { align-items: center; display: flex; gap: .45rem; margin-left: auto; }
+.actions a, .logoutButton, .menuTrigger {
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
@@ -62,11 +58,12 @@
 .actions a:hover { background: var(--teal-50); }
 .logoutButton { background: var(--surface); border: 1px solid var(--line-strong); color: var(--teal-700); cursor: pointer; }
 .logoutButton:hover { background: var(--teal-50); border-color: #a8c8cc; }
-.actions a:focus-visible, .logoutButton:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
-.moreMenu { display: none; position: relative; }
-.moreMenu summary { align-items: center; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--teal-700); cursor: pointer; display: inline-flex; font-size: .78rem; font-weight: 750; list-style: none; min-height: 44px; padding: .65rem .82rem; }
-.moreMenu summary::-webkit-details-marker { display: none; }
-.moreMenu summary:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
+.menuTrigger { background: var(--surface); border: 1px solid var(--line-strong); color: var(--teal-700); cursor: pointer; }
+.menuTrigger:hover { background: var(--teal-50); border-color: #a8c8cc; }
+.actions a:focus-visible,
+.logoutButton:focus-visible,
+.menuTrigger:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
+.moreMenu { position: relative; }
 .menuPanel { background: var(--surface); border: 1px solid var(--line-strong); border-radius: .8rem; box-shadow: var(--shadow-card); display: grid; gap: .3rem; min-width: 9rem; padding: .4rem; position: absolute; right: 0; top: calc(100% + .45rem); z-index: 40; }
 .menuPanel a, .menuPanel .logoutButton { border-radius: .55rem; justify-content: flex-start; width: 100%; }
 
@@ -77,13 +74,9 @@
   .fullName { display: none; }
   .shortName { display: block; }
   .copy strong { font-size: .78rem; }
-  .online { font-size: .68rem; }
-  .desktopLinks { display: none; }
-  .moreMenu { display: block; }
-  .moreMenu summary { font-size: .72rem; padding-inline: .65rem; }
-  .actions > div span { display: none; }
+  .menuTrigger { font-size: .72rem; padding-inline: .65rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .actions a, .logoutButton, .moreMenu summary { transition: none; }
+  .actions a, .logoutButton, .menuTrigger { transition: none; }
 }

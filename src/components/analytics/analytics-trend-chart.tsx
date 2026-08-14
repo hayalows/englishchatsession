@@ -12,6 +12,7 @@ type Granularity = AnalyticsReport["filters"]["granularity"];
 type Point = TrendRow & {
   x: number;
   visitorY: number;
+  pageViewY: number;
   scanY: number;
 };
 
@@ -62,7 +63,12 @@ export function AnalyticsTrendChart({
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, rows.length - 1));
 
   const geometry = useMemo(() => {
-    const maxValue = Math.max(1, ...rows.map((row) => row.visitors), ...rows.map((row) => row.scanStarters));
+    const maxValue = Math.max(
+      1,
+      ...rows.map((row) => row.visitors),
+      ...rows.map((row) => row.pageViews),
+      ...rows.map((row) => row.scanStarters),
+    );
     const chartWidth = WIDTH - PADDING.left - PADDING.right;
     const chartHeight = HEIGHT - PADDING.top - PADDING.bottom;
     const points: Point[] = rows.map((row, index) => {
@@ -73,18 +79,20 @@ export function AnalyticsTrendChart({
         ...row,
         x,
         visitorY: PADDING.top + chartHeight - (row.visitors / maxValue) * chartHeight,
+        pageViewY: PADDING.top + chartHeight - (row.pageViews / maxValue) * chartHeight,
         scanY: PADDING.top + chartHeight - (row.scanStarters / maxValue) * chartHeight,
       };
     });
 
     const visitorPath = smoothPath(points.map((point) => ({ x: point.x, y: point.visitorY })));
+    const pageViewPath = smoothPath(points.map((point) => ({ x: point.x, y: point.pageViewY })));
     const scanPath = smoothPath(points.map((point) => ({ x: point.x, y: point.scanY })));
     const baseline = PADDING.top + chartHeight;
     const visitorArea = points.length
       ? `${visitorPath} L ${points.at(-1)?.x ?? PADDING.left} ${baseline} L ${points[0].x} ${baseline} Z`
       : "";
 
-    return { maxValue, chartHeight, points, visitorPath, scanPath, visitorArea, baseline };
+    return { maxValue, chartHeight, points, visitorPath, pageViewPath, scanPath, visitorArea, baseline };
   }, [rows]);
 
   if (!rows.length) return null;
@@ -128,13 +136,14 @@ export function AnalyticsTrendChart({
         </div>
         <div className={styles.chartReadoutValues}>
           <span><i className={styles.readoutVisitor} aria-hidden="true" /><strong>{selected.visitors.toLocaleString()}</strong> visitors</span>
+          <span><i className={styles.readoutView} aria-hidden="true" /><strong>{selected.pageViews.toLocaleString()}</strong> views</span>
           <span><i className={styles.readoutScan} aria-hidden="true" /><strong>{selected.scanStarters.toLocaleString()}</strong> scan starters</span>
         </div>
       </div>
 
       <div className={styles.chartFrame}>
         <svg
-          aria-label={`Interactive line chart. ${displayTrendLabel(selected.label, granularity)} has ${selected.visitors} visitors and ${selected.scanStarters} scan starters. Use left and right arrow keys to inspect other periods.`}
+          aria-label={`Interactive line chart. ${displayTrendLabel(selected.label, granularity)} has ${selected.visitors} visitors, ${selected.pageViews} page views, and ${selected.scanStarters} scan starters. Use left and right arrow keys to inspect other periods.`}
           className={styles.chart}
           onKeyDown={handleKeyDown}
           onPointerDown={selectFromPointer}
@@ -161,10 +170,12 @@ export function AnalyticsTrendChart({
           })}
 
           <path className={styles.trendArea} d={geometry.visitorArea} fill={`url(#${gradientId})`} />
+          <path className={styles.viewLine} d={geometry.pageViewPath} fill="none" pathLength="1" />
           <path className={styles.trendLine} d={geometry.visitorPath} fill="none" pathLength="1" />
           <path className={styles.scanLine} d={geometry.scanPath} fill="none" pathLength="1" />
 
           <line className={styles.selectionLine} x1={selected.x} x2={selected.x} y1={PADDING.top} y2={geometry.baseline} />
+          <circle className={styles.viewPoint} cx={selected.x} cy={selected.pageViewY} r="4.5" />
           <circle className={styles.trendPoint} cx={selected.x} cy={selected.visitorY} r="5" />
           <circle className={styles.scanPoint} cx={selected.x} cy={selected.scanY} r="4.5" />
 
@@ -181,6 +192,7 @@ export function AnalyticsTrendChart({
       <div className={styles.chartFooter}>
         <div className={styles.legend} aria-label="Chart legend">
           <span><i className={styles.legendVisitor} aria-hidden="true" /> Visitors</span>
+          <span><i className={styles.legendView} aria-hidden="true" /> Views</span>
           <span><i className={styles.legendScan} aria-hidden="true" /> Scan starters</span>
         </div>
         <p>Move across the chart, tap a date, or use ← → to inspect values.</p>

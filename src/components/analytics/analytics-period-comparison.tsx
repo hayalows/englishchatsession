@@ -68,6 +68,8 @@ export function AnalyticsPeriodComparison({
   report: AnalyticsReport;
   comparison: AnalyticsComparison;
 }) {
+  if (report.status !== "configured") return null;
+
   const metrics = report.metrics;
   const visitorChange = percentChange(metrics.visitors, comparison.previous.visitors, comparison.audienceReady);
   const viewChange = percentChange(metrics.pageViews, comparison.previous.pageViews, comparison.audienceReady);

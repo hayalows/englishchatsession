@@ -26,8 +26,9 @@ English Chat Finder helps BYU-Pathway Worldwide students find open 30-minute Eng
 - Temporarily pauses unavailable schedules for 8 hours and provider failures for 10 minutes, then checks them again automatically.
 - Treats a changed or newly listed volunteer URL as new so it can be checked immediately.
 - Provides a separate password-protected `/admin` operations console for explicit calendar health audits, issue reports, and availability snapshots.
+- Optionally records privacy-respecting first-party page views from people who open the public finder and shows them at `/analytics`.
 
-The public student finder has no student account system, database, messaging service, cron job, or server-side result history. The separate administrator console uses one server-configured password and expiring session cookie; it does not create user accounts or store audit history on the server. Link-health data stays in the student's browser and contains only operational booking-URL status; it does not contain student identities, searches, or appointment choices. Vercel Web Analytics records aggregate visits, not appointment results or named student profiles. Exact appointment times and final availability must always be confirmed on Google before booking.
+The public student finder has no student account system, booking database, messaging service, cron job, or server-side appointment-result history. An optional first-party analytics database stores only bounded page-view events when the public finder at `/` opens; it is not read or called by the scanner, tracking is fire-and-forget, and the finder works when analytics is unavailable. The administrator console and visitor analytics use one server-configured password with separate login entries and expiring session cookies. Link-health data stays in the student's browser and contains only operational booking-URL status; it does not contain student identities, searches, or appointment choices. Vercel Web Analytics records aggregate visits separately. Exact appointment times and final availability must always be confirmed on Google before booking.
 
 ## Current progress
 
@@ -82,7 +83,7 @@ Requirements:
 - Node.js 24
 - npm 11 or a compatible npm version
 
-The public student finder requires no secrets or environment variables. To enable the administrator console locally, set a long random `ADMIN_PASSWORD` in `.env.local`; the server checks it and stores only a signed, expiring HTTP-only session cookie.
+The public student finder requires no secrets or environment variables. To enable the administrator console and visitor analytics locally, set a long random `ADMIN_PASSWORD` in `.env.local`; the server checks it and stores only a signed, expiring HTTP-only session cookie. First-party analytics is optional: set `DATABASE_URL` to a Neon PostgreSQL connection string and run [`docs/analytics.sql`](docs/analytics.sql) once. The scanner does not depend on or call this database.
 
 ```powershell
 npm.cmd ci
@@ -91,7 +92,7 @@ npm.cmd run dev
 
 Open `http://localhost:3000`.
 
-The administrator console is at `http://localhost:3000/admin`. If `ADMIN_PASSWORD` is not configured, administrator access fails closed.
+The administrator console is at `http://localhost:3000/admin`. Visitor analytics is at `http://localhost:3000/analytics`, with a separate login entry at `http://localhost:3000/analytics/login`. Both use the same `ADMIN_PASSWORD`; if it is not configured, protected access fails closed.
 
 ## Validation
 
@@ -122,7 +123,8 @@ Vercel is connected to this GitHub repository.
 - Build command: `npm run build`
 - Node.js: 24.x
 - Production URL: [englishchatsession.vercel.app](https://englishchatsession.vercel.app)
-- Production environment: set `ADMIN_PASSWORD` in Vercel Environment Variables before using `/admin`; do not commit the password or put it in client code.
+- Production environment: set `ADMIN_PASSWORD` in Vercel Environment Variables before using `/admin` or `/analytics`; do not commit the password or put it in client code.
+- Optional analytics environment: set `DATABASE_URL` only after applying [`docs/analytics.sql`](docs/analytics.sql) to the Neon database. Do not expose the connection string to client code.
 
 Pull requests receive GitHub quality checks and a Vercel preview. Merging a tested pull request into `main` is the normal production release path. Manual production deployments should be reserved for recovery situations.
 

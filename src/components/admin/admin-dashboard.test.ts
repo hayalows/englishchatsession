@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const dashboardSource = readFileSync(new URL("./admin-dashboard.tsx", import.meta.url), "utf8");
 const loginSource = readFileSync(new URL("../../app/admin/login/page.tsx", import.meta.url), "utf8");
+const loginFormSource = readFileSync(new URL("./admin-login-form.tsx", import.meta.url), "utf8");
 
 describe("admin/student state separation", () => {
   it("uses an explicit admin audit and does not read student scan storage", () => {
@@ -16,7 +17,7 @@ describe("admin/student state separation", () => {
   it("keeps the administrator password out of the client login page", () => {
     expect(loginSource).not.toContain("ADMIN_PASSWORD");
     expect(loginSource).not.toContain("process.env");
-    expect(loginSource).toContain("/api/admin/login");
+    expect(loginFormSource).toContain("/api/admin/login");
   });
 });
 

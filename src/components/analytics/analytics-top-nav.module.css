@@ -1,0 +1,73 @@
+.header {
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--canvas), transparent 4%);
+}
+
+.inner {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1160px;
+  min-height: 76px;
+  padding: .75rem clamp(1rem, 3vw, 1.75rem);
+}
+
+.brand {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  gap: .7rem;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.mark {
+  align-items: center;
+  background: var(--teal-700);
+  border-radius: .75rem;
+  color: white;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: .78rem;
+  font-weight: 850;
+  height: 2.35rem;
+  justify-content: center;
+  letter-spacing: .03em;
+  width: 2.35rem;
+}
+
+.copy { display: grid; gap: .12rem; line-height: 1.15; min-width: 0; }
+.copy strong { font-size: .9rem; white-space: nowrap; }
+.copy small { color: var(--muted); font-size: .72rem; }
+
+.actions { align-items: center; display: flex; gap: .45rem; }
+.actions a, .logoutButton {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 750;
+  justify-content: center;
+  min-height: 44px;
+  padding: .65rem .82rem;
+  text-decoration: none;
+}
+.actions a { color: var(--teal-700); }
+.actions a:hover { background: var(--teal-50); }
+.logoutButton { background: var(--surface); border: 1px solid var(--line-strong); color: var(--teal-700); cursor: pointer; }
+.logoutButton:hover { background: var(--teal-50); border-color: #a8c8cc; }
+.actions a:focus-visible, .logoutButton:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
+
+@media (max-width: 480px) {
+  .inner { min-height: 68px; padding-inline: .75rem; }
+  .copy small { display: none; }
+  .copy strong { font-size: .78rem; }
+  .actions a, .logoutButton { font-size: .72rem; padding-inline: .65rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions a, .logoutButton { transition: none; }
+}

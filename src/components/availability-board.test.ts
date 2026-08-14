@@ -49,6 +49,10 @@ describe("availability request retry", () => {
 });
 
 describe("finder state cues", () => {
+  it("keeps visitor analytics out of the scanner component", () => {
+    expect(boardSource).not.toMatch(/analytics|trackFirstPartyEvent|scan_started|scan_completed|booking_clicked/);
+  });
+
   it("shows the loading spinner only through the loading branch of the primary action", () => {
     expect(boardSource).toContain('{loading ? <span className="loading-spinner" aria-hidden="true" /> : null}');
     expect(boardSource.match(/className="loading-spinner"/g)).toHaveLength(1);
@@ -76,4 +80,5 @@ describe("finder state cues", () => {
     expect(boardSource).toContain("bookingUrl={booking.bookingUrl}");
     expect(boardSource).toContain("Choose a time on Google");
   });
+
 });

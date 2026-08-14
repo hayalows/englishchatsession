@@ -1,10 +1,19 @@
-import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 
-import { analyticsDatabaseConfigured, analyticsQuery } from "@/lib/analytics/neon";
+import { NextRequest, NextResponse } from "next/server";
 
-const EVENT_NAMES = new Set(["page_view", "booking_clicked"]);
+import { analyticsDatabaseConfigured, analyticsQuery } from "../../../lib/analytics/neon";
+import { createFixedWindowRateLimiter } from "../../../lib/security/rate-limit";
+
+export const dynamic = "force-dynamic";
+
+const EVENT_NAMES = new Set(["page_view"]);
 const ID_PATTERN = /^[a-zA-Z0-9_-]{8,80}$/;
 const MAX_BODY_BYTES = 4_096;
+const consumeRateLimit = createFixedWindowRateLimiter({
+  limit: 120,
+  windowMs: 10 * 60 * 1_000,
+});
 
 type IncomingEvent = {
   visitorId?: unknown;
@@ -12,8 +21,23 @@ type IncomingEvent = {
   eventName?: unknown;
   pagePath?: unknown;
   referrerHost?: unknown;
-  metadata?: unknown;
 };
+
+class PayloadTooLargeError extends Error {}
+
+function noStore(body: object, status: number, headers: HeadersInit = {}) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store", ...headers },
+  });
+}
+
+function noStoreEmpty(status: number, headers: HeadersInit = {}) {
+  return new NextResponse(null, {
+    status,
+    headers: { "Cache-Control": "no-store", ...headers },
+  });
+}
 
 function text(value: unknown, maxLength: number) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -22,18 +46,6 @@ function text(value: unknown, maxLength: number) {
 function nullableText(value: unknown, maxLength: number) {
   const result = text(value, maxLength);
   return result || null;
-}
-
-function safeMetadata(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const source = value as Record<string, unknown>;
-  const result: Record<string, string | number | boolean> = {};
-  for (const [key, item] of Object.entries(source).slice(0, 8)) {
-    if (!/^[a-zA-Z0-9_]{1,40}$/.test(key)) continue;
-    if (typeof item === "boolean" || typeof item === "number") result[key] = item;
-    if (typeof item === "string") result[key] = item.slice(0, 120);
-  }
-  return result;
 }
 
 function deviceType(userAgent: string) {
@@ -51,15 +63,60 @@ function browserName(userAgent: string) {
   return "Other";
 }
 
-export async function POST(request: Request) {
+function clientKey(request: NextRequest) {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const value = forwarded || request.headers.get("x-real-ip") || "unknown";
+  return createHash("sha256").update(value).digest("hex");
+}
+
+async function readLimitedBody(request: Request) {
   const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (contentLength > MAX_BODY_BYTES) return NextResponse.json({ message: "Request too large." }, { status: 413 });
+  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) throw new PayloadTooLargeError();
+
+  const reader = request.body?.getReader();
+  if (!reader) return "";
+
+  const bytes: number[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (bytes.length + value.byteLength > MAX_BODY_BYTES) {
+      await reader.cancel();
+      throw new PayloadTooLargeError();
+    }
+    bytes.push(...value);
+  }
+  return new TextDecoder().decode(new Uint8Array(bytes));
+}
+
+export async function POST(request: NextRequest) {
+  const rateLimit = consumeRateLimit(clientKey(request));
+  const rateHeaders = {
+    "RateLimit-Limit": String(rateLimit.limit),
+    "RateLimit-Remaining": String(rateLimit.remaining),
+    "RateLimit-Reset": String(Math.ceil(rateLimit.resetAt / 1_000)),
+  };
+  if (!rateLimit.allowed) {
+    return noStore(
+      { message: "Too many analytics events were received. Try again later." },
+      429,
+      { ...rateHeaders, "Retry-After": String(Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1_000))) },
+    );
+  }
+
+  const contentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (contentType && contentType !== "application/json") {
+    return noStore({ message: "Analytics events must use JSON." }, 415, rateHeaders);
+  }
 
   let payload: IncomingEvent;
   try {
-    payload = (await request.json()) as IncomingEvent;
-  } catch {
-    return NextResponse.json({ message: "Invalid analytics event." }, { status: 400 });
+    payload = JSON.parse(await readLimitedBody(request)) as IncomingEvent;
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return noStore({ message: "The request is too large." }, 413, rateHeaders);
+    }
+    return noStore({ message: "Invalid analytics event." }, 400, rateHeaders);
   }
 
   const visitorId = text(payload.visitorId, 80);
@@ -67,11 +124,17 @@ export async function POST(request: Request) {
   const eventName = text(payload.eventName, 40);
   const pagePath = text(payload.pagePath, 200) || "/";
 
-  if (!ID_PATTERN.test(visitorId) || !ID_PATTERN.test(sessionId) || !EVENT_NAMES.has(eventName)) {
-    return NextResponse.json({ message: "Invalid analytics event." }, { status: 400 });
+  if (
+    !ID_PATTERN.test(visitorId)
+    || !ID_PATTERN.test(sessionId)
+    || !EVENT_NAMES.has(eventName)
+    || pagePath !== "/"
+  ) {
+    return noStore({ message: "Invalid analytics event." }, 400, rateHeaders);
   }
 
-  if (!analyticsDatabaseConfigured()) return new NextResponse(null, { status: 204 });
+  // The finder stays fully functional when analytics has not been provisioned.
+  if (!analyticsDatabaseConfigured()) return noStoreEmpty(204, rateHeaders);
 
   const userAgent = request.headers.get("user-agent") ?? "";
   const country = nullableText(request.headers.get("x-vercel-ip-country"), 8);
@@ -98,12 +161,12 @@ export async function POST(request: Request) {
         city,
         deviceType(userAgent),
         browserName(userAgent),
-        JSON.stringify(safeMetadata(payload.metadata)),
+        JSON.stringify({}),
       ],
     );
   } catch {
-    return NextResponse.json({ message: "Analytics storage is temporarily unavailable." }, { status: 503 });
+    return noStore({ message: "Analytics storage is temporarily unavailable." }, 503, rateHeaders);
   }
 
-  return new NextResponse(null, { status: 204 });
+  return noStoreEmpty(204, rateHeaders);
 }

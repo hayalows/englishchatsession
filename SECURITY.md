@@ -20,14 +20,15 @@ Include:
 
 ## Data and secret boundaries
 
-The production app is intentionally stateless:
+The public finder remains stateless with respect to student accounts and bookings:
 
 - No accounts or authentication.
-- No application database.
 - No server-side appointment-result history.
 - No messaging integration.
 - Appointment results stay only in the student's browser and are removed after 24 hours.
 - Vercel Web Analytics collects aggregate page-view and device information. It does not receive volunteer appointment results from the app.
+
+An optional private analytics database stores only bounded `page_view` events when the public finder at `/` opens, with pseudonymous browser/session IDs and coarse request metadata. It does not store raw IP addresses, student names, email addresses, volunteer search text, scanner results, or appointment results. The scanner never calls or reads this table, and the client never waits for analytics before continuing. Keep `DATABASE_URL` server-only and apply [`docs/analytics.sql`](docs/analytics.sql) before enabling it.
 
 The calendar-check endpoint accepts only HTTPS Google Calendar booking links, limits request size, applies a best-effort per-client request allowance, and does not store booking-page HTML.
 

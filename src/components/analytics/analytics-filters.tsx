@@ -20,6 +20,14 @@ const SEGMENT_PLURALS: Record<AnalyticsSegment, string> = {
   source: "sources",
 };
 
+const RANGE_SHORT_LABELS: Record<AnalyticsRange, string> = {
+  "24h": "24H",
+  "7d": "7D",
+  "30d": "30D",
+  "60d": "60D",
+  "90d": "90D",
+};
+
 type AnalyticsFiltersProps = {
   filters: {
     range: AnalyticsRange;
@@ -49,70 +57,85 @@ function displayOptionLabel(segment: AnalyticsSegment, value: string) {
 export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
   const hasCurrentValue = Boolean(filters.value && !options.some((option) => option.label === filters.value));
   const segmentName = filters.segment === "source" ? "traffic source" : filters.segment;
+  const hasActiveFilter = Boolean(filters.value);
+  const clearHref = `/analytics?range=${filters.range}`;
 
   return (
-    <section className={styles.filters} aria-labelledby="analytics-filters-title">
-      <div className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>View</p>
-          <h2 id="analytics-filters-title">View data</h2>
-          <p>Change the time range or audience filter. The dashboard updates immediately.</p>
-        </div>
-        {filters.segment !== "all" || filters.value ? (
-          <a className={styles.reset} href={`/analytics?range=${filters.range}`}>Clear audience filter</a>
-        ) : null}
-      </div>
-
+    <section className={styles.filters} aria-label="Analytics controls">
       <form action="/analytics" className={styles.form} method="get">
-        <fieldset className={styles.rangeFieldset}>
-          <legend>Time range</legend>
-          <div className={styles.rangeChoices}>
-            {ANALYTICS_RANGE_OPTIONS.map((option) => (
-              <label className={styles.rangeChoice} key={option.value}>
-                <input
-                  defaultChecked={filters.range === option.value}
-                  name="range"
-                  onChange={submitOnChange}
-                  type="radio"
-                  value={option.value}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <div className={styles.filterRow}>
-          <label className={styles.field}>
-            <span>Filter people by</span>
-            <select defaultValue={filters.segment} name="segment" onChange={submitOnChange}>
-              {ANALYTICS_SEGMENT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+        <div className={styles.toolbar}>
+          <fieldset className={styles.rangeFieldset}>
+            <legend className={styles.srOnly}>Time range</legend>
+            <div className={styles.rangeChoices}>
+              {ANALYTICS_RANGE_OPTIONS.map((option) => (
+                <label className={styles.rangeChoice} key={option.value}>
+                  <input
+                    defaultChecked={filters.range === option.value}
+                    name="range"
+                    onChange={submitOnChange}
+                    type="radio"
+                    value={option.value}
+                  />
+                  <span>
+                    <span className={styles.fullRangeLabel}>{option.label}</span>
+                    <span className={styles.compactRangeLabel}>{RANGE_SHORT_LABELS[option.value]}</span>
+                  </span>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+          </fieldset>
 
-          {filters.segment !== "all" ? (
-            <label className={styles.field}>
-              <span>Choose {segmentName}</span>
-              <select defaultValue={filters.value ?? ""} disabled={!options.length} name="value" onChange={submitOnChange}>
-                <option value="">All {SEGMENT_PLURALS[filters.segment]}</option>
-                {hasCurrentValue ? (
-                  <option value={filters.value ?? ""}>{displayOptionLabel(filters.segment, filters.value ?? "")}</option>
-                ) : null}
-                {options.map((option) => (
-                  <option key={option.label} value={option.label}>
-                    {displayOptionLabel(filters.segment, option.label)} · {option.total.toLocaleString()}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
+          <details className={styles.filterDisclosure} open={filters.segment !== "all" && !filters.value}>
+            <summary>
+              <span aria-hidden="true" className={styles.filterIcon}>⌁</span>
+              <span>Filter</span>
+              {hasActiveFilter ? <span className={styles.filterBadge} aria-label="1 active filter">1</span> : null}
+            </summary>
+            <div className={styles.filterPanel}>
+              <div className={styles.filterPanelHeader}>
+                <div>
+                  <strong>Filter traffic</strong>
+                  <span>Focus every metric and chart on one audience segment.</span>
+                </div>
+                {hasActiveFilter ? <a className={styles.clearLink} href={clearHref}>Clear</a> : null}
+              </div>
 
+              <label className={styles.field}>
+                <span>Dimension</span>
+                <select defaultValue={filters.segment} name="segment" onChange={submitOnChange}>
+                  {ANALYTICS_SEGMENT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              {filters.segment !== "all" ? (
+                <label className={styles.field}>
+                  <span>Choose {segmentName}</span>
+                  <select defaultValue={filters.value ?? ""} disabled={!options.length} name="value" onChange={submitOnChange}>
+                    <option value="">All {SEGMENT_PLURALS[filters.segment]}</option>
+                    {hasCurrentValue ? (
+                      <option value={filters.value ?? ""}>{displayOptionLabel(filters.segment, filters.value ?? "")}</option>
+                    ) : null}
+                    {options.map((option) => (
+                      <option key={option.label} value={option.label}>
+                        {displayOptionLabel(filters.segment, option.label)} · {option.total.toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </div>
+          </details>
         </div>
       </form>
 
-      <p className={styles.summary} aria-live="polite"><strong>Showing:</strong> {filters.rangeLabel} · {filters.segmentLabel} · {filters.trendLabel}</p>
+      {hasActiveFilter ? (
+        <div className={styles.activeFilter} aria-live="polite">
+          <span>{filters.segmentLabel}</span>
+          <a aria-label={`Clear ${filters.segmentLabel} filter`} href={clearHref}>×</a>
+        </div>
+      ) : null}
     </section>
   );
 }

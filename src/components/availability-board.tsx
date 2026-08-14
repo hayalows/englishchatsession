@@ -662,9 +662,10 @@ export function AvailabilityBoard() {
         },
       });
       if (runId === runIdRef.current) {
+        const state = summary.stopped ? "stopped" : "complete";
         setScan((current) => current ? {
           ...current,
-          state: summary.stopped ? "stopped" : "complete",
+          state,
           completed: summary.completed,
           finishedAt: new Date().toISOString(),
         } : current);

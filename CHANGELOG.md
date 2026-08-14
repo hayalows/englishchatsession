@@ -4,6 +4,17 @@ All notable production changes are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `YYYY-MM-DD` format.
 
+## Unreleased
+
+### Added
+
+- Optional first-party visitor analytics for page views that occur when the public finder opens, with a separate private `/analytics` report.
+
+### Changed
+
+- Kept analytics page-view-only and best-effort: the scanner never calls it, and missing storage, rate limits, or browser privacy restrictions cannot interrupt a finder scan.
+- Added the database schema and setup boundary for the optional Neon analytics store.
+
 ## [1.8.0] - 2026-08-02
 
 ### Added

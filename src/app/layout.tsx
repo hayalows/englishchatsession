@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { Analytics } from "@vercel/analytics/next";
 
+import { FirstPartyAnalytics } from "@/components/first-party-analytics";
+
 import { PwaRegister } from "./pwa-register";
 import "./globals.css";
 
@@ -42,6 +44,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body className={inter.variable}>
         {children}
         <PwaRegister />
+        <FirstPartyAnalytics />
         <Analytics />
       </body>
     </html>

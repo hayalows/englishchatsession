@@ -32,6 +32,7 @@ import {
 } from "@/lib/result-presentation";
 import { normalizeStoredScan, type StoredScanReport } from "@/lib/saved-scan";
 import { fetchSlotResult, SlotRequestError } from "@/lib/slot-request";
+import { trackScanStarted } from "@/lib/analytics/client";
 
 type BookingPage = { tutor: string | null; bookingUrl: string };
 type Availability = { checkedAt: string; bookingPages: BookingPage[] };
@@ -696,6 +697,8 @@ export function AvailabilityBoard() {
   }
 
   function requestScan() {
+    if (!searchedPages.length) return;
+    trackScanStarted(scanMode);
     void startScan();
   }
 

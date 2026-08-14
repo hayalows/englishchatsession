@@ -40,7 +40,29 @@ describe("POST /api/analytics", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
-  it("rejects scanner events and non-finder paths", async () => {
+  it("accepts one scan-start event and visible-time milestones", async () => {
+    vi.stubEnv("DATABASE_URL", "");
+
+    const scanResponse = await POST(request(JSON.stringify({
+      visitorId: "visitor-1234",
+      sessionId: "session-1234",
+      eventName: "scan_started",
+      pagePath: "/",
+      metadata: { scanMode: "all" },
+    })));
+    const engagementResponse = await POST(request(JSON.stringify({
+      visitorId: "visitor-1234",
+      sessionId: "session-1234",
+      eventName: "engagement",
+      pagePath: "/",
+      metadata: { milestoneSeconds: 60 },
+    })));
+
+    expect(scanResponse.status).toBe(204);
+    expect(engagementResponse.status).toBe(204);
+  });
+
+  it("rejects unsupported events, metadata, and non-finder paths", async () => {
     vi.stubEnv("DATABASE_URL", "");
 
     const response = await POST(request(JSON.stringify({
@@ -61,6 +83,16 @@ describe("POST /api/analytics", () => {
     })));
 
     expect(pathResponse.status).toBe(400);
+
+    const metadataResponse = await POST(request(JSON.stringify({
+      visitorId: "visitor-1234",
+      sessionId: "session-1234",
+      eventName: "engagement",
+      pagePath: "/",
+      metadata: { milestoneSeconds: 7_200 },
+    })));
+
+    expect(metadataResponse.status).toBe(400);
   });
 
   it("enforces the body limit even when content-length is absent", async () => {

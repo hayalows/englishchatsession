@@ -23,11 +23,18 @@ const EMPTY_REPORT: AnalyticsReport = {
     visitors30d: 0,
     pageViews7d: 0,
     sessions7d: 0,
+    scanStarts7d: 0,
+    scanStarters7d: 0,
+    scanStartRate7d: 0,
+    engagedSessions60s7d: 0,
   },
   daily: [],
   countries: [],
   referrers: [],
   devices: [],
+  browsers: [],
+  scanModes: [],
+  engagement: [],
 };
 
 export default async function AnalyticsPage() {

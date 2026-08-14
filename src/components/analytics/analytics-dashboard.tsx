@@ -5,13 +5,14 @@ import { useState } from "react";
 import refinements from "./analytics-dashboard-refinements.module.css";
 import styles from "./analytics-dashboard.module.css";
 
+import { AnalyticsBreakdownCard } from "@/components/analytics/analytics-breakdown-card";
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
 import {
   AnalyticsTrendChart,
   type AnalyticsPrimaryMetric,
 } from "@/components/analytics/analytics-trend-chart";
-import type { AnalyticsMetricBreakdowns, AnalyticsBreakdownRow } from "@/lib/analytics/breakdown-types";
+import type { AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
@@ -242,73 +243,6 @@ function ScanHealthPanel({ report }: { report: AnalyticsReport }) {
   );
 }
 
-function breakdownValue(row: AnalyticsBreakdownRow, metric: AnalyticsPrimaryMetric) {
-  if (metric === "pageViews") return row.pageViews;
-  if (metric === "scanUsage") {
-    return row.visitors ? Math.min(100, Math.round((row.scanStarters / row.visitors) * 100)) : 0;
-  }
-  return row.visitors;
-}
-
-function metricCaption(metric: AnalyticsPrimaryMetric, rangeLabel: string) {
-  if (metric === "pageViews") return `Page views · ${rangeLabel}`;
-  if (metric === "scanUsage") return `Visitors who used the scanner · % · ${rangeLabel}`;
-  return `Unique visitors · ${rangeLabel}`;
-}
-
-function MetricBreakdownPanel({
-  title,
-  rows,
-  activeMetric,
-  rangeLabel,
-}: {
-  title: string;
-  rows: AnalyticsBreakdownRow[];
-  activeMetric: AnalyticsPrimaryMetric;
-  rangeLabel: string;
-}) {
-  const sortedRows = [...rows].sort((a, b) => breakdownValue(b, activeMetric) - breakdownValue(a, activeMetric));
-  const max = activeMetric === "scanUsage"
-    ? 100
-    : Math.max(1, ...sortedRows.map((row) => breakdownValue(row, activeMetric)));
-  const titleId = `${title.replaceAll(" ", "-").toLowerCase()}-title`;
-
-  return (
-    <section className={styles.panel} aria-labelledby={titleId}>
-      <div className={styles.panelHeader}>
-        <div>
-          <h2 id={titleId}>{title}</h2>
-          <p>{metricCaption(activeMetric, rangeLabel)}</p>
-        </div>
-      </div>
-      {sortedRows.length ? (
-        <>
-          <div className={refinements.breakdownViewport} tabIndex={sortedRows.length > 5 ? 0 : undefined}>
-            <div className={styles.rows}>
-              {sortedRows.map((row, index) => {
-                const value = breakdownValue(row, activeMetric);
-                const width = activeMetric === "scanUsage" ? value : Math.max(2, (value / max) * 100);
-                return (
-                  <div className={styles.row} key={`${row.label}-${index}`}>
-                    <div className={styles.rowLabel}>
-                      <strong>{row.label}</strong>
-                      <div aria-hidden="true" className={styles.barTrack}>
-                        <div className={styles.bar} style={{ width: `${Math.max(0, Math.min(100, width))}%` }} />
-                      </div>
-                    </div>
-                    <strong>{activeMetric === "scanUsage" ? `${value}%` : value.toLocaleString()}</strong>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          {sortedRows.length > 5 ? <small className={refinements.breakdownHint}>Scroll inside for all {sortedRows.length}</small> : null}
-        </>
-      ) : <p className={styles.empty}>No data in this period yet.</p>}
-    </section>
-  );
-}
-
 function ListPanel({ title, caption, rows }: { title: string; caption: string; rows: ListRow[] }) {
   const max = Math.max(1, ...rows.map((row) => row.total));
   const titleId = `${title.replaceAll(" ", "-").toLowerCase()}-title`;
@@ -322,24 +256,19 @@ function ListPanel({ title, caption, rows }: { title: string; caption: string; r
         </div>
       </div>
       {rows.length ? (
-        <>
-          <div className={refinements.breakdownViewport} tabIndex={rows.length > 5 ? 0 : undefined}>
-            <div className={styles.rows}>
-              {rows.map((row, index) => (
-                <div className={styles.row} key={`${row.label}-${index}`}>
-                  <div className={styles.rowLabel}>
-                    <strong>{row.label}</strong>
-                    <div aria-hidden="true" className={styles.barTrack}>
-                      <div className={styles.bar} style={{ width: `${Math.max(2, (row.total / max) * 100)}%` }} />
-                    </div>
-                  </div>
-                  <strong>{row.total.toLocaleString()}</strong>
+        <div className={styles.rows}>
+          {rows.map((row, index) => (
+            <div className={styles.row} key={`${row.label}-${index}`}>
+              <div className={styles.rowLabel}>
+                <strong>{row.label}</strong>
+                <div aria-hidden="true" className={styles.barTrack}>
+                  <div className={styles.bar} style={{ width: `${Math.max(2, (row.total / max) * 100)}%` }} />
                 </div>
-              ))}
+              </div>
+              <strong>{row.total.toLocaleString()}</strong>
             </div>
-          </div>
-          {rows.length > 5 ? <small className={refinements.breakdownHint}>Scroll inside for all {rows.length}</small> : null}
-        </>
+          ))}
+        </div>
       ) : <p className={styles.empty}>No data in this period yet.</p>}
     </section>
   );
@@ -407,9 +336,9 @@ export function AnalyticsDashboard({
             <small>{selectedMetricLabel} · swipe on mobile</small>
           </div>
           <div className={styles.breakdownGrid} aria-label={`${selectedMetricLabel} breakdowns`}>
-            <MetricBreakdownPanel activeMetric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} title="Countries" />
-            <MetricBreakdownPanel activeMetric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.devices} title="Devices" />
-            <MetricBreakdownPanel activeMetric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.browsers} title="Browsers" />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="country" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} title="Countries" />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="device" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.devices} title="Devices" />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="browser" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.browsers} title="Browsers" />
           </div>
         </section>
 
@@ -426,7 +355,7 @@ export function AnalyticsDashboard({
         <details className={styles.detailDisclosure}>
           <summary>Explore traffic detail</summary>
           <div className={styles.detailGrid}>
-            <MetricBreakdownPanel activeMetric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title="Traffic sources" />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="source" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title="Traffic sources" />
             <ListPanel caption={`Recorded scan clicks · ${report.filters.rangeLabel}`} rows={report.scanModes} title="Scan mode mix" />
           </div>
         </details>

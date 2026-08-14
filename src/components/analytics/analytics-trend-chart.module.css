@@ -1,7 +1,7 @@
 .chartExperience {
   animation: chartReveal 280ms cubic-bezier(.2, .8, .2, 1);
   display: grid;
-  gap: .62rem;
+  gap: .64rem;
 }
 
 .summaryStrip {
@@ -10,7 +10,6 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: -1.05rem -1.05rem .05rem;
 }
-
 .summaryCell {
   appearance: none;
   background: transparent;
@@ -19,14 +18,13 @@
   color: inherit;
   display: grid;
   font: inherit;
-  gap: .24rem;
-  min-height: 96px;
-  padding: .9rem 1rem .78rem;
+  gap: .26rem;
+  min-height: 98px;
+  padding: .92rem 1rem .8rem;
   position: relative;
   text-align: left;
 }
 .summaryCell:last-child { border-right: 0; }
-
 .summaryButton {
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease;
@@ -41,15 +39,12 @@
   position: absolute;
   right: 0;
 }
-.summaryButton[aria-pressed="true"] {
-  background: color-mix(in srgb, var(--surface-subtle), transparent 56%);
-}
+.summaryButton[aria-pressed="true"] { background: color-mix(in srgb, var(--surface-subtle), transparent 56%); }
 .summaryButton[aria-pressed="true"]::after { background: var(--ink); }
 .summaryButton:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: -4px;
 }
-
 .summaryTopline {
   align-items: center;
   display: flex;
@@ -61,7 +56,7 @@
   align-items: center;
   color: var(--muted);
   display: inline-flex;
-  font-size: .72rem;
+  font-size: .75rem;
   font-weight: 750;
   gap: .35rem;
   letter-spacing: .01em;
@@ -70,15 +65,15 @@
 .summaryCell > strong,
 .summaryButton > strong {
   align-self: end;
-  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
   font-variant-numeric: tabular-nums;
   letter-spacing: -.05em;
   line-height: 1;
 }
 .summaryCell small {
   color: var(--muted-light);
-  font-size: .66rem;
-  line-height: 1.35;
+  font-size: .72rem;
+  line-height: 1.4;
 }
 .liveDot {
   background: #1ca66a;
@@ -93,10 +88,10 @@
 .delta {
   border-radius: .42rem;
   flex: 0 0 auto;
-  font-size: .64rem;
+  font-size: .68rem;
   font-weight: 800;
   line-height: 1;
-  padding: .28rem .35rem;
+  padding: .29rem .37rem;
   white-space: nowrap;
 }
 .positive { background: #e9f8ef; color: #167647; }
@@ -109,20 +104,20 @@
   display: flex;
   gap: .7rem;
   justify-content: space-between;
-  min-height: 30px;
+  min-height: 32px;
   padding: 0 .12rem;
 }
-.chartContext span { color: var(--muted); font-size: .7rem; }
+.chartContext span { color: var(--muted); font-size: .74rem; }
 .chartContext span strong { color: var(--ink); }
 .chartContext > strong {
-  font-size: .78rem;
+  font-size: .82rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .chartFrame {
   background: var(--surface-subtle);
-  border-radius: .85rem;
+  border-radius: .95rem;
   min-height: 270px;
   overflow: hidden;
   padding: 0 .1rem;
@@ -178,34 +173,34 @@
   border-top: 1px solid var(--line);
   color: var(--muted);
   display: flex;
-  gap: .48rem;
-  min-height: 42px;
-  padding: .55rem .12rem .02rem;
+  gap: .5rem;
+  min-height: 44px;
+  padding: .58rem .12rem .02rem;
 }
 .liveNowLabel {
   align-items: center;
   display: inline-flex;
-  font-size: .7rem;
+  font-size: .74rem;
   font-weight: 750;
   gap: .38rem;
   white-space: nowrap;
 }
 .liveNowBar > strong {
   color: var(--ink);
-  font-size: .96rem;
+  font-size: 1rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: -.03em;
 }
 .liveNowBar small {
   color: var(--muted-light);
-  font-size: .67rem;
+  font-size: .72rem;
   margin-left: auto;
   text-align: right;
 }
 .chartHint {
   color: var(--muted-light);
-  font-size: .66rem;
-  line-height: 1.4;
+  font-size: .7rem;
+  line-height: 1.45;
   margin: 0;
   padding: 0 .12rem;
   text-align: right;
@@ -217,45 +212,45 @@
 }
 
 @media (max-width: 560px) {
-  .chartExperience { gap: .48rem; }
-  .summaryStrip { margin: -.85rem -.7rem 0; }
+  .chartExperience { gap: .5rem; }
+  .summaryStrip { margin: -.9rem -.75rem 0; }
   .summaryCell {
-    gap: .18rem;
-    min-height: 76px;
-    padding: .62rem .5rem .55rem;
+    gap: .2rem;
+    min-height: 80px;
+    padding: .66rem .52rem .58rem;
   }
   .summaryTopline { gap: .2rem; }
-  .summaryLabel { font-size: .61rem; gap: .24rem; }
+  .summaryLabel { font-size: .68rem; gap: .24rem; }
   .summaryCell > strong,
-  .summaryButton > strong { font-size: 1.35rem; }
+  .summaryButton > strong { font-size: 1.4rem; }
   .summaryCell small { display: none; }
-  .delta { font-size: .56rem; padding: .23rem .27rem; }
-  .liveDot { height: .38rem; width: .38rem; }
+  .delta { font-size: .62rem; padding: .24rem .29rem; }
+  .liveDot { height: .4rem; width: .4rem; }
 
-  .chartContext { min-height: 26px; padding-inline: .02rem; }
-  .chartContext span { font-size: .62rem; }
-  .chartContext > strong { font-size: .68rem; }
-  .chartFrame { min-height: 212px; }
-  .chart { height: 212px; }
-  .axisLabel, .dayLabel { font-size: 10px; }
+  .chartContext { min-height: 28px; padding-inline: .02rem; }
+  .chartContext span { font-size: .7rem; }
+  .chartContext > strong { font-size: .74rem; }
+  .chartFrame { min-height: 214px; }
+  .chart { height: 214px; }
+  .axisLabel, .dayLabel { font-size: 10.5px; }
 
   .liveNowBar {
-    gap: .36rem;
-    min-height: 36px;
-    padding-top: .46rem;
+    gap: .38rem;
+    min-height: 42px;
+    padding-top: .48rem;
   }
-  .liveNowLabel { font-size: .64rem; gap: .28rem; }
-  .liveNowBar > strong { font-size: .86rem; }
-  .liveNowBar small { font-size: .61rem; }
+  .liveNowLabel { font-size: .7rem; gap: .28rem; }
+  .liveNowBar > strong { font-size: .92rem; }
+  .liveNowBar small { font-size: .68rem; }
   .chartHint { display: none; }
 }
 
 @media (max-width: 380px) {
-  .summaryCell { padding-inline: .4rem; }
-  .summaryLabel { font-size: .57rem; }
+  .summaryCell { padding-inline: .42rem; }
+  .summaryLabel { font-size: .64rem; }
   .summaryCell > strong,
-  .summaryButton > strong { font-size: 1.25rem; }
-  .delta { font-size: .52rem; padding-inline: .23rem; }
+  .summaryButton > strong { font-size: 1.3rem; }
+  .delta { font-size: .58rem; padding-inline: .24rem; }
   .liveNowBar small { max-width: 9.5rem; }
 }
 

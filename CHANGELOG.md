@@ -9,10 +9,13 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 ### Added
 
 - Optional first-party visitor analytics for finder opens, one scan-start action per user request, and coarse visible-time engagement milestones, with a separate private `/analytics` report.
+- Rolling analytics views for the last 24 hours, 7, 30, 60, or 90 days, with country, device, browser, and traffic-source audience filters.
+- Repeat-scan diagnostics that distinguish unique scan starters, raw scan clicks, visitors with 2+ scans, and high-frequency 5+ scan activity without labeling it as abuse automatically.
 
 ### Changed
 
 - Kept analytics best-effort and privacy-bounded: scan starts are recorded once per user request rather than per calendar, active time uses coarse milestones, and missing storage, rate limits, or browser privacy restrictions cannot interrupt a finder scan.
+- Made the analytics view summary-first with a sticky navigation bar, refresh/sign-out controls, adaptive hourly/daily/weekly trends, progressive breakdowns, and an attribution footer.
 - Added the database schema and setup boundary for the optional Neon analytics store.
 
 ## [1.8.0] - 2026-08-02

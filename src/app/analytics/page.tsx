@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { ADMIN_SESSION_COOKIE, isValidAdminSessionToken } from "@/lib/admin/auth";
-import { getAnalyticsReport, type AnalyticsReport } from "@/lib/analytics/report";
+import {
+  emptyAnalyticsReport,
+  getAnalyticsReport,
+  parseAnalyticsSearchParams,
+} from "@/lib/analytics/report";
 
 export const dynamic = "force-dynamic";
 
@@ -14,37 +18,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const EMPTY_REPORT: AnalyticsReport = {
-  status: "error",
-  generatedAt: new Date(0).toISOString(),
-  metrics: {
-    visitorsToday: 0,
-    visitors7d: 0,
-    visitors30d: 0,
-    pageViews7d: 0,
-    sessions7d: 0,
-    scanStarts7d: 0,
-    scanStarters7d: 0,
-    scanStartRate7d: 0,
-    engagedSessions60s7d: 0,
-  },
-  daily: [],
-  countries: [],
-  referrers: [],
-  devices: [],
-  browsers: [],
-  scanModes: [],
-  engagement: [],
-};
+type AnalyticsSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({ searchParams }: { searchParams: AnalyticsSearchParams }) {
   const cookieStore = await cookies();
   const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
   if (!isValidAdminSessionToken(token)) redirect("/analytics/login");
 
-  let report = EMPTY_REPORT;
+  const filters = parseAnalyticsSearchParams(await searchParams);
+  let report = emptyAnalyticsReport("error", filters);
   try {
-    report = await getAnalyticsReport();
+    report = await getAnalyticsReport(filters);
   } catch {
     // Keep the visitor dashboard renderable if the report changes later.
   }

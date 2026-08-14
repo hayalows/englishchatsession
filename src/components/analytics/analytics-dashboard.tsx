@@ -1,6 +1,6 @@
 import styles from "./analytics-dashboard.module.css";
 
-import { AnalyticsLiveRefresh } from "@/components/analytics/analytics-live-refresh";
+import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
@@ -17,14 +17,17 @@ function displayGeneratedAt(value: string) {
     }).format(date) + " UTC";
 }
 
-function displayDay(value: string, weekdayOnly = false) {
-  const date = new Date(`${value}T12:00:00Z`);
+function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"]["granularity"], compact = false) {
+  if (granularity === "week") {
+    const [year, week] = value.split("-W");
+    return compact ? `W${week ?? value}` : `Week ${week ?? value}${year ? ` · ${year}` : ""}`;
+  }
+
+  const date = new Date(granularity === "hour" ? `${value.replace(" ", "T")}:00Z` : `${value}T12:00:00Z`);
   if (Number.isNaN(date.valueOf())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "short",
-    ...(weekdayOnly ? {} : { day: "numeric", month: "short" }),
-    timeZone: "UTC",
-  }).format(date);
+  return new Intl.DateTimeFormat("en-GB", granularity === "hour"
+    ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }
+    : { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
 }
 
 function displayMilestone(seconds: number) {
@@ -41,13 +44,15 @@ function MetricCard({ label, value, detail }: { label: string; value: string; de
   );
 }
 
-function TrendPanel({ rows }: { rows: AnalyticsReport["daily"] }) {
+function TrendPanel({ report }: { report: AnalyticsReport }) {
+  const rows = report.trend;
   const width = 760;
   const height = 248;
   const padding = { top: 22, right: 18, bottom: 44, left: 42 };
   const max = Math.max(1, ...rows.map((row) => row.visitors), ...rows.map((row) => row.scanStarters));
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
+  const labelEvery = rows.length > 16 ? Math.ceil(rows.length / 6) : 1;
   const pointsFor = (field: "visitors" | "scanStarters") => rows.map((row, index) => {
     const x = rows.length === 1 ? padding.left + chartWidth / 2 : padding.left + (index / (rows.length - 1)) * chartWidth;
     const y = padding.top + chartHeight - (row[field] / max) * chartHeight;
@@ -57,12 +62,12 @@ function TrendPanel({ rows }: { rows: AnalyticsReport["daily"] }) {
   const scanPoints = pointsFor("scanStarters");
 
   return (
-    <section className={`${styles.panel} ${styles.trendPanel}`} aria-labelledby="daily-visitors-title">
+    <section className={`${styles.panel} ${styles.trendPanel}`} aria-labelledby="trend-title">
       <div className={styles.panelHeader}>
         <div>
           <p className={styles.eyebrow}>Movement</p>
-          <h2 id="daily-visitors-title">Visitors and scan starters</h2>
-          <p>Unique anonymous visitors, last 14 days · UTC</p>
+          <h2 id="trend-title">Visitors and scan starters</h2>
+          <p>{report.filters.trendLabel} · {report.filters.rangeLabel} · {report.filters.segmentLabel}</p>
         </div>
         <div className={styles.legend} aria-label="Chart legend">
           <span><i className={styles.legendVisitor} aria-hidden="true" /> Visitors</span>
@@ -72,7 +77,7 @@ function TrendPanel({ rows }: { rows: AnalyticsReport["daily"] }) {
       {rows.length ? (
         <>
           <div
-            aria-label="Line chart comparing unique finder visitors with unique visitors who started a scan during the last fourteen days"
+            aria-label={`Line chart comparing unique finder visitors with unique visitors who started a scan during ${report.filters.rangeLabel.toLowerCase()}`}
             className={styles.chartFrame}
             role="img"
           >
@@ -90,24 +95,28 @@ function TrendPanel({ rows }: { rows: AnalyticsReport["daily"] }) {
               <polyline className={styles.trendLine} fill="none" points={visitorPoints.map((point) => `${point.x},${point.y}`).join(" ")} />
               <polyline className={styles.scanLine} fill="none" points={scanPoints.map((point) => `${point.x},${point.y}`).join(" ")} />
               {visitorPoints.map((point, index) => (
-                <g key={point.day}>
+                <g key={`${point.label}-${index}`}>
                   <circle className={styles.trendPoint} cx={point.x} cy={point.y} r="4.5" />
                   <circle className={styles.scanPoint} cx={scanPoints[index]?.x} cy={scanPoints[index]?.y} r="4" />
-                  <text className={styles.dayLabel} x={point.x} y={height - 15} textAnchor="middle">{displayDay(point.day, true)}</text>
+                  {index % labelEvery === 0 || index === rows.length - 1 ? (
+                    <text className={styles.dayLabel} x={point.x} y={height - 15} textAnchor="middle">
+                      {displayTrendLabel(point.label, report.filters.granularity, true)}
+                    </text>
+                  ) : null}
                 </g>
               ))}
             </svg>
           </div>
           <details className={styles.dataDisclosure}>
-            <summary>Show daily data table</summary>
+            <summary>Show trend data table</summary>
             <div className={styles.tableWrap}>
               <table>
-                <caption className={styles.srOnly}>Daily visitors, scan starters, page views, and scan-start clicks for the last fourteen days</caption>
-                <thead><tr><th scope="col">Day</th><th scope="col">Visitors</th><th scope="col">Scan starters</th><th scope="col">Page views</th><th scope="col">Scan clicks</th></tr></thead>
+                <caption className={styles.srOnly}>Visitors, scan starters, page views, and scan clicks for {report.filters.rangeLabel.toLowerCase()}</caption>
+                <thead><tr><th scope="col">Period</th><th scope="col">Visitors</th><th scope="col">Scan starters</th><th scope="col">Page views</th><th scope="col">Scan clicks</th></tr></thead>
                 <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.day}>
-                      <th scope="row">{displayDay(row.day)}</th>
+                  {rows.map((row, index) => (
+                    <tr key={`${row.label}-${index}`}>
+                      <th scope="row">{displayTrendLabel(row.label, report.filters.granularity)}</th>
                       <td>{row.visitors.toLocaleString()}</td>
                       <td>{row.scanStarters.toLocaleString()}</td>
                       <td>{row.pageViews.toLocaleString()}</td>
@@ -120,15 +129,15 @@ function TrendPanel({ rows }: { rows: AnalyticsReport["daily"] }) {
           </details>
         </>
       ) : (
-        <p className={styles.empty}>No finder visits yet. The public finder remains usable while analytics storage is empty.</p>
+        <p className={styles.empty}>No finder visits match this view yet.</p>
       )}
     </section>
   );
 }
 
 function FunnelPanel({ report }: { report: AnalyticsReport }) {
-  const { visitors7d, scanStarters7d, scanStartRate7d } = report.metrics;
-  const scanWidth = visitors7d ? Math.max(2, (scanStarters7d / visitors7d) * 100) : 0;
+  const { visitors, scanStarters, scanStartRate } = report.metrics;
+  const scanWidth = visitors ? Math.min(100, Math.max(2, (scanStarters / visitors) * 100)) : 0;
 
   return (
     <section className={styles.panel} aria-labelledby="finder-funnel-title">
@@ -136,30 +145,30 @@ function FunnelPanel({ report }: { report: AnalyticsReport }) {
         <div>
           <p className={styles.eyebrow}>Primary action</p>
           <h2 id="finder-funnel-title">Finder opens to scan starts</h2>
-          <p>Unique visitors, last 7 days</p>
+          <p>Unique visitors · {report.filters.rangeLabel}</p>
         </div>
-        <strong className={styles.heroRate}>{visitors7d ? `${scanStartRate7d}%` : "—"}</strong>
+        <strong className={styles.heroRate}>{visitors ? `${scanStartRate}%` : "—"}</strong>
       </div>
       <div className={styles.flowStages}>
         <div className={styles.flowStage}>
-          <div className={styles.flowStageHeader}><span>Opened finder</span><strong>{visitors7d.toLocaleString()}</strong></div>
+          <div className={styles.flowStageHeader}><span>Opened finder</span><strong>{visitors.toLocaleString()}</strong></div>
           <div className={styles.flowTrack}><span className={styles.flowBar} style={{ width: "100%" }} /></div>
           <small>100% baseline</small>
         </div>
-        <div className={styles.flowConnector} aria-hidden="true"><span>↓</span><strong>{visitors7d ? `${scanStartRate7d}%` : "—"}</strong></div>
+        <div className={styles.flowConnector} aria-hidden="true"><span>↓</span><strong>{visitors ? `${scanStartRate}%` : "—"}</strong></div>
         <div className={styles.flowStage}>
-          <div className={styles.flowStageHeader}><span>Started a scan</span><strong>{scanStarters7d.toLocaleString()}</strong></div>
+          <div className={styles.flowStageHeader}><span>Started a scan</span><strong>{scanStarters.toLocaleString()}</strong></div>
           <div className={styles.flowTrack}><span className={`${styles.flowBar} ${styles.flowBarAccent}`} style={{ width: `${scanWidth}%` }} /></div>
           <small>One event per scan click</small>
         </div>
       </div>
-      <p className={styles.panelNote}>The scan-start event is recorded when the user requests a scan. Checking 20 calendars does not create 20 analytics events.</p>
+      <p className={styles.panelNote}>The rate uses unique visitors. Scan clicks remain available separately, so repeated use is visible without multiplying calendar checks.</p>
     </section>
   );
 }
 
 function EngagementPanel({ report }: { report: AnalyticsReport }) {
-  const baseline = Math.max(1, report.metrics.sessions7d);
+  const baseline = Math.max(1, report.metrics.sessions);
   const values = new Map(report.engagement.map((row) => [row.milestoneSeconds, row]));
 
   return (
@@ -168,7 +177,7 @@ function EngagementPanel({ report }: { report: AnalyticsReport }) {
         <div>
           <p className={styles.eyebrow}>Depth</p>
           <h2 id="engagement-title">Active time on finder</h2>
-          <p>Visible browser sessions, last 7 days</p>
+          <p>Visible browser sessions · {report.filters.rangeLabel}</p>
         </div>
       </div>
       {report.engagement.length ? (
@@ -190,7 +199,44 @@ function EngagementPanel({ report }: { report: AnalyticsReport }) {
           })}
         </div>
       ) : <p className={styles.empty}>Engagement milestones will appear after visitors spend visible time on the finder.</p>}
-      <p className={styles.panelNote}>Approximate active time. Background tabs are paused, and no exact browsing history is stored.</p>
+      <p className={styles.panelNote}>Approximate active time. Background tabs pause, and no exact browsing history is stored.</p>
+    </section>
+  );
+}
+
+function ScanHealthPanel({ report }: { report: AnalyticsReport }) {
+  const { repeatScanVisitors, repeatScanRate, frequentScanVisitors, scansPerStarter, returningVisitors, returningVisitorRate } = report.metrics;
+
+  return (
+    <section className={styles.panel} aria-labelledby="scan-health-title">
+      <div className={styles.panelHeader}>
+        <div>
+          <p className={styles.eyebrow}>Scanner signal</p>
+          <h2 id="scan-health-title">Repeat scan activity</h2>
+          <p>One visitor can create multiple scan clicks · {report.filters.rangeLabel}</p>
+        </div>
+      </div>
+      <div className={styles.healthStats}>
+        <div className={styles.healthStat}><strong>{repeatScanVisitors.toLocaleString()}</strong><span>Visitors with 2+ scans</span></div>
+        <div className={styles.healthStat}><strong>{repeatScanRate ? `${repeatScanRate}%` : "—"}</strong><span>Repeat-scan rate</span></div>
+        <div className={styles.healthStat}><strong>{frequentScanVisitors.toLocaleString()}</strong><span>Visitors with 5+ scans</span></div>
+        <div className={styles.healthStat}><strong>{scansPerStarter ? `${scansPerStarter}×` : "—"}</strong><span>Scans per starter</span></div>
+        <div className={styles.healthStat}><strong>{returningVisitors.toLocaleString()}</strong><span>Returning visitor IDs · {returningVisitorRate}%</span></div>
+      </div>
+      {report.scanFrequency.length ? (
+        <details className={styles.frequencyDisclosure}>
+          <summary>Show scan-frequency mix</summary>
+          <div className={styles.rows}>
+            {report.scanFrequency.map((row) => (
+              <div className={styles.row} key={row.label}>
+                <div className={styles.rowLabel}><strong>{row.label}</strong></div>
+                <strong>{row.total.toLocaleString()}</strong>
+              </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
+      <p className={styles.panelNote}>Repeated use can mean strong intent, uncertainty, or a technical problem. It is an investigation signal, not proof of abuse.</p>
     </section>
   );
 }
@@ -244,38 +290,39 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
       <main className={styles.main} id="analytics-main" aria-labelledby="analytics-title">
         <header className={styles.header}>
           <div>
-            <p className={styles.eyebrow}>Private product view</p>
-            <h1 id="analytics-title">Finder visits</h1>
-            <p>Understand who opens the public English Chat Finder, whether they start a scan, and how deeply they use the page. Scanner calendar checks are not counted as separate actions.</p>
+            <p className={styles.eyebrow}>English Chat Finder</p>
+            <h1 id="analytics-title">Finder analytics</h1>
+            <p>See who opens the finder, whether they start a scan, how deeply they use it, and whether repeated scans deserve investigation. Calendar checks are never counted as separate actions.</p>
           </div>
           <div className={styles.freshness}>
-            <span>Last refreshed</span>
-            <strong>{displayGeneratedAt(report.generatedAt)}</strong>
-            <small>{metrics.visitorsToday.toLocaleString()} today · {metrics.visitors30d.toLocaleString()} unique visitors in 30 days</small>
-            <AnalyticsLiveRefresh />
+            <span>Current view</span>
+            <strong>{report.filters.rangeLabel}</strong>
+            <small>Updated {displayGeneratedAt(report.generatedAt)} · {metrics.pageViews.toLocaleString()} page views</small>
           </div>
         </header>
 
         <StatusNotice report={report} />
+        <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
 
-        <section className={styles.metrics} aria-label="Finder visit summary">
-          <MetricCard detail="Unique anonymous visitors" label="Visitors (7 days)" value={metrics.visitors7d.toLocaleString()} />
-          <MetricCard detail="Scan starters ÷ visitors" label="Scan-start rate" value={metrics.visitors7d ? `${metrics.scanStartRate7d}%` : "—"} />
-          <MetricCard detail="One event per scan click" label="Scan starts (7 days)" value={metrics.scanStarts7d.toLocaleString()} />
-          <MetricCard detail="All public finder opens" label="Page views (7 days)" value={metrics.pageViews7d.toLocaleString()} />
-          <MetricCard detail="Active for at least 60 seconds" label="Engaged sessions" value={metrics.engagedSessions60s7d.toLocaleString()} />
+        <section className={styles.metrics} aria-label="Finder analytics summary">
+          <MetricCard detail="Unique anonymous visitors" label="Visitors" value={metrics.visitors.toLocaleString()} />
+          <MetricCard detail="Scan starters ÷ visitors" label="Scan-start rate" value={metrics.visitors ? `${metrics.scanStartRate}%` : "—"} />
+          <MetricCard detail="One event per scan click" label="Scan starts" value={metrics.scanStarts.toLocaleString()} />
+          <MetricCard detail="Visitors with at least 2 starts" label="Repeat scan rate" value={metrics.scanStarters ? `${metrics.repeatScanRate}%` : "—"} />
+          <MetricCard detail="Active for at least 60 seconds" label="Engaged sessions" value={metrics.engagedSessions60s.toLocaleString()} />
         </section>
 
         <div className={styles.grid}>
           <div className={styles.stack}>
-            <TrendPanel rows={report.daily} />
+            <TrendPanel report={report} />
             <FunnelPanel report={report} />
           </div>
           <div className={styles.stack}>
             <EngagementPanel report={report} />
+            <ScanHealthPanel report={report} />
             <div className={styles.breakdownGrid}>
-              <ListPanel caption="Unique visitors, last 30 days" rows={report.countries} title="Countries" />
-              <ListPanel caption="Unique visitors, last 30 days" rows={report.devices} title="Devices" />
+              <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.countries} title="Countries" />
+              <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.devices} title="Devices" />
             </div>
           </div>
         </div>
@@ -283,9 +330,9 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
         <details className={styles.detailDisclosure}>
           <summary>Explore traffic detail</summary>
           <div className={styles.detailGrid}>
-            <ListPanel caption="Unique visitors, last 30 days" rows={report.browsers} title="Browsers" />
-            <ListPanel caption="Unique sessions, last 30 days" rows={report.referrers} title="Traffic sources" />
-            <ListPanel caption="Recorded scan-start clicks, last 30 days" rows={report.scanModes} title="Scan mode mix" />
+            <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.browsers} title="Browsers" />
+            <ListPanel caption={`Unique sessions · ${report.filters.rangeLabel}`} rows={report.referrers} title="Traffic sources" />
+            <ListPanel caption={`Recorded scan clicks · ${report.filters.rangeLabel}`} rows={report.scanModes} title="Scan mode mix" />
           </div>
         </details>
 
@@ -293,14 +340,16 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
           <summary>How these numbers are defined</summary>
           <ul>
             <li><strong>Visitor:</strong> a pseudonymous browser ID. It is not a named person.</li>
-            <li><strong>Scan-start rate:</strong> unique visitors who started a scan divided by unique visitors who opened the finder in the same 7-day window.</li>
+            <li><strong>Scan-start rate:</strong> unique visitors who started a scan divided by unique visitors who opened the finder in the selected window.</li>
             <li><strong>Scan start:</strong> one click/request by the user. Individual calendar checks are never recorded as analytics events.</li>
+            <li><strong>Repeat scan:</strong> a visitor ID with at least 2 scan-start events in the selected window. Five or more is shown as a high-frequency signal, not an abuse verdict.</li>
+            <li><strong>Returning visitor:</strong> a visitor ID seen before the selected window. Browser storage resets and privacy controls can make this an undercount.</li>
             <li><strong>Active time:</strong> visible-page milestones at 10 seconds, 30 seconds, 60 seconds, and 3 minutes. Hidden tabs pause the clock.</li>
-            <li><strong>Country and device:</strong> coarse request-level categories. Raw IP addresses, names, searches, results, and booking choices are not stored.</li>
+            <li><strong>Country, device, browser, and source:</strong> coarse request-level categories. Raw IP addresses, names, searches, results, and booking choices are not stored.</li>
           </ul>
         </details>
 
-        <p className={styles.privacy}>The optional collector stores event time, the public finder path, coarse location headers, device/browser categories, scan mode, active-time milestones, and pseudonymous browser/session IDs. It does not store raw IP addresses, student names, email addresses, volunteer search text, scanner results, or appointment results. Analytics requests are best-effort and never block the scanner.</p>
+        <footer className={styles.footer}>Designed and built by Papa Kojo Mensah</footer>
       </main>
     </div>
   );

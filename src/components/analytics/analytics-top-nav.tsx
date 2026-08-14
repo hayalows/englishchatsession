@@ -2,6 +2,8 @@
 
 import styles from "./analytics-top-nav.module.css";
 
+import { AnalyticsLiveRefresh } from "@/components/analytics/analytics-live-refresh";
+
 export function AnalyticsTopNav() {
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" }).catch(() => undefined);
@@ -19,7 +21,8 @@ export function AnalyticsTopNav() {
           </span>
         </a>
         <nav className={styles.actions} aria-label="Analytics navigation">
-          <a href="/">Open finder</a>
+          <AnalyticsLiveRefresh compact />
+          <a aria-label="Open English Chat Finder" href="/">Finder</a>
           <button className={styles.logoutButton} onClick={() => void logout()} type="button">Sign out</button>
         </nav>
       </div>

@@ -27,7 +27,7 @@ Vercel deployments are executable artifacts, not the canonical source-code backu
 - Node.js: `24.x`
 - Production alias: `https://englishchatsession.vercel.app`
 - Required environment variables: `ADMIN_PASSWORD` for the password-protected administrator console. The public student finder remains usable without it, but `/admin` fails closed until it is configured.
-- Optional environment variable: `DATABASE_URL` for first-party analytics. Apply [`analytics.sql`](analytics.sql) to the Neon database before setting it in Vercel. The store receives finder opens, one scan-start event per user request, and coarse visible-time milestones; the scanner does not read this database and analytics failures must not block finder requests.
+- Optional environment variable: `DATABASE_URL` for first-party analytics. Apply [`analytics.sql`](analytics.sql) to the Neon database before setting it in Vercel. The store receives finder opens, one scan-start event per user request, and coarse visible-time milestones; the private report supports 24-hour through 90-day views plus country/device/browser/source filters and repeat-scan diagnostics. The scanner does not read this database and analytics failures must not block finder requests.
 
 The local `.vercel/project.json` link is intentionally ignored by Git. A fresh checkout should be linked to the existing Vercel project rather than committing account-specific project metadata.
 

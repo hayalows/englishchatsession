@@ -41,6 +41,13 @@
   opacity: .65;
 }
 
+.compact {
+  margin-top: 0;
+}
+
+.compact span { font-size: .7rem; }
+.compact button { min-height: 44px; padding-inline: .72rem; }
+
 @media (prefers-reduced-motion: reduce) {
   .controls button { transition: none; }
 }

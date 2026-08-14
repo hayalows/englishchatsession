@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { ADMIN_SESSION_COOKIE, isValidAdminSessionToken } from "@/lib/admin/auth";
+import {
+  emptyAnalyticsComparison,
+  getAnalyticsComparison,
+} from "@/lib/analytics/comparison";
 import { displayCountryLabel } from "@/lib/analytics/filters";
 import {
   emptyAnalyticsReport,
@@ -28,11 +32,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: An
 
   const filters = parseAnalyticsSearchParams(await searchParams);
   let report = emptyAnalyticsReport("error", filters);
-  try {
-    report = await getAnalyticsReport(filters);
-  } catch {
-    // Keep the visitor dashboard renderable if the report changes later.
-  }
+  let comparison = emptyAnalyticsComparison(filters);
+
+  const [reportResult, comparisonResult] = await Promise.allSettled([
+    getAnalyticsReport(filters),
+    getAnalyticsComparison(filters),
+  ]);
+  if (reportResult.status === "fulfilled") report = reportResult.value;
+  if (comparisonResult.status === "fulfilled") comparison = comparisonResult.value;
 
   const displayReport = {
     ...report,
@@ -42,5 +49,5 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: An
     })),
   };
 
-  return <AnalyticsDashboard report={displayReport} />;
+  return <AnalyticsDashboard comparison={comparison} report={displayReport} />;
 }

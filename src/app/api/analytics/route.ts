@@ -7,7 +7,9 @@ import { createFixedWindowRateLimiter } from "../../../lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const EVENT_NAMES = new Set(["page_view"]);
+const EVENT_NAMES = new Set(["page_view", "scan_started", "engagement"]);
+const SCAN_MODES = new Set(["all", "name"]);
+const ENGAGEMENT_MILESTONES = new Set([10, 30, 60, 180]);
 const ID_PATTERN = /^[a-zA-Z0-9_-]{8,80}$/;
 const MAX_BODY_BYTES = 4_096;
 const consumeRateLimit = createFixedWindowRateLimiter({
@@ -21,6 +23,7 @@ type IncomingEvent = {
   eventName?: unknown;
   pagePath?: unknown;
   referrerHost?: unknown;
+  metadata?: unknown;
 };
 
 class PayloadTooLargeError extends Error {}
@@ -61,6 +64,28 @@ function browserName(userAgent: string) {
   if (/chrome\//i.test(userAgent)) return "Chrome";
   if (/safari\//i.test(userAgent)) return "Safari";
   return "Other";
+}
+
+function safeMetadata(eventName: string, value: unknown) {
+  if (eventName === "page_view") return {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const input = value as Record<string, unknown>;
+  if (eventName === "scan_started") {
+    const scanMode = text(input.scanMode, 8);
+    return SCAN_MODES.has(scanMode) ? { scanMode } : null;
+  }
+
+  if (eventName === "engagement") {
+    const milestoneSeconds = input.milestoneSeconds;
+    return typeof milestoneSeconds === "number"
+      && Number.isInteger(milestoneSeconds)
+      && ENGAGEMENT_MILESTONES.has(milestoneSeconds)
+      ? { milestoneSeconds }
+      : null;
+  }
+
+  return null;
 }
 
 function clientKey(request: NextRequest) {
@@ -122,13 +147,15 @@ export async function POST(request: NextRequest) {
   const visitorId = text(payload.visitorId, 80);
   const sessionId = text(payload.sessionId, 80);
   const eventName = text(payload.eventName, 40);
-  const pagePath = text(payload.pagePath, 200) || "/";
+  const pagePath = text(payload.pagePath, 200);
+  const metadata = safeMetadata(eventName, payload.metadata);
 
   if (
     !ID_PATTERN.test(visitorId)
     || !ID_PATTERN.test(sessionId)
     || !EVENT_NAMES.has(eventName)
     || pagePath !== "/"
+    || metadata === null
   ) {
     return noStore({ message: "Invalid analytics event." }, 400, rateHeaders);
   }
@@ -161,7 +188,7 @@ export async function POST(request: NextRequest) {
         city,
         deviceType(userAgent),
         browserName(userAgent),
-        JSON.stringify({}),
+        JSON.stringify(metadata),
       ],
     );
   } catch {

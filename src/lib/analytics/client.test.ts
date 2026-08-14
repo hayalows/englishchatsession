@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { trackFirstPartyEvent } from "./client";
+import { startFirstPartyAnalytics, trackFirstPartyEvent, trackScanStarted } from "./client";
 
 function storage() {
   const values = new Map<string, string>();
@@ -11,6 +11,7 @@ function storage() {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -55,6 +56,55 @@ describe("first-party analytics client", () => {
     const secondBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
     expect(firstBody.visitorId).toBe(secondBody.visitorId);
     expect(firstBody.sessionId).toBe(secondBody.sessionId);
+  });
+
+  it("records one scan-start event with mode metadata", () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("window", {
+      location: { pathname: "/" },
+      localStorage: storage(),
+      sessionStorage: storage(),
+    });
+    vi.stubGlobal("document", { referrer: "" });
+
+    trackScanStarted("all");
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      eventName: "scan_started",
+      pagePath: "/",
+      metadata: { scanMode: "all" },
+    });
+  });
+
+  it("sends visible-time milestones and cleans up its timer", () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("window", {
+      location: { pathname: "/" },
+      localStorage: storage(),
+      sessionStorage: storage(),
+      setTimeout,
+      clearTimeout,
+    });
+    const documentStub = new EventTarget() as EventTarget & { referrer: string; visibilityState: string };
+    documentStub.referrer = "";
+    documentStub.visibilityState = "visible";
+    vi.stubGlobal("document", documentStub);
+
+    const cleanup = startFirstPartyAnalytics();
+    vi.advanceTimersByTime(10_000);
+
+    const events = fetchMock.mock.calls.map((call) => JSON.parse(String(call[1]?.body)));
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ eventName: "page_view" }),
+      expect.objectContaining({ eventName: "engagement", metadata: { milestoneSeconds: 10 } }),
+    ]));
+
+    cleanup();
+    vi.advanceTimersByTime(30_000);
+    expect(fetchMock.mock.calls.filter((call) => String(call[1]?.body).includes('"eventName":"engagement"')).length).toBe(1);
   });
 
   it.each(["/admin", "/admin/analytics", "/analytics", "/analytics/login"]) (

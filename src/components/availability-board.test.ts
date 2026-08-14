@@ -49,8 +49,10 @@ describe("availability request retry", () => {
 });
 
 describe("finder state cues", () => {
-  it("keeps visitor analytics out of the scanner component", () => {
-    expect(boardSource).not.toMatch(/analytics|trackFirstPartyEvent|scan_started|scan_completed|booking_clicked/);
+  it("records one user scan request without instrumenting calendar checks", () => {
+    expect(boardSource).toContain("trackScanStarted(scanMode)");
+    expect(boardSource).not.toContain("trackScanStarted(page.bookingUrl)");
+    expect(boardSource).not.toContain("trackScanStarted(url)");
   });
 
   it("shows the loading spinner only through the loading branch of the primary action", () => {

@@ -26,9 +26,9 @@ English Chat Finder helps BYU-Pathway Worldwide students find open 30-minute Eng
 - Temporarily pauses unavailable schedules for 8 hours and provider failures for 10 minutes, then checks them again automatically.
 - Treats a changed or newly listed volunteer URL as new so it can be checked immediately.
 - Provides a separate password-protected `/admin` operations console for explicit calendar health audits, issue reports, and availability snapshots.
-- Optionally records privacy-respecting first-party page views from people who open the public finder and shows them at `/analytics`.
+- Optionally records privacy-respecting first-party finder opens, one scan-start action per user request, and coarse visible-time engagement milestones; it shows the report at `/analytics` without recording individual calendar checks.
 
-The public student finder has no student account system, booking database, messaging service, cron job, or server-side appointment-result history. An optional first-party analytics database stores only bounded page-view events when the public finder at `/` opens; it is not read or called by the scanner, tracking is fire-and-forget, and the finder works when analytics is unavailable. The administrator console and visitor analytics use one server-configured password with separate login entries and expiring session cookies. Link-health data stays in the student's browser and contains only operational booking-URL status; it does not contain student identities, searches, or appointment choices. Vercel Web Analytics records aggregate visits separately. Exact appointment times and final availability must always be confirmed on Google before booking.
+The public student finder has no student account system, booking database, messaging service, cron job, or server-side appointment-result history. An optional first-party analytics database stores only bounded `page_view`, `scan_started`, and active-time `engagement` events from the public finder at `/`; a scan start is one user-level request rather than one event per calendar, and no search text, result, or booking choice is recorded. Tracking is fire-and-forget, the scanner does not depend on the database or read analytics data, and the finder works when analytics is unavailable. The administrator console and visitor analytics use one server-configured password with separate login entries and expiring session cookies. Link-health data stays in the student's browser and contains only operational booking-URL status; it does not contain student identities, searches, or appointment choices. Vercel Web Analytics records aggregate visits separately. Exact appointment times and final availability must always be confirmed on Google before booking.
 
 ## Current progress
 
@@ -83,7 +83,7 @@ Requirements:
 - Node.js 24
 - npm 11 or a compatible npm version
 
-The public student finder requires no secrets or environment variables. To enable the administrator console and visitor analytics locally, set a long random `ADMIN_PASSWORD` in `.env.local`; the server checks it and stores only a signed, expiring HTTP-only session cookie. First-party analytics is optional: set `DATABASE_URL` to a Neon PostgreSQL connection string and run [`docs/analytics.sql`](docs/analytics.sql) once. The scanner does not depend on or call this database.
+The public student finder requires no secrets or environment variables. To enable the administrator console and visitor analytics locally, set a long random `ADMIN_PASSWORD` in `.env.local`; the server checks it and stores only a signed, expiring HTTP-only session cookie. First-party analytics is optional: set `DATABASE_URL` to a Neon PostgreSQL connection string and run [`docs/analytics.sql`](docs/analytics.sql) once. The scanner does not depend on this database, and analytics failures never block a scan.
 
 ```powershell
 npm.cmd ci

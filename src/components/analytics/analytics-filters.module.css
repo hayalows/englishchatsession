@@ -16,8 +16,7 @@
 .rangeDisclosure,
 .filterDisclosure { position: relative; }
 
-.rangeDisclosure > summary,
-.filterDisclosure > summary {
+.controlTrigger {
   align-items: center;
   border-radius: .72rem;
   cursor: pointer;
@@ -29,40 +28,40 @@
   list-style: none;
   min-height: 44px;
   padding: .48rem .72rem;
+  touch-action: manipulation;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 100ms ease;
   user-select: none;
   white-space: nowrap;
 }
 
-.rangeDisclosure > summary::-webkit-details-marker,
-.filterDisclosure > summary::-webkit-details-marker { display: none; }
-
-.rangeDisclosure > summary {
+.rangeDisclosure > .controlTrigger {
   background: var(--surface);
   border: 1px solid var(--line-strong);
   color: var(--ink);
   min-width: 11.5rem;
 }
-.rangeDisclosure > summary:hover,
-.rangeDisclosure[open] > summary {
+.rangeDisclosure > .controlTrigger:hover,
+.rangeDisclosure[data-open="true"] > .controlTrigger {
   background: var(--teal-50);
   border-color: #a8cccc;
   color: var(--teal-700);
 }
 
-.filterDisclosure > summary {
+.filterDisclosure > .controlTrigger {
   background: var(--surface-subtle);
   border: 1px solid var(--line-strong);
   color: var(--ink);
 }
-.filterDisclosure > summary:hover,
-.filterDisclosure[open] > summary {
+.filterDisclosure > .controlTrigger:hover,
+.filterDisclosure[data-open="true"] > .controlTrigger {
   background: var(--teal-50);
   border-color: #a8cccc;
   color: var(--teal-700);
 }
 
-.rangeDisclosure > summary:focus-visible,
-.filterDisclosure > summary:focus-visible,
+.controlTrigger:active { transform: scale(.96); }
+
+.controlTrigger:focus-visible,
 .rangeOption:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: 2px;
@@ -91,7 +90,7 @@
   transition: transform 160ms ease;
   width: .95rem;
 }
-.rangeDisclosure[open] .chevronIcon { transform: rotate(180deg); }
+.rangeDisclosure[data-open="true"] .chevronIcon { transform: rotate(180deg); }
 
 .rangePanel,
 .filterPanel {
@@ -232,17 +231,18 @@
 @media (max-width: 640px) {
   .toolbar { gap: .4rem; justify-content: stretch; }
   .rangeDisclosure { flex: 1 1 auto; min-width: 0; }
-  .rangeDisclosure > summary { justify-content: flex-start; min-width: 0; width: 100%; }
+  .rangeDisclosure > .controlTrigger { justify-content: flex-start; min-width: 0; width: 100%; }
   .rangeSummaryLabel { flex: 1 1 auto; }
   .rangePanel { left: 0; right: auto; width: min(18rem, calc(100vw - 1.6rem)); }
   .filterPanel { width: min(23rem, calc(100vw - 1.6rem)); }
 }
 
 @media (max-width: 390px) {
-  .filterDisclosure > summary { gap: 0; padding-inline: .72rem; }
+  .filterDisclosure > .controlTrigger { gap: 0; padding-inline: .72rem; }
   .filterText { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chevronIcon { transition: none; }
+  .chevronIcon,
+  .controlTrigger { transition: none; }
 }

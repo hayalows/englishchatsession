@@ -186,21 +186,16 @@
   font-weight: 730;
 }
 
-.countryBadge {
+.countryFlag {
   align-items: center;
-  background: color-mix(in srgb, var(--teal-50), var(--surface) 35%);
-  border: 1px solid color-mix(in srgb, var(--teal-700), var(--line) 84%);
-  border-radius: .42rem;
-  color: var(--teal-700);
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: .58rem;
-  font-weight: 820;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 1.05rem;
   height: 1.45rem;
   justify-content: center;
-  letter-spacing: .025em;
-  min-width: 1.72rem;
-  padding-inline: .28rem;
+  line-height: 1;
+  width: 1.45rem;
 }
 
 .empty { color: var(--muted); font-size: .86rem; line-height: 1.5; margin: 1rem 0; }
@@ -612,12 +607,10 @@
   }
   .dialogName { font-size: .83rem; gap: .38rem; }
   .dialogRow > strong { font-size: .78rem; }
-  .countryBadge {
-    border-radius: .34rem;
-    font-size: .53rem;
+  .countryFlag {
+    font-size: .98rem;
     height: 1.3rem;
-    min-width: 1.55rem;
-    padding-inline: .2rem;
+    width: 1.3rem;
   }
   .dialogFooter {
     align-items: stretch;

@@ -13,4 +13,10 @@ describe("analytics audience breakdown detail rows", () => {
     expect(styles).toContain(".dialogRowFill");
     expect(styles).toContain("position: absolute;");
   });
+
+  it("renders country flags from the existing ISO country labels", () => {
+    expect(source).toContain("function countryFlagFromCode");
+    expect(source).toContain("className={styles.countryFlag}");
+    expect(styles).toContain("Apple Color Emoji");
+  });
 });

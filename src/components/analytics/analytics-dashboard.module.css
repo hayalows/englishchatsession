@@ -11,13 +11,13 @@
 }
 
 .header {
-  align-items: end;
+  align-items: start;
   display: flex;
-  gap: 2.25rem;
+  gap: clamp(1.5rem, 5vw, 4rem);
   justify-content: space-between;
-  margin-bottom: 1.15rem;
+  margin-bottom: 1.25rem;
 }
-.header > div:first-child { max-width: 66ch; }
+.headerCopy { max-width: 66ch; }
 .eyebrow {
   color: var(--teal-700);
   font-size: .72rem;
@@ -41,23 +41,35 @@
   max-width: 62ch;
   text-wrap: pretty;
 }
-.freshness {
-  border-left: 2px solid var(--gold-500);
+.headerTools {
+  align-items: end;
   display: grid;
-  gap: .2rem;
-  min-width: 14.5rem;
-  padding-left: .95rem;
+  flex: 0 0 auto;
+  gap: .5rem;
+  justify-items: end;
+  max-width: 30rem;
 }
-.freshness span,
-.freshness small {
-  color: var(--muted);
-  font-size: .76rem;
-  line-height: 1.45;
-}
-.freshness strong {
-  font-size: .94rem;
+.freshness {
+  align-items: center;
+  color: var(--muted-light);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .7rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  gap: .38rem;
+  justify-content: flex-end;
+  line-height: 1.4;
+  max-width: 100%;
+  text-align: right;
+}
+.freshnessDot {
+  background: #1ca66a;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #1ca66a, transparent 86%);
+  display: inline-block;
+  flex: 0 0 auto;
+  height: .42rem;
+  width: .42rem;
 }
 
 .notice {
@@ -311,32 +323,23 @@
     flex-direction: column;
     gap: .85rem;
   }
-  .freshness {
-    border-left: 0;
-    border-top: 1px solid var(--line);
-    padding-left: 0;
-    padding-top: .65rem;
+  .headerTools {
+    align-items: start;
+    justify-items: start;
     width: 100%;
   }
+  .freshness { justify-content: flex-start; text-align: left; }
   .detailGrid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
   .main { padding: 1rem .8rem 3rem; }
-  .header { gap: .38rem; margin-bottom: .55rem; }
+  .header { gap: .62rem; margin-bottom: .75rem; }
   .header .eyebrow { font-size: .7rem; margin-bottom: .28rem; }
-  .header h1 { font-size: 2.05rem; margin-bottom: .12rem; }
-  .header p:not(.eyebrow) { display: none; }
-  .freshness {
-    border: 0;
-    display: block;
-    min-width: 0;
-    padding: 0;
-  }
-  .freshnessLabel,
-  .freshnessRange,
-  .freshnessRefresh { display: none; }
-  .freshnessLatest { font-size: .76rem !important; }
+  .header h1 { font-size: 2.05rem; margin-bottom: .16rem; }
+  .header p:not(.eyebrow) { font-size: .82rem; line-height: 1.45; }
+  .headerTools { gap: .38rem; }
+  .freshness { font-size: .68rem; gap: .34rem; }
 
   .primaryGrid { margin-top: .55rem; }
   .panel { border-radius: 1.1rem; padding: .9rem; }

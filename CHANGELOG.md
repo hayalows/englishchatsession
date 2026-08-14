@@ -8,11 +8,11 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 
 ### Added
 
-- Optional first-party visitor analytics for page views that occur when the public finder opens, with a separate private `/analytics` report.
+- Optional first-party visitor analytics for finder opens, one scan-start action per user request, and coarse visible-time engagement milestones, with a separate private `/analytics` report.
 
 ### Changed
 
-- Kept analytics page-view-only and best-effort: the scanner never calls it, and missing storage, rate limits, or browser privacy restrictions cannot interrupt a finder scan.
+- Kept analytics best-effort and privacy-bounded: scan starts are recorded once per user request rather than per calendar, active time uses coarse milestones, and missing storage, rate limits, or browser privacy restrictions cannot interrupt a finder scan.
 - Added the database schema and setup boundary for the optional Neon analytics store.
 
 ## [1.8.0] - 2026-08-02

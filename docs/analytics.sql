@@ -1,12 +1,13 @@
 -- Optional first-party analytics storage for English Chat Finder.
 -- Run this once in the Neon database used by DATABASE_URL before enabling
--- analytics in Vercel. The scanner does not read from this table.
+-- analytics in Vercel. The scanner does not read from this table; its
+-- user-level scan-start hook is best-effort and never blocks scanning.
 
 CREATE TABLE IF NOT EXISTS analytics_events (
   id BIGSERIAL PRIMARY KEY,
   visitor_id VARCHAR(80) NOT NULL,
   session_id VARCHAR(80) NOT NULL,
-  event_name VARCHAR(40) NOT NULL CHECK (event_name = 'page_view'),
+  event_name VARCHAR(40) NOT NULL CHECK (event_name IN ('page_view', 'scan_started', 'engagement')),
   page_path VARCHAR(200) NOT NULL,
   referrer_host VARCHAR(120),
   country VARCHAR(8),
@@ -18,20 +19,22 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- CREATE TABLE IF NOT EXISTS does not add constraints to an existing table.
+-- CREATE TABLE IF NOT EXISTS does not add or update constraints on an existing table.
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1
     FROM pg_constraint
     WHERE conname = 'analytics_events_event_name_check'
       AND conrelid = 'public.analytics_events'::regclass
   ) THEN
-    ALTER TABLE public.analytics_events
-      ADD CONSTRAINT analytics_events_event_name_check CHECK (
-        event_name = 'page_view'
-      );
+    ALTER TABLE public.analytics_events DROP CONSTRAINT analytics_events_event_name_check;
   END IF;
+
+  ALTER TABLE public.analytics_events
+    ADD CONSTRAINT analytics_events_event_name_check CHECK (
+      event_name IN ('page_view', 'scan_started', 'engagement')
+    );
 END
 $$;
 

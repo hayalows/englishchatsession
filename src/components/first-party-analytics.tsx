@@ -2,12 +2,10 @@
 
 import { useEffect } from "react";
 
-import { trackFirstPartyEvent } from "@/lib/analytics/client";
+import { startFirstPartyAnalytics } from "@/lib/analytics/client";
 
 export function FirstPartyAnalytics() {
-  useEffect(() => {
-    trackFirstPartyEvent();
-  }, []);
+  useEffect(() => startFirstPartyAnalytics(), []);
 
   return null;
 }

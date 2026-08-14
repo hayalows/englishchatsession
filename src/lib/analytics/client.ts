@@ -1,6 +1,12 @@
 const VISITOR_KEY = "english-chat-anonymous-visitor:v1";
 const SESSION_KEY = "english-chat-anonymous-session:v1";
 const ID_PATTERN = /^[a-zA-Z0-9_-]{8,80}$/;
+export const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
+
+export type ScanMode = "all" | "name";
+type AnalyticsIds = { visitorId: string; sessionId: string };
+type AnalyticsEventName = "page_view" | "scan_started" | "engagement";
+type EventMetadata = { scanMode?: ScanMode; milestoneSeconds?: number };
 
 let fallbackVisitorId: string | null = null;
 let fallbackSessionId: string | null = null;
@@ -57,16 +63,13 @@ function referrerHost() {
   }
 }
 
-/**
- * Sends one anonymous page-view signal for the public finder only.
- * The scanner does not call this function and must not depend on it.
- */
-export function trackFirstPartyEvent() {
-  try {
-    if (typeof window === "undefined" || window.location.pathname !== "/") return;
+function isFinderPage() {
+  return typeof window !== "undefined" && window.location.pathname === "/";
+}
 
-    const ids = browserIds();
-    if (!ids) return;
+function sendEvent(eventName: AnalyticsEventName, ids: AnalyticsIds, metadata: EventMetadata = {}) {
+  try {
+    if (!isFinderPage()) return;
 
     void fetch("/api/analytics", {
       method: "POST",
@@ -74,12 +77,99 @@ export function trackFirstPartyEvent() {
       keepalive: true,
       body: JSON.stringify({
         ...ids,
-        eventName: "page_view",
+        eventName,
         pagePath: "/",
         referrerHost: referrerHost(),
+        metadata,
       }),
     }).catch(() => undefined);
   } catch {
     // Storage, URL, and browser privacy failures must never affect the finder.
   }
+}
+
+/**
+ * Sends one anonymous page-view signal for the public finder only.
+ * This is intentionally separate from scan instrumentation so a failed
+ * analytics request can never interrupt the finder.
+ */
+export function trackFirstPartyEvent() {
+  if (!isFinderPage()) return;
+  const ids = browserIds();
+  if (ids) sendEvent("page_view", ids);
+}
+
+/** Records one user-level scan request, never the calendars checked by it. */
+export function trackScanStarted(scanMode: ScanMode) {
+  if (!isFinderPage()) return;
+  const ids = browserIds();
+  if (ids) sendEvent("scan_started", ids, { scanMode });
+}
+
+/**
+ * Starts page-view and active-time tracking for the public finder.
+ * Engagement is measured in visible-time milestones, not exact browsing history.
+ */
+export function startFirstPartyAnalytics() {
+  if (!isFinderPage() || typeof document === "undefined") return () => undefined;
+
+  const ids = browserIds();
+  if (!ids) return () => undefined;
+
+  sendEvent("page_view", ids);
+
+  let activeSince = document.visibilityState === "hidden" ? null : performance.now();
+  let activeMilliseconds = 0;
+  let milestoneIndex = 0;
+  let timer: number | null = null;
+
+  const stopTimer = () => {
+    if (timer !== null) window.clearTimeout(timer);
+    timer = null;
+  };
+
+  const pauseClock = () => {
+    if (activeSince === null) return;
+    activeMilliseconds += Math.max(0, performance.now() - activeSince);
+    activeSince = null;
+  };
+
+  const resumeClock = () => {
+    if (activeSince === null) activeSince = performance.now();
+  };
+
+  const scheduleNextMilestone = () => {
+    if (activeSince === null || milestoneIndex >= ENGAGEMENT_MILESTONES.length) return;
+    const nextMilestone = ENGAGEMENT_MILESTONES[milestoneIndex] * 1_000;
+    const remaining = Math.max(250, nextMilestone - activeMilliseconds);
+    timer = window.setTimeout(() => {
+      timer = null;
+      if (activeSince === null) return;
+      activeMilliseconds += Math.max(0, performance.now() - activeSince);
+      activeSince = performance.now();
+      if (activeMilliseconds >= nextMilestone) {
+        sendEvent("engagement", ids, { milestoneSeconds: ENGAGEMENT_MILESTONES[milestoneIndex] });
+        milestoneIndex += 1;
+      }
+      scheduleNextMilestone();
+    }, remaining);
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "hidden") {
+      pauseClock();
+      stopTimer();
+      return;
+    }
+    resumeClock();
+    scheduleNextMilestone();
+  };
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  scheduleNextMilestone();
+
+  return () => {
+    stopTimer();
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
 }

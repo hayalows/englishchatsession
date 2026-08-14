@@ -136,7 +136,9 @@ export function AnalyticsBreakdownCard({
     if (dialogOpen && !dialog.open) {
       if (typeof dialog.showModal === "function") dialog.showModal();
       else dialog.setAttribute("open", "");
-      requestAnimationFrame(() => searchRef.current?.focus());
+      if (window.matchMedia("(pointer: fine)").matches) {
+        requestAnimationFrame(() => searchRef.current?.focus());
+      }
       return;
     }
 
@@ -182,7 +184,7 @@ export function AnalyticsBreakdownCard({
       body.style.overflow = previousBody.overflow;
       body.style.paddingRight = previousBody.paddingRight;
       root.style.overscrollBehavior = previousRootOverscroll;
-      window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
+      window.scrollTo(0, scrollY);
     };
   }, [dialogOpen]);
 
@@ -267,28 +269,13 @@ export function AnalyticsBreakdownCard({
           <span className={styles.metricLabel}>{METRIC_LABELS[activeMetric]}</span>
 
           <div className={styles.desktopActions} aria-label={`${title} actions`}>
-            <button
-              aria-label={`View all ${title}`}
-              onClick={(event) => openDetails(event.currentTarget)}
-              title={`View all ${title}`}
-              type="button"
-            >
+            <button aria-label={`View all ${title}`} onClick={(event) => openDetails(event.currentTarget)} title={`View all ${title}`} type="button">
               <ExpandIcon />
             </button>
-            <button
-              aria-label={`Switch ${title} to ${METRIC_LABELS[nextMetric]}`}
-              onClick={switchMetric}
-              title={`Switch to ${METRIC_LABELS[nextMetric]}`}
-              type="button"
-            >
+            <button aria-label={`Switch ${title} to ${METRIC_LABELS[nextMetric]}`} onClick={switchMetric} title={`Switch to ${METRIC_LABELS[nextMetric]}`} type="button">
               <SwitchIcon />
             </button>
-            <button
-              aria-label={`Export ${title} as CSV`}
-              onClick={exportCsv}
-              title="Export CSV"
-              type="button"
-            >
+            <button aria-label={`Export ${title} as CSV`} onClick={exportCsv} title="Export CSV" type="button">
               <DownloadIcon />
             </button>
           </div>
@@ -307,15 +294,9 @@ export function AnalyticsBreakdownCard({
 
         {menuOpen ? (
           <div className={styles.mobileMenu} role="menu">
-            <button onClick={(event) => openDetails(event.currentTarget)} role="menuitem" type="button">
-              <ExpandIcon /><span>View all</span>
-            </button>
-            <button onClick={switchMetric} role="menuitem" type="button">
-              <SwitchIcon /><span>Switch to {METRIC_LABELS[nextMetric]}</span>
-            </button>
-            <button onClick={exportCsv} role="menuitem" type="button">
-              <DownloadIcon /><span>Export CSV</span>
-            </button>
+            <button onClick={(event) => openDetails(event.currentTarget)} role="menuitem" type="button"><ExpandIcon /><span>View all</span></button>
+            <button onClick={switchMetric} role="menuitem" type="button"><SwitchIcon /><span>Switch to {METRIC_LABELS[nextMetric]}</span></button>
+            <button onClick={exportCsv} role="menuitem" type="button"><DownloadIcon /><span>Export CSV</span></button>
           </div>
         ) : null}
       </header>
@@ -325,9 +306,7 @@ export function AnalyticsBreakdownCard({
           {topRows.map((row) => {
             const value = metricValue(row, activeMetric);
             const fill = activeMetric === "scanUsage" ? value : Math.max(3, (value / max) * 100);
-            const share = activeMetric === "scanUsage"
-              ? value
-              : total ? Math.round((value / total) * 100) : 0;
+            const share = activeMetric === "scanUsage" ? value : total ? Math.round((value / total) * 100) : 0;
             const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
             return (
               <div className={styles.row} key={row.label}>
@@ -361,9 +340,7 @@ export function AnalyticsBreakdownCard({
               <h2>{title}</h2>
               <p>{rangeLabel} · {METRIC_LABELS[activeMetric]}</p>
             </div>
-            <button aria-label={`Close ${title}`} className={styles.closeButton} onClick={closeDetails} type="button">
-              <CloseIcon />
-            </button>
+            <button aria-label={`Close ${title}`} className={styles.closeButton} onClick={closeDetails} type="button"><CloseIcon /></button>
           </header>
 
           <div className={styles.searchWrap}>
@@ -389,9 +366,7 @@ export function AnalyticsBreakdownCard({
               {filteredRows.map((row) => {
                 const value = metricValue(row, activeMetric);
                 const fill = activeMetric === "scanUsage" ? value : Math.max(3, (value / max) * 100);
-                const share = activeMetric === "scanUsage"
-                  ? value
-                  : total ? Math.round((value / total) * 100) : 0;
+                const share = activeMetric === "scanUsage" ? value : total ? Math.round((value / total) * 100) : 0;
                 const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
                 return (
                   <div className={styles.dialogRow} key={row.label}>

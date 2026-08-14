@@ -15,6 +15,7 @@ import {
 import type { AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
+import { displayCompactAnalyticsTimestamp } from "@/lib/analytics/timestamps";
 
 const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
 
@@ -46,20 +47,6 @@ function displayLatestEventAt(value: string | null) {
       dateStyle: "medium",
       timeStyle: "short",
       timeZone: "UTC",
-    }).format(date) + " UTC";
-}
-
-function displayCompactTimestamp(value: string | null) {
-  if (!value) return "No events yet";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf())
-    ? "Not available"
-    : new Intl.DateTimeFormat("en-GB", {
-      day: "numeric",
-      month: "short",
-      timeStyle: "short",
-      timeZone: "UTC",
-      hour12: false,
     }).format(date) + " UTC";
 }
 
@@ -329,9 +316,9 @@ export function AnalyticsDashboard({
               title={`Latest data ${displayLatestEventAt(report.latestEventAt)} · Report refreshed ${displayGeneratedAt(report.generatedAt)}`}
             >
               <span aria-hidden="true" className={styles.freshnessDot} />
-              <span>Updated {displayCompactTimestamp(report.latestEventAt)}</span>
+              <span>Updated {displayCompactAnalyticsTimestamp(report.latestEventAt)}</span>
               <span aria-hidden="true">·</span>
-              <span>Refreshed {displayCompactTimestamp(report.generatedAt)}</span>
+              <span>Refreshed {displayCompactAnalyticsTimestamp(report.generatedAt)}</span>
             </div>
           </div>
         </header>

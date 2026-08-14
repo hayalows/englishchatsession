@@ -413,7 +413,7 @@ export function AnalyticsBreakdownCard({
                     const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
                     return (
                       <div className={styles.dialogRow} key={row.label} role="listitem">
-                        <span className={styles.dialogRowFill} style={{ width: `${Math.min(100, fill)}%` }} />
+                        <span aria-hidden="true" className={styles.dialogRowFill} style={{ width: `${Math.min(100, fill)}%` }} />
                         <span className={styles.dialogName}>
                           {countryCode ? <span aria-hidden="true" className={styles.countryBadge}>{countryCode}</span> : null}
                           <span>{displayLabel(row.label, kind)}</span>

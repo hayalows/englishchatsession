@@ -3,7 +3,7 @@
 import { useId, useMemo, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
-import { ACTIVE_NOW_WINDOW_SECONDS, type AnalyticsReport } from "@/lib/analytics/report";
+import type { AnalyticsReport } from "@/lib/analytics/report";
 
 import styles from "./analytics-trend-chart.module.css";
 
@@ -18,6 +18,7 @@ type Point = TrendRow & {
   y: number;
 };
 
+const ACTIVE_NOW_WINDOW_SECONDS = 90;
 const WIDTH = 880;
 const HEIGHT = 270;
 const PADDING = { top: 22, right: 22, bottom: 40, left: 40 };

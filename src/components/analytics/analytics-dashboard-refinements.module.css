@@ -75,40 +75,12 @@
   margin-top: .48rem;
 }
 
-.scanSummary {
-  border-block: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: -.15rem;
-}
-.scanSummaryStat {
-  display: grid;
-  gap: .25rem;
-  min-width: 0;
-  padding: .85rem .75rem;
-}
-.scanSummaryStat + .scanSummaryStat { border-left: 1px solid var(--line); }
-.scanSummaryStat strong {
-  color: var(--teal-700);
-  font-size: 1.3rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -.04em;
-  line-height: 1;
-}
-.scanSummaryStat span {
-  color: var(--muted);
-  font-size: .72rem;
-  line-height: 1.4;
-}
-
-.scanDetailDisclosure,
-.panelRowsDisclosure {
+.scanDetailDisclosure {
   border-top: 1px solid var(--line);
   margin-top: .72rem;
   padding-top: .28rem;
 }
-.scanDetailDisclosure summary,
-.panelRowsDisclosure summary {
+.scanDetailDisclosure summary {
   align-items: center;
   color: var(--teal-700);
   cursor: pointer;
@@ -118,8 +90,7 @@
   min-height: 44px;
   width: fit-content;
 }
-.scanDetailDisclosure summary:focus-visible,
-.panelRowsDisclosure summary:focus-visible {
+.scanDetailDisclosure summary:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: 3px;
 }
@@ -146,17 +117,6 @@
   font-size: .84rem;
   font-variant-numeric: tabular-nums;
 }
-.scanDetailLabel {
-  color: var(--muted-light);
-  font-size: .7rem;
-  font-weight: 800;
-  letter-spacing: .06em;
-  margin: .75rem 0 .1rem;
-  text-transform: uppercase;
-}
-.moreRows { padding-top: .55rem; }
-.panelRowsDisclosure { margin-top: .55rem; }
-
 @media (max-width: 560px) {
   .tableViewport {
     max-height: 16.5rem;
@@ -173,9 +133,6 @@
   .breakdownViewport { max-height: 11.4rem; }
   .breakdownHint { font-size: .69rem; }
 
-  .scanSummaryStat { padding: .74rem .46rem; }
-  .scanSummaryStat strong { font-size: 1.1rem; }
-  .scanSummaryStat span { font-size: .7rem; }
   .scanDetailDisclosure summary { font-size: .76rem; }
   .scanDetailRow span { font-size: .74rem; }
 }

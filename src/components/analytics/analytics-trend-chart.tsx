@@ -18,7 +18,6 @@ type Point = TrendRow & {
   y: number;
 };
 
-const ACTIVE_NOW_WINDOW_SECONDS = 90;
 const WIDTH = 880;
 const HEIGHT = 270;
 const PADDING = { top: 22, right: 22, bottom: 40, left: 40 };
@@ -317,13 +316,7 @@ export function AnalyticsTrendChart({
         </svg>
       </div>
 
-      <div className={styles.liveNowBar} aria-label="Live finder activity">
-        <span className={styles.liveNowLabel}><i className={styles.liveDot} aria-hidden="true" />Active now</span>
-        <strong>{metrics.activeNowVisitors.toLocaleString()}</strong>
-        <small>{metrics.activeNowSessions.toLocaleString()} visible sessions · last {ACTIVE_NOW_WINDOW_SECONDS}s</small>
-      </div>
-
-      <p className={styles.chartHint}>Tap a metric above to switch the chart and audience breakdowns. Tap or move across the graph to inspect a point.</p>
+      <p className={styles.chartHint}>Select a metric above. Tap or move across the chart to inspect a period.</p>
     </div>
   );
 }

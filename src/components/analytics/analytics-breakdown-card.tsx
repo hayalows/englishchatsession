@@ -34,10 +34,8 @@ function metricValue(row: AnalyticsBreakdownRow, metric: AnalyticsPrimaryMetric)
   return row.visitors;
 }
 
-function flagFromCountryLabel(label: string) {
-  const match = label.match(/\(([A-Z]{2})\)$/);
-  if (!match) return null;
-  return String.fromCodePoint(...match[1].split("").map((char) => 127397 + char.charCodeAt(0)));
+function countryCodeFromLabel(label: string) {
+  return label.match(/\(([A-Z]{2})\)$/)?.[1] ?? null;
 }
 
 function displayLabel(label: string, kind?: Props["kind"]) {
@@ -45,27 +43,55 @@ function displayLabel(label: string, kind?: Props["kind"]) {
   return label.replace(/\s*\([A-Z]{2}\)$/, "");
 }
 
-function IconExpand() {
+function ExpandIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M7.2 3.5H3.5v3.7M12.8 3.5h3.7v3.7M7.2 16.5H3.5v-3.7M12.8 16.5h3.7v-3.7M3.8 7l4-4M16.2 7l-4-4M3.8 13l4 4M16.2 13l-4 4" /></svg>
+    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
+      <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
+      <path d="m3.5 8 5-5M20.5 8l-5-5M3.5 16l5 5M20.5 16l-5 5" />
+    </svg>
   );
 }
 
-function IconSwitch() {
+function SwitchIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3.5 6h10.8M11.5 3.2 14.3 6l-2.8 2.8M16.5 14H5.7M8.5 11.2 5.7 14l2.8 2.8" /></svg>
+    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
+      <path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3" />
+    </svg>
   );
 }
 
-function IconDownload() {
+function DownloadIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 3.2v8.4M6.9 8.8 10 12l3.1-3.2M4 15.8h12" /></svg>
+    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
+      <path d="M12 4v10M8 10l4 4 4-4M5 20h14" />
+    </svg>
   );
 }
 
-function IconMore() {
+function MoreIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20"><circle cx="4" cy="10" r="1.3" /><circle cx="10" cy="10" r="1.3" /><circle cx="16" cy="10" r="1.3" /></svg>
+    <svg aria-hidden="true" className={styles.icon} viewBox="0 0 24 24">
+      <circle cx="5" cy="12" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="19" cy="12" r="1.6" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg aria-hidden="true" className={styles.searchIcon} fill="none" viewBox="0 0 24 24">
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="m15 15 5 5" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
   );
 }
 
@@ -82,8 +108,10 @@ export function AnalyticsBreakdownCard({
   onMetricChange,
   kind,
 }: Props) {
+  const cardRef = useRef<HTMLElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -104,13 +132,39 @@ export function AnalyticsBreakdownCard({
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
+
     if (dialogOpen && !dialog.open) {
-      dialog.showModal();
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
       requestAnimationFrame(() => searchRef.current?.focus());
-    } else if (!dialogOpen && dialog.open) {
-      dialog.close();
+      return;
+    }
+
+    if (!dialogOpen && dialog.open) {
+      if (typeof dialog.close === "function") dialog.close();
+      else dialog.removeAttribute("open");
     }
   }, [dialogOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && !cardRef.current?.contains(target)) setMenuOpen(false);
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   const filteredRows = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
@@ -118,10 +172,20 @@ export function AnalyticsBreakdownCard({
     return sortedRows.filter((row) => row.label.toLocaleLowerCase().includes(normalized));
   }, [query, sortedRows]);
 
-  function openDetails() {
+  function openDetails(trigger: HTMLButtonElement | null) {
+    lastTriggerRef.current = trigger;
     setMenuOpen(false);
     setQuery("");
     setDialogOpen(true);
+  }
+
+  function closeDetails() {
+    setDialogOpen(false);
+  }
+
+  function handleDialogClose() {
+    setDialogOpen(false);
+    requestAnimationFrame(() => lastTriggerRef.current?.focus());
   }
 
   function switchMetric() {
@@ -148,31 +212,70 @@ export function AnalyticsBreakdownCard({
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   return (
-    <section className={styles.card} aria-label={`${title}, ${METRIC_LABELS[activeMetric]}`}>
-      <header className={styles.header} style={{ gridTemplateColumns: "minmax(0, 1fr) auto auto" }}>
-        <div>
+    <section className={styles.card} aria-label={`${title}, ${METRIC_LABELS[activeMetric]}`} ref={cardRef}>
+      <header className={styles.header}>
+        <div className={styles.titleBlock}>
           <h3>{title}</h3>
           <p>{rangeLabel}</p>
         </div>
-        <span className={styles.metricLabel}>{METRIC_LABELS[activeMetric]}</span>
-        <button
-          aria-expanded={menuOpen}
-          aria-label={`${title} actions`}
-          className={styles.mobileMenuButton}
-          onClick={() => setMenuOpen((value) => !value)}
-          type="button"
-        >
-          <IconMore />
-        </button>
+
+        <div className={styles.headerMeta}>
+          <span className={styles.metricLabel}>{METRIC_LABELS[activeMetric]}</span>
+
+          <div className={styles.desktopActions} aria-label={`${title} actions`}>
+            <button
+              aria-label={`View all ${title}`}
+              onClick={(event) => openDetails(event.currentTarget)}
+              title={`View all ${title}`}
+              type="button"
+            >
+              <ExpandIcon />
+            </button>
+            <button
+              aria-label={`Switch ${title} to ${METRIC_LABELS[nextMetric]}`}
+              onClick={switchMetric}
+              title={`Switch to ${METRIC_LABELS[nextMetric]}`}
+              type="button"
+            >
+              <SwitchIcon />
+            </button>
+            <button
+              aria-label={`Export ${title} as CSV`}
+              onClick={exportCsv}
+              title="Export CSV"
+              type="button"
+            >
+              <DownloadIcon />
+            </button>
+          </div>
+
+          <button
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+            aria-label={`${title} actions`}
+            className={styles.mobileMenuButton}
+            onClick={() => setMenuOpen((value) => !value)}
+            type="button"
+          >
+            <MoreIcon />
+          </button>
+        </div>
+
         {menuOpen ? (
           <div className={styles.mobileMenu} role="menu">
-            <button onClick={openDetails} role="menuitem" type="button">View all</button>
-            <button onClick={switchMetric} role="menuitem" type="button">Switch to {METRIC_LABELS[nextMetric]}</button>
-            <button onClick={exportCsv} role="menuitem" type="button">Export CSV</button>
+            <button onClick={(event) => openDetails(event.currentTarget)} role="menuitem" type="button">
+              <ExpandIcon /><span>View all</span>
+            </button>
+            <button onClick={switchMetric} role="menuitem" type="button">
+              <SwitchIcon /><span>Switch to {METRIC_LABELS[nextMetric]}</span>
+            </button>
+            <button onClick={exportCsv} role="menuitem" type="button">
+              <DownloadIcon /><span>Export CSV</span>
+            </button>
           </div>
         ) : null}
       </header>
@@ -185,12 +288,12 @@ export function AnalyticsBreakdownCard({
             const share = activeMetric === "scanUsage"
               ? value
               : total ? Math.round((value / total) * 100) : 0;
-            const flag = flagFromCountryLabel(row.label);
+            const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
             return (
               <div className={styles.row} key={row.label}>
                 <span className={styles.rowFill} style={{ width: `${Math.min(100, fill)}%` }} />
                 <span className={styles.rowName}>
-                  {flag ? <span className={styles.flag} aria-hidden="true">{flag}</span> : null}
+                  {countryCode ? <span aria-hidden="true" className={styles.countryBadge}>{countryCode}</span> : null}
                   <span>{displayLabel(row.label, kind)}</span>
                 </span>
                 <strong>{activeMetric === "scanUsage" ? `${value}%` : `${share}%`}</strong>
@@ -205,19 +308,12 @@ export function AnalyticsBreakdownCard({
         <span>{activeMetric === "scanUsage" ? "Rate by group" : "Share of selected metric"}</span>
       </footer>
 
-      <div className={styles.actionDock} aria-label={`${title} quick actions`}>
-        <button aria-label={`View all ${title}`} onClick={openDetails} title="View all" type="button"><IconExpand /></button>
-        <button aria-label={`Switch ${title} to ${METRIC_LABELS[nextMetric]}`} onClick={switchMetric} title={`Switch to ${METRIC_LABELS[nextMetric]}`} type="button"><IconSwitch /></button>
-        <button aria-label={`Export ${title} as CSV`} onClick={exportCsv} title="Export CSV" type="button"><IconDownload /></button>
-      </div>
-
       <dialog
         className={styles.dialog}
-        onCancel={(event) => { event.preventDefault(); setDialogOpen(false); }}
-        onClick={(event) => { if (event.target === event.currentTarget) setDialogOpen(false); }}
-        onClose={() => setDialogOpen(false)}
+        onCancel={(event) => { event.preventDefault(); closeDetails(); }}
+        onClick={(event) => { if (event.target === event.currentTarget) closeDetails(); }}
+        onClose={handleDialogClose}
         ref={dialogRef}
-        style={dialogOpen ? { display: "grid", placeItems: "center" } : undefined}
       >
         <div className={styles.dialogSurface}>
           <header className={styles.dialogHeader}>
@@ -225,11 +321,13 @@ export function AnalyticsBreakdownCard({
               <h2>{title}</h2>
               <p>{rangeLabel} · {METRIC_LABELS[activeMetric]}</p>
             </div>
-            <button aria-label={`Close ${title}`} className={styles.closeButton} onClick={() => setDialogOpen(false)} type="button">×</button>
+            <button aria-label={`Close ${title}`} className={styles.closeButton} onClick={closeDetails} type="button">
+              <CloseIcon />
+            </button>
           </header>
 
           <div className={styles.searchWrap}>
-            <svg aria-hidden="true" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="4.5" /><path d="m12 12 4 4" /></svg>
+            <SearchIcon />
             <input
               aria-label={`Search ${title}`}
               onChange={(event) => setQuery(event.target.value)}
@@ -251,12 +349,12 @@ export function AnalyticsBreakdownCard({
                 const share = activeMetric === "scanUsage"
                   ? value
                   : total ? Math.round((value / total) * 100) : 0;
-                const flag = flagFromCountryLabel(row.label);
+                const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
                 return (
                   <div className={styles.dialogRow} key={row.label}>
                     <span className={styles.dialogRowFill} style={{ width: `${Math.min(100, fill)}%` }} />
                     <span className={styles.dialogName}>
-                      {flag ? <span className={styles.flag} aria-hidden="true">{flag}</span> : null}
+                      {countryCode ? <span aria-hidden="true" className={styles.countryBadge}>{countryCode}</span> : null}
                       <span>{displayLabel(row.label, kind)}</span>
                     </span>
                     <strong>{`${share}%`}</strong>
@@ -272,8 +370,8 @@ export function AnalyticsBreakdownCard({
 
           <footer className={styles.dialogFooter}>
             <span>{filteredRows.length} of {sortedRows.length}</span>
-            <button onClick={exportCsv} type="button"><IconDownload /> Export CSV</button>
-            <button onClick={() => setDialogOpen(false)} type="button">Close</button>
+            <button onClick={exportCsv} type="button"><DownloadIcon /><span>Export CSV</span></button>
+            <button onClick={closeDetails} type="button">Close</button>
           </footer>
         </div>
       </dialog>

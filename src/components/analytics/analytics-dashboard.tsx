@@ -1,8 +1,10 @@
 import styles from "./analytics-dashboard.module.css";
 
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
+import { AnalyticsPeriodComparison } from "@/components/analytics/analytics-period-comparison";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
 import { AnalyticsTrendChart } from "@/components/analytics/analytics-trend-chart";
+import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import { ACTIVE_NOW_WINDOW_SECONDS, type AnalyticsReport } from "@/lib/analytics/report";
 
 const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
@@ -263,7 +265,13 @@ function StatusNotice({ report }: { report: AnalyticsReport }) {
   return <div className={styles.notice} role={report.status === "error" ? "alert" : "status"}>{message}</div>;
 }
 
-export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
+export function AnalyticsDashboard({
+  report,
+  comparison,
+}: {
+  report: AnalyticsReport;
+  comparison: AnalyticsComparison;
+}) {
   const metrics = report.metrics;
 
   return (
@@ -286,6 +294,7 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
 
         <StatusNotice report={report} />
         <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
+        <AnalyticsPeriodComparison comparison={comparison} report={report} />
 
         <section className={styles.metrics} aria-label="Primary finder analytics">
           <MetricCard detail="Unique anonymous visitors" label="Visitors" value={metrics.visitors.toLocaleString()} />
@@ -340,6 +349,7 @@ export function AnalyticsDashboard({ report }: { report: AnalyticsReport }) {
           <ul>
             <li><strong>Visitor:</strong> a pseudonymous browser ID. It is not a named person.</li>
             <li><strong>Page view:</strong> one recorded opening/view of the finder page. One visitor can create multiple views.</li>
+            <li><strong>Period change:</strong> the selected rolling window compared with the immediately preceding window of the same length, using the same audience filters. Incomplete pre-production history is never used as a baseline.</li>
             <li><strong>Scan-start rate:</strong> unique visitors who started a scan divided by unique visitors who opened the finder in the selected window.</li>
             <li><strong>Scan start:</strong> one click/request by the user. Individual calendar checks are never recorded as analytics events.</li>
             <li><strong>Repeat scan:</strong> a visitor ID with at least 2 scan-start events in the selected window. Five or more is shown as a high-frequency signal, not an abuse verdict.</li>

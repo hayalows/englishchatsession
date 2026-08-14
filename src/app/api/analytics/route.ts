@@ -165,18 +165,12 @@ export async function POST(request: NextRequest) {
 
   const userAgent = request.headers.get("user-agent") ?? "";
   const country = nullableText(request.headers.get("x-vercel-ip-country"), 8);
-  const region = nullableText(request.headers.get("x-vercel-ip-country-region"), 80);
-  const encodedCity = nullableText(request.headers.get("x-vercel-ip-city"), 120);
-  let city = encodedCity;
-  if (encodedCity) {
-    try { city = decodeURIComponent(encodedCity); } catch { city = encodedCity; }
-  }
 
   try {
     await analyticsQuery(
       `INSERT INTO analytics_events
-        (visitor_id, session_id, event_name, page_path, referrer_host, country, region, city, device_type, browser, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)`,
+        (visitor_id, session_id, event_name, page_path, referrer_host, country, device_type, browser, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
       [
         visitorId,
         sessionId,
@@ -184,8 +178,6 @@ export async function POST(request: NextRequest) {
         pagePath,
         nullableText(payload.referrerHost, 120),
         country,
-        region,
-        city,
         deviceType(userAgent),
         browserName(userAgent),
         JSON.stringify(metadata),

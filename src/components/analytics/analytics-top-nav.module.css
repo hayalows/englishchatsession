@@ -1,6 +1,10 @@
 .header {
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--canvas), transparent 4%);
+  background: color-mix(in srgb, var(--canvas), transparent 8%);
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .inner {
@@ -66,6 +70,7 @@
   .copy small { display: none; }
   .copy strong { font-size: .78rem; }
   .actions a, .logoutButton { font-size: .72rem; padding-inline: .65rem; }
+  .actions > div span { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

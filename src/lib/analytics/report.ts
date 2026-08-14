@@ -4,21 +4,100 @@ import {
   analyticsDatabaseStatus,
   analyticsQuery,
   type AnalyticsDatabaseStatus,
-} from "@/lib/analytics/neon";
+} from "./neon";
+import {
+  type AnalyticsFilterInput,
+  type AnalyticsRange,
+  type AnalyticsSegment,
+  analyticsFilterLabel,
+  normalizeAnalyticsFilters,
+} from "./filters";
 
-type MetricRow = {
-  visitors_today: unknown;
-  visitors_7d: unknown;
-  visitors_30d: unknown;
-  page_views_7d: unknown;
-  sessions_7d: unknown;
-  scan_starts_7d: unknown;
-  scan_starters_7d: unknown;
-  engaged_sessions_60s_7d: unknown;
+export {
+  ANALYTICS_RANGE_OPTIONS,
+  ANALYTICS_RANGES,
+  ANALYTICS_SEGMENT_OPTIONS,
+  ANALYTICS_SEGMENTS,
+  analyticsFilterLabel,
+  normalizeAnalyticsFilters,
+  parseAnalyticsSearchParams,
+} from "./filters";
+export type { AnalyticsFilterInput, AnalyticsRange, AnalyticsSegment } from "./filters";
+
+type TrendGranularity = "hour" | "day" | "week";
+type RangeConfig = {
+  label: string;
+  interval: string;
+  granularity: TrendGranularity;
+  bucketInterval: string;
+  bucketFormat: string;
+  trendLabel: string;
 };
 
-type DailyRow = {
-  day: unknown;
+const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
+  "24h": {
+    label: "Last 24 hours",
+    interval: "24 hours",
+    granularity: "hour",
+    bucketInterval: "1 hour",
+    bucketFormat: "YYYY-MM-DD HH24:00",
+    trendLabel: "Hourly, UTC",
+  },
+  "7d": {
+    label: "Last 7 days",
+    interval: "7 days",
+    granularity: "day",
+    bucketInterval: "1 day",
+    bucketFormat: "YYYY-MM-DD",
+    trendLabel: "Daily, UTC",
+  },
+  "30d": {
+    label: "Last 30 days",
+    interval: "30 days",
+    granularity: "day",
+    bucketInterval: "1 day",
+    bucketFormat: "YYYY-MM-DD",
+    trendLabel: "Daily, UTC",
+  },
+  "60d": {
+    label: "Last 60 days",
+    interval: "60 days",
+    granularity: "week",
+    bucketInterval: "1 week",
+    bucketFormat: 'IYYY-"W"IW',
+    trendLabel: "Weekly, UTC",
+  },
+  "90d": {
+    label: "Last 90 days",
+    interval: "90 days",
+    granularity: "week",
+    bucketInterval: "1 week",
+    bucketFormat: 'IYYY-"W"IW',
+    trendLabel: "Weekly, UTC",
+  },
+};
+
+const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
+  country: "coalesce(nullif(country, ''), 'Unknown')",
+  device: "coalesce(nullif(device_type, ''), 'Unknown')",
+  browser: "coalesce(nullif(browser, ''), 'Unknown')",
+  source: "coalesce(nullif(referrer_host, ''), 'Direct / unknown')",
+};
+
+type MetricRow = {
+  visitors: unknown;
+  sessions: unknown;
+  page_views: unknown;
+  scan_starts: unknown;
+  scan_starters: unknown;
+  repeat_scan_visitors: unknown;
+  frequent_scan_visitors: unknown;
+  engaged_sessions_60s: unknown;
+  returning_visitors: unknown;
+};
+
+type TrendRow = {
+  bucket_label: unknown;
   visitors: unknown;
   page_views: unknown;
   scan_starters: unknown;
@@ -26,56 +105,97 @@ type DailyRow = {
 };
 
 type CountRow = { label: string | null; total: unknown };
+type FrequencyRow = { label: string | null; total: unknown; sort_order: unknown };
 type EngagementRow = { milestone_seconds: unknown; visitors: unknown; sessions: unknown };
-
-const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
 
 function number(value: unknown) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function emptyReport(status: AnalyticsDatabaseStatus | "error"): AnalyticsReport {
+function filterLabel(filters: ReturnType<typeof normalizeAnalyticsFilters>) {
+  return analyticsFilterLabel(filters);
+}
+
+function filterScope(filters: ReturnType<typeof normalizeAnalyticsFilters>) {
+  const column = filters.segment === "all" ? null : SEGMENT_SQL[filters.segment];
+  if (!column || !filters.value) return { clause: "TRUE", params: [] as unknown[] };
+  return { clause: `${column} = $1`, params: [filters.value] };
+}
+
+function emptyReport(status: AnalyticsDatabaseStatus | "error", filtersInput: AnalyticsFilterInput = {}): AnalyticsReport {
+  const filters = normalizeAnalyticsFilters(filtersInput);
+  const config = RANGE_CONFIG[filters.range];
   return {
     status,
     generatedAt: new Date().toISOString(),
-    metrics: {
-      visitorsToday: 0,
-      visitors7d: 0,
-      visitors30d: 0,
-      pageViews7d: 0,
-      sessions7d: 0,
-      scanStarts7d: 0,
-      scanStarters7d: 0,
-      scanStartRate7d: 0,
-      engagedSessions60s7d: 0,
+    filters: {
+      ...filters,
+      rangeLabel: config.label,
+      segmentLabel: filterLabel(filters),
+      trendLabel: config.trendLabel,
+      granularity: config.granularity,
     },
-    daily: [],
+    metrics: {
+      visitors: 0,
+      sessions: 0,
+      pageViews: 0,
+      scanStarts: 0,
+      scanStarters: 0,
+      scanStartRate: 0,
+      repeatScanVisitors: 0,
+      repeatScanRate: 0,
+      frequentScanVisitors: 0,
+      scansPerStarter: 0,
+      engagedSessions60s: 0,
+      returningVisitors: 0,
+      returningVisitorRate: 0,
+    },
+    trend: [],
     countries: [],
     referrers: [],
     devices: [],
     browsers: [],
     scanModes: [],
     engagement: [],
+    scanFrequency: [],
+    filterOptions: [],
   };
+}
+
+export function emptyAnalyticsReport(status: AnalyticsDatabaseStatus | "error", filtersInput: AnalyticsFilterInput = {}) {
+  return emptyReport(status, filtersInput);
 }
 
 export type AnalyticsReport = {
   status: AnalyticsDatabaseStatus | "error";
   generatedAt: string;
-  metrics: {
-    visitorsToday: number;
-    visitors7d: number;
-    visitors30d: number;
-    pageViews7d: number;
-    sessions7d: number;
-    scanStarts7d: number;
-    scanStarters7d: number;
-    scanStartRate7d: number;
-    engagedSessions60s7d: number;
+  filters: {
+    range: AnalyticsRange;
+    rangeLabel: string;
+    segment: AnalyticsSegment;
+    value: string | null;
+    segmentLabel: string;
+    trendLabel: string;
+    granularity: TrendGranularity;
   };
-  daily: Array<{
-    day: string;
+  metrics: {
+    visitors: number;
+    sessions: number;
+    pageViews: number;
+    scanStarts: number;
+    scanStarters: number;
+    scanStartRate: number;
+    repeatScanVisitors: number;
+    repeatScanRate: number;
+    frequentScanVisitors: number;
+    scansPerStarter: number;
+    engagedSessions60s: number;
+    returningVisitors: number;
+    returningVisitorRate: number;
+  };
+  trend: Array<{
+    label: string;
     visitors: number;
     pageViews: number;
     scanStarters: number;
@@ -87,129 +207,230 @@ export type AnalyticsReport = {
   browsers: Array<{ label: string; total: number }>;
   scanModes: Array<{ label: string; total: number }>;
   engagement: Array<{ milestoneSeconds: number; visitors: number; sessions: number }>;
+  scanFrequency: Array<{ label: string; total: number }>;
+  filterOptions: Array<{ label: string; total: number }>;
 };
 
-export async function getAnalyticsReport(): Promise<AnalyticsReport> {
+export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}): Promise<AnalyticsReport> {
+  const filters = normalizeAnalyticsFilters(filtersInput);
   const status = analyticsDatabaseStatus();
-  if (status !== "configured") return emptyReport(status);
+  if (status !== "configured") return emptyReport(status, filters);
+
+  const config = RANGE_CONFIG[filters.range];
+  const scope = filterScope(filters);
+  const filterOptionsColumn = filters.segment === "all" ? null : SEGMENT_SQL[filters.segment];
 
   try {
-    const [metricRows, dailyRows, countryRows, referrerRows, deviceRows, browserRows, scanModeRows, engagementRows] = await Promise.all([
+    const [metricRows, trendRows, countryRows, referrerRows, deviceRows, browserRows, scanModeRows, engagementRows, frequencyRows, filterOptionRows] = await Promise.all([
       analyticsQuery<MetricRow>(`
         WITH bounds AS (
-          SELECT date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS today_start
+          SELECT now() - interval '${config.interval}' AS start_at
         ),
-        window_events AS (
-          SELECT * FROM analytics_events WHERE created_at >= now() - interval '30 days'
+        filtered_events AS (
+          SELECT events.*
+          FROM analytics_events events CROSS JOIN bounds
+          WHERE events.created_at >= bounds.start_at
+            AND ${scope.clause}
         ),
-        page_view_visitors_7d AS (
-          SELECT DISTINCT visitor_id
-          FROM window_events, bounds
-          WHERE event_name = 'page_view' AND created_at >= bounds.today_start - interval '7 days'
+        page_views AS (
+          SELECT * FROM filtered_events WHERE event_name = 'page_view'
+        ),
+        page_view_visitors AS (
+          SELECT DISTINCT visitor_id FROM page_views
+        ),
+        page_view_sessions AS (
+          SELECT DISTINCT session_id FROM page_views
+        ),
+        page_view_visitor_status AS (
+          SELECT
+            visitors.visitor_id,
+            EXISTS (
+              SELECT 1
+              FROM analytics_events earlier
+              CROSS JOIN bounds
+              WHERE earlier.event_name = 'page_view'
+                AND earlier.visitor_id = visitors.visitor_id
+                AND earlier.created_at < bounds.start_at
+            ) AS is_returning
+          FROM page_view_visitors visitors
+        ),
+        scan_frequency AS (
+          SELECT events.visitor_id, count(*)::int AS scan_starts
+          FROM filtered_events events
+          INNER JOIN page_view_visitors visitors ON visitors.visitor_id = events.visitor_id
+          WHERE events.event_name = 'scan_started'
+          GROUP BY events.visitor_id
         )
         SELECT
-          count(DISTINCT events.visitor_id) FILTER (WHERE events.event_name = 'page_view' AND events.created_at >= bounds.today_start) AS visitors_today,
-          count(DISTINCT events.visitor_id) FILTER (WHERE events.event_name = 'page_view' AND events.created_at >= bounds.today_start - interval '7 days') AS visitors_7d,
-          count(DISTINCT events.visitor_id) FILTER (WHERE events.event_name = 'page_view') AS visitors_30d,
-          count(*) FILTER (WHERE events.event_name = 'page_view' AND events.created_at >= bounds.today_start - interval '7 days') AS page_views_7d,
-          count(DISTINCT events.session_id) FILTER (WHERE events.event_name = 'page_view' AND events.created_at >= bounds.today_start - interval '7 days') AS sessions_7d,
-          count(*) FILTER (WHERE events.event_name = 'scan_started' AND events.created_at >= bounds.today_start - interval '7 days') AS scan_starts_7d,
-          count(DISTINCT events.visitor_id) FILTER (
-            WHERE events.event_name = 'scan_started'
-              AND events.created_at >= bounds.today_start - interval '7 days'
-              AND events.visitor_id IN (SELECT visitor_id FROM page_view_visitors_7d)
-          ) AS scan_starters_7d,
-          count(DISTINCT events.session_id) FILTER (
-            WHERE events.event_name = 'engagement'
-              AND events.created_at >= bounds.today_start - interval '7 days'
-              AND events.metadata->>'milestoneSeconds' = '60'
-          ) AS engaged_sessions_60s_7d
-        FROM window_events events CROSS JOIN bounds
-      `),
-      analyticsQuery<DailyRow>(`
-        WITH days AS (
-          SELECT generate_series(
-            (now() AT TIME ZONE 'UTC')::date - 13,
-            (now() AT TIME ZONE 'UTC')::date,
-            interval '1 day'
-          )::date AS day
+          (SELECT count(DISTINCT visitor_id) FROM page_views) AS visitors,
+          (SELECT count(DISTINCT session_id) FROM page_views) AS sessions,
+          (SELECT count(*) FROM page_views) AS page_views,
+          (SELECT count(*) FROM filtered_events WHERE event_name = 'scan_started') AS scan_starts,
+          (SELECT count(*) FROM scan_frequency) AS scan_starters,
+          (SELECT count(*) FROM scan_frequency WHERE scan_starts >= 2) AS repeat_scan_visitors,
+          (SELECT count(*) FROM scan_frequency WHERE scan_starts >= 5) AS frequent_scan_visitors,
+          (SELECT count(*) FROM page_view_visitor_status WHERE is_returning) AS returning_visitors,
+          (SELECT count(DISTINCT events.session_id)
+            FROM filtered_events events
+            INNER JOIN page_view_sessions sessions ON sessions.session_id = events.session_id
+            WHERE events.event_name = 'engagement' AND events.metadata->>'milestoneSeconds' = '60') AS engaged_sessions_60s
+      `, scope.params),
+      analyticsQuery<TrendRow>(`
+        WITH bounds AS (
+          SELECT
+            now() - interval '${config.interval}' AS range_start,
+            date_trunc('${config.granularity}', now() - interval '${config.interval}') AS first_bucket,
+            date_trunc('${config.granularity}', now()) AS current_bucket
+        ),
+        buckets AS (
+          SELECT generate_series(bounds.first_bucket, bounds.current_bucket, interval '${config.bucketInterval}') AS bucket
+          FROM bounds
+        ),
+        filtered_events AS (
+          SELECT events.*
+          FROM analytics_events events CROSS JOIN bounds
+          WHERE events.created_at >= bounds.range_start
+            AND events.created_at < bounds.current_bucket + interval '${config.bucketInterval}'
+            AND ${scope.clause}
         )
         SELECT
-          to_char(days.day, 'YYYY-MM-DD') AS day,
-          count(DISTINCT events.visitor_id) FILTER (WHERE events.event_name = 'page_view') AS visitors,
-          count(*) FILTER (WHERE events.event_name = 'page_view') AS page_views,
-          count(DISTINCT events.visitor_id) FILTER (WHERE events.event_name = 'scan_started') AS scan_starters,
-          count(*) FILTER (WHERE events.event_name = 'scan_started') AS scan_starts
-        FROM days
-        LEFT JOIN analytics_events events
-          ON events.created_at >= (days.day::timestamp AT TIME ZONE 'UTC')
-         AND events.created_at < ((days.day + 1)::timestamp AT TIME ZONE 'UTC')
-         AND events.event_name IN ('page_view', 'scan_started')
-        GROUP BY days.day
-        ORDER BY days.day
-      `),
+          to_char(buckets.bucket, '${config.bucketFormat}') AS bucket_label,
+          count(DISTINCT filtered_events.visitor_id) FILTER (WHERE filtered_events.event_name = 'page_view') AS visitors,
+          count(*) FILTER (WHERE filtered_events.event_name = 'page_view') AS page_views,
+          count(DISTINCT filtered_events.visitor_id) FILTER (WHERE filtered_events.event_name = 'scan_started') AS scan_starters,
+          count(*) FILTER (WHERE filtered_events.event_name = 'scan_started') AS scan_starts
+        FROM buckets
+        LEFT JOIN filtered_events
+          ON filtered_events.created_at >= buckets.bucket
+         AND filtered_events.created_at < buckets.bucket + interval '${config.bucketInterval}'
+        GROUP BY buckets.bucket
+        ORDER BY buckets.bucket
+      `, scope.params),
       analyticsQuery<CountRow>(`
+        WITH bounds AS (SELECT now() - interval '${config.interval}' AS start_at)
         SELECT coalesce(nullif(country, ''), 'Unknown') AS label, count(DISTINCT visitor_id) AS total
-        FROM analytics_events
-        WHERE event_name = 'page_view' AND created_at >= now() - interval '30 days'
+        FROM analytics_events, bounds
+        WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8
-      `),
+      `, scope.params),
       analyticsQuery<CountRow>(`
+        WITH bounds AS (SELECT now() - interval '${config.interval}' AS start_at)
         SELECT coalesce(nullif(referrer_host, ''), 'Direct / unknown') AS label, count(DISTINCT session_id) AS total
-        FROM analytics_events
-        WHERE event_name = 'page_view' AND created_at >= now() - interval '30 days'
+        FROM analytics_events, bounds
+        WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8
-      `),
+      `, scope.params),
       analyticsQuery<CountRow>(`
+        WITH bounds AS (SELECT now() - interval '${config.interval}' AS start_at)
         SELECT coalesce(nullif(device_type, ''), 'Unknown') AS label, count(DISTINCT visitor_id) AS total
-        FROM analytics_events
-        WHERE event_name = 'page_view' AND created_at >= now() - interval '30 days'
-        GROUP BY 1 ORDER BY 2 DESC
-      `),
+        FROM analytics_events, bounds
+        WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
+        GROUP BY 1 ORDER BY 2 DESC LIMIT 8
+      `, scope.params),
       analyticsQuery<CountRow>(`
+        WITH bounds AS (SELECT now() - interval '${config.interval}' AS start_at)
         SELECT coalesce(nullif(browser, ''), 'Unknown') AS label, count(DISTINCT visitor_id) AS total
-        FROM analytics_events
-        WHERE event_name = 'page_view' AND created_at >= now() - interval '30 days'
-        GROUP BY 1 ORDER BY 2 DESC
-      `),
+        FROM analytics_events, bounds
+        WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
+        GROUP BY 1 ORDER BY 2 DESC LIMIT 8
+      `, scope.params),
       analyticsQuery<CountRow>(`
+        WITH bounds AS (SELECT now() - interval '${config.interval}' AS start_at)
         SELECT coalesce(nullif(metadata->>'scanMode', ''), 'Unknown') AS label, count(*) AS total
-        FROM analytics_events
-        WHERE event_name = 'scan_started' AND created_at >= now() - interval '30 days'
+        FROM analytics_events, bounds
+        WHERE event_name = 'scan_started' AND created_at >= bounds.start_at AND ${scope.clause}
         GROUP BY 1 ORDER BY 2 DESC
-      `),
+      `, scope.params),
       analyticsQuery<EngagementRow>(`
+        WITH bounds AS (SELECT now() - interval '${config.interval}' AS start_at)
         SELECT
           metadata->>'milestoneSeconds' AS milestone_seconds,
           count(DISTINCT visitor_id) AS visitors,
           count(DISTINCT session_id) AS sessions
-        FROM analytics_events
-        WHERE event_name = 'engagement' AND created_at >= now() - interval '7 days'
+        FROM analytics_events, bounds
+        WHERE event_name = 'engagement' AND created_at >= bounds.start_at AND ${scope.clause}
         GROUP BY 1 ORDER BY 1
-      `),
+      `, scope.params),
+      analyticsQuery<FrequencyRow>(`
+        WITH bounds AS (SELECT now() - interval '${config.interval}' AS start_at),
+        filtered_events AS (
+          SELECT events.* FROM analytics_events events, bounds
+          WHERE events.created_at >= bounds.start_at AND ${scope.clause}
+        ),
+        page_view_visitors AS (
+          SELECT DISTINCT visitor_id FROM filtered_events WHERE event_name = 'page_view'
+        ),
+        scan_frequency AS (
+          SELECT events.visitor_id, count(*)::int AS scan_starts
+          FROM filtered_events events
+          INNER JOIN page_view_visitors visitors ON visitors.visitor_id = events.visitor_id
+          WHERE events.event_name = 'scan_started'
+          GROUP BY events.visitor_id
+        )
+        SELECT
+          CASE
+            WHEN scan_starts = 1 THEN '1 scan'
+            WHEN scan_starts = 2 THEN '2 scans'
+            WHEN scan_starts BETWEEN 3 AND 4 THEN '3–4 scans'
+            ELSE '5+ scans'
+          END AS label,
+          count(*) AS total,
+          CASE
+            WHEN scan_starts = 1 THEN 1
+            WHEN scan_starts = 2 THEN 2
+            WHEN scan_starts BETWEEN 3 AND 4 THEN 3
+            ELSE 4
+          END AS sort_order
+        FROM scan_frequency
+        GROUP BY 1, 3
+        ORDER BY 3
+      `, scope.params),
+      filterOptionsColumn
+        ? analyticsQuery<CountRow>(`
+          WITH bounds AS (SELECT now() - interval '${config.interval}' AS start_at)
+          SELECT ${filterOptionsColumn} AS label, count(DISTINCT visitor_id) AS total
+          FROM analytics_events, bounds
+          WHERE event_name = 'page_view' AND created_at >= bounds.start_at
+          GROUP BY 1 ORDER BY 2 DESC LIMIT 30
+        `)
+        : Promise.resolve([] as CountRow[]),
     ]);
 
     const metrics = metricRows[0];
-    const visitors7d = number(metrics?.visitors_7d);
-    const scanStarters7d = number(metrics?.scan_starters_7d);
+    const visitors = number(metrics?.visitors);
+    const scanStarters = number(metrics?.scan_starters);
+    const scanStarts = number(metrics?.scan_starts);
+    const repeatScanVisitors = number(metrics?.repeat_scan_visitors);
+    const returningVisitors = number(metrics?.returning_visitors);
 
     return {
       status: "configured",
       generatedAt: new Date().toISOString(),
-      metrics: {
-        visitorsToday: number(metrics?.visitors_today),
-        visitors7d,
-        visitors30d: number(metrics?.visitors_30d),
-        pageViews7d: number(metrics?.page_views_7d),
-        sessions7d: number(metrics?.sessions_7d),
-        scanStarts7d: number(metrics?.scan_starts_7d),
-        scanStarters7d,
-        scanStartRate7d: visitors7d ? Math.round((scanStarters7d / visitors7d) * 100) : 0,
-        engagedSessions60s7d: number(metrics?.engaged_sessions_60s_7d),
+      filters: {
+        ...filters,
+        rangeLabel: config.label,
+        segmentLabel: filterLabel(filters),
+        trendLabel: config.trendLabel,
+        granularity: config.granularity,
       },
-      daily: dailyRows.flatMap((row) => typeof row.day === "string"
+      metrics: {
+        visitors,
+        sessions: number(metrics?.sessions),
+        pageViews: number(metrics?.page_views),
+        scanStarts,
+        scanStarters,
+        scanStartRate: visitors ? Math.round((scanStarters / visitors) * 100) : 0,
+        repeatScanVisitors,
+        repeatScanRate: scanStarters ? Math.round((repeatScanVisitors / scanStarters) * 100) : 0,
+        frequentScanVisitors: number(metrics?.frequent_scan_visitors),
+        scansPerStarter: scanStarters ? Number((scanStarts / scanStarters).toFixed(1)) : 0,
+        engagedSessions60s: number(metrics?.engaged_sessions_60s),
+        returningVisitors,
+        returningVisitorRate: visitors ? Math.round((returningVisitors / visitors) * 100) : 0,
+      },
+      trend: trendRows.flatMap((row) => typeof row.bucket_label === "string"
         ? [{
-          day: row.day,
+          label: row.bucket_label,
           visitors: number(row.visitors),
           pageViews: number(row.page_views),
           scanStarters: number(row.scan_starters),
@@ -221,15 +442,17 @@ export async function getAnalyticsReport(): Promise<AnalyticsReport> {
       devices: deviceRows.map((row) => ({ label: row.label ?? "Unknown", total: number(row.total) })),
       browsers: browserRows.map((row) => ({ label: row.label ?? "Unknown", total: number(row.total) })),
       scanModes: scanModeRows.map((row) => ({ label: row.label ?? "Unknown", total: number(row.total) })),
-      engagement: ENGAGEMENT_MILESTONES.flatMap((milestoneSeconds) => {
+      engagement: [10, 30, 60, 180].flatMap((milestoneSeconds) => {
         const row = engagementRows.find((candidate) => number(candidate.milestone_seconds) === milestoneSeconds);
         return row
           ? [{ milestoneSeconds, visitors: number(row.visitors), sessions: number(row.sessions) }]
           : [];
       }),
+      scanFrequency: frequencyRows.map((row) => ({ label: row.label ?? "Unknown", total: number(row.total) })),
+      filterOptions: filterOptionRows.map((row) => ({ label: row.label ?? "Unknown", total: number(row.total) })),
     };
   } catch {
-    // A database outage must leave the student finder and analytics login renderable.
-    return emptyReport("error");
+    // A database outage must leave the finder and analytics login renderable.
+    return emptyReport("error", filters);
   }
 }

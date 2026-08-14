@@ -7,7 +7,7 @@ import styles from "./analytics-live-refresh.module.css";
 
 const REFRESH_INTERVAL_MS = 60_000;
 
-export function AnalyticsLiveRefresh() {
+export function AnalyticsLiveRefresh({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -22,10 +22,10 @@ export function AnalyticsLiveRefresh() {
   }, [router, startTransition]);
 
   return (
-    <div className={styles.controls}>
-      <span aria-live="polite">{isPending ? "Refreshing…" : "Auto-refreshes every minute"}</span>
+    <div className={`${styles.controls} ${compact ? styles.compact : ""}`}>
+      <span aria-live="polite">{isPending ? "Refreshing…" : compact ? "Auto 1 min" : "Updates automatically every minute"}</span>
       <button disabled={isPending} onClick={() => startTransition(() => router.refresh())} type="button">
-        {isPending ? "Refreshing" : "Refresh now"}
+        {isPending ? "Refreshing" : compact ? "Refresh" : "Refresh now"}
       </button>
     </div>
   );

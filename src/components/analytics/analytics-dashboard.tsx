@@ -2,7 +2,6 @@ import refinements from "./analytics-dashboard-refinements.module.css";
 import styles from "./analytics-dashboard.module.css";
 
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
-import { AnalyticsKpiGrid } from "@/components/analytics/analytics-kpi-grid";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
 import { AnalyticsTrendChart } from "@/components/analytics/analytics-trend-chart";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
@@ -53,26 +52,16 @@ function displayMilestone(seconds: number) {
   return seconds >= 60 ? `${seconds / 60} min active` : `${seconds} sec active`;
 }
 
-function TrendPanel({ report }: { report: AnalyticsReport }) {
+function TrendPanel({ report, comparison }: { report: AnalyticsReport; comparison: AnalyticsComparison }) {
   const rows = report.trend;
 
   return (
     <section className={`${styles.panel} ${styles.trendPanel}`} aria-labelledby="trend-title">
-      <div className={`${styles.panelHeader} ${styles.trendHeader}`}>
-        <div>
-          <p className={styles.eyebrow}>Movement</p>
-          <h2 id="trend-title">Finder activity over time</h2>
-          <p>Choose one metric to focus on its movement, then inspect exact values only when needed.</p>
-        </div>
-        <div className={styles.panelMeta}>
-          <strong>{report.filters.trendLabel}</strong>
-          <span>{report.filters.rangeLabel} · {report.filters.segmentLabel}</span>
-        </div>
-      </div>
+      <h2 className={styles.srOnly} id="trend-title">Finder activity over time</h2>
 
       {rows.length ? (
         <>
-          <AnalyticsTrendChart granularity={report.filters.granularity} rows={rows} />
+          <AnalyticsTrendChart comparison={comparison} report={report} />
           <details className={styles.dataDisclosure}>
             <summary>View exact trend data ({rows.length})</summary>
             {rows.length > 6 ? (
@@ -313,10 +302,9 @@ export function AnalyticsDashboard({
 
         <StatusNotice report={report} />
         <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
-        <AnalyticsKpiGrid comparison={comparison} report={report} />
 
         <div className={styles.primaryGrid}>
-          <TrendPanel report={report} />
+          <TrendPanel comparison={comparison} report={report} />
         </div>
 
         <section className={styles.breakdownSection} aria-labelledby="audience-breakdown-title">

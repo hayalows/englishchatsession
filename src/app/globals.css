@@ -118,18 +118,14 @@ input:focus, select:focus, button:focus-visible, a:focus-visible, summary:focus-
 }
 .site-brand { align-items: center; display: inline-flex; gap: .72rem; min-height: 44px; min-width: 0; text-decoration: none; }
 .brand-mark {
-  align-items: center;
-  background: var(--navy-950);
   border-radius: 11px;
-  color: white;
-  display: inline-flex;
+  display: block;
   flex: 0 0 2.4rem;
-  font-size: .7rem;
-  font-weight: 850;
   height: 2.4rem;
-  justify-content: center;
-  letter-spacing: .05em;
+  object-fit: cover;
+  width: 2.4rem;
 }
+.brand-short { display: none; }
 .site-brand > span:last-child { display: grid; line-height: 1.12; min-width: 0; }
 .site-brand strong { font-size: .93rem; letter-spacing: -.018em; }
 .site-brand small { color: var(--muted); font-size: .7rem; margin-top: .22rem; }
@@ -653,6 +649,8 @@ input:focus, select:focus, button:focus-visible, a:focus-visible, summary:focus-
   html { scroll-padding-top: 5rem; }
   .nav-shell { min-height: 62px; padding: .5rem .85rem; }
   .site-brand small { display: none; }
+  .site-brand .brand-full { display: none; }
+  .site-brand .brand-short { display: inline; }
   .site-nav > a:not(.nav-primary) { display: none; }
   .site-nav .nav-primary { margin-inline-start: 0; }
   .app-shell { padding: 1.4rem .8rem 1.5rem; }

@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
+import Image from "next/image";
 
 import styles from "@/app/admin/login/login.module.css";
 
@@ -61,7 +62,7 @@ export function AdminLoginForm({
       <section className={styles.loginCard} aria-labelledby="login-title">
         <div className={styles.contextPanel}>
           <div className={styles.brandRow}>
-            <span className={styles.brandMark} aria-hidden="true">EC</span>
+            <Image className={styles.brandMark} src="/app-icon.svg" alt="" aria-hidden="true" width={46} height={46} priority />
             <span className={styles.brandCopy}>
               <strong>English Chat Finder</strong>
               <span>{contextLabel}</span>

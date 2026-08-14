@@ -17,7 +17,8 @@ export function AnalyticsTopNav({ activeNowVisitors = 0 }: { activeNowVisitors?:
         <a className={styles.brand} href="/" aria-label="Open English Chat Finder">
           <Image className={styles.mark} src="/app-icon.svg" alt="" aria-hidden="true" width={40} height={40} priority />
           <span className={styles.copy}>
-            <strong>English Chat Finder</strong>
+            <strong className={styles.fullName}>English Chat Finder</strong>
+            <strong className={styles.shortName}>ECF</strong>
             <small>Private visitor analytics</small>
           </span>
         </a>

@@ -13,6 +13,8 @@ describe("administrator visual shell", () => {
     expect(navSource).toContain("nav-shell");
     expect(navSource).toContain('className="site-brand"');
     expect(navSource).toContain('className="brand-mark"');
+    expect(navSource).toContain('src="/app-icon.svg"');
+    expect(navSource).toContain('className="brand-short">ECF</span>');
     expect(navSource).toContain("site-nav");
     expect(navSource).toContain("English Chat Finder");
     expect(navSource).toContain("Administrator console");

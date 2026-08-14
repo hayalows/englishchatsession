@@ -38,6 +38,7 @@
 
 .copy { display: grid; gap: .12rem; line-height: 1.15; min-width: 0; }
 .copy strong { font-size: .9rem; white-space: nowrap; }
+.shortName { display: none; }
 .copy small { color: var(--muted); font-size: .72rem; }
 
 .online { align-items: center; color: var(--muted); display: inline-flex; font-size: .72rem; gap: .35rem; margin-left: auto; white-space: nowrap; }
@@ -73,6 +74,8 @@
   .inner { min-height: 68px; padding-inline: .75rem; }
   .mark { height: 2.25rem; width: 2.25rem; }
   .copy small { display: none; }
+  .fullName { display: none; }
+  .shortName { display: block; }
   .copy strong { font-size: .78rem; }
   .online { font-size: .68rem; }
   .desktopLinks { display: none; }

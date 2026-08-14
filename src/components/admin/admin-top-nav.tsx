@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "./admin-top-nav.module.css";
+import Image from "next/image";
 
 const PREPARE_PAGE = "https://sites.google.com/view/english-chat-student-center/English-Chat-Structure?authuser=0";
 
@@ -16,9 +17,9 @@ export function AdminTopNav() {
       <header className={`site-header ${styles.adminSiteHeader}`}>
         <div className={`nav-shell ${styles.navShell}`}>
           <a className="site-brand" href="/admin" aria-label="English Chat Finder administrator home">
-            <span className="brand-mark" aria-hidden="true">EC</span>
+            <Image className="brand-mark" src="/app-icon.svg" alt="" aria-hidden="true" width={40} height={40} priority />
             <span className={styles.brandCopy}>
-              <strong>English Chat Finder</strong>
+              <strong><span className="brand-full">English Chat Finder</span><span className="brand-short">ECF</span></strong>
               <small>Administrator console</small>
             </span>
           </a>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { AnalyticsBreakdownRow } from "@/lib/analytics/breakdown-types";
 import type { AnalyticsPrimaryMetric } from "@/components/analytics/analytics-trend-chart";
@@ -78,6 +78,14 @@ function MoreIcon() {
   );
 }
 
+function ChevronIcon() {
+  return (
+    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
+      <path d="m8 10 4 4 4-4" />
+    </svg>
+  );
+}
+
 function SearchIcon() {
   return (
     <svg aria-hidden="true" className={styles.searchIcon} fill="none" viewBox="0 0 24 24">
@@ -92,6 +100,26 @@ function CloseIcon() {
     <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
       <path d="m6 6 12 12M18 6 6 18" />
     </svg>
+  );
+}
+
+function EmptyStateIcon() {
+  return (
+    <svg aria-hidden="true" className={styles.emptyIcon} fill="none" viewBox="0 0 24 24">
+      <path d="M5 4.75h10.5L19 8.25v11H5z" />
+      <path d="M15 4.75v3.5h4M8 12h8M8 15.25h5" />
+    </svg>
+  );
+}
+
+function EmptyState({ title, message, action }: { title: string; message: string; action?: ReactNode }) {
+  return (
+    <div className={styles.emptyState} role="status">
+      <span className={styles.emptyIconWrap}><EmptyStateIcon /></span>
+      <h3>{title}</h3>
+      <p>{message}</p>
+      {action}
+    </div>
   );
 }
 
@@ -113,6 +141,8 @@ export function AnalyticsBreakdownCard({
   const searchRef = useRef<HTMLInputElement>(null);
   const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const dialogTitleId = useId();
+  const dialogDescriptionId = useId();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -129,6 +159,7 @@ export function AnalyticsBreakdownCard({
     ? 0
     : sortedRows.reduce((sum, row) => sum + metricValue(row, activeMetric), 0);
   const nextMetric = METRIC_ORDER[(METRIC_ORDER.indexOf(activeMetric) + 1) % METRIC_ORDER.length];
+  const hasRows = sortedRows.length > 0;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -238,6 +269,7 @@ export function AnalyticsBreakdownCard({
 
   function exportCsv() {
     setMenuOpen(false);
+    if (!hasRows) return;
     const header = [title, "Share / rate", "Visitors", "Page views", "Scan usage"];
     const csvRows = sortedRows.map((row) => {
       const value = metricValue(row, activeMetric);
@@ -268,18 +300,11 @@ export function AnalyticsBreakdownCard({
 
         <div className={styles.headerMeta}>
           <span className={styles.metricLabel}>{METRIC_LABELS[activeMetric]}</span>
-
-          <div className={styles.desktopActions} aria-label={`${title} actions`}>
-            <button aria-label={`View all ${title}`} onClick={(event) => openDetails(event.currentTarget)} title={`View all ${title}`} type="button"><ExpandIcon /></button>
-            <button aria-label={`Switch ${title} to ${METRIC_LABELS[nextMetric]}`} onClick={switchMetric} title={`Switch to ${METRIC_LABELS[nextMetric]}`} type="button"><SwitchIcon /></button>
-            <button aria-label={`Export ${title} as CSV`} onClick={exportCsv} title="Export CSV" type="button"><DownloadIcon /></button>
-          </div>
-
           <button
             aria-expanded={menuOpen}
             aria-haspopup="menu"
-            aria-label={`${title} actions`}
-            className={styles.mobileMenuButton}
+            aria-label={`${title} more actions`}
+            className={styles.moreButton}
             onClick={() => setMenuOpen((value) => !value)}
             ref={mobileMenuTriggerRef}
             type="button"
@@ -290,9 +315,9 @@ export function AnalyticsBreakdownCard({
 
         {menuOpen ? (
           <div className={styles.mobileMenu} role="menu">
-            <button onClick={() => openDetails(mobileMenuTriggerRef.current)} role="menuitem" type="button"><ExpandIcon /><span>View all</span></button>
+            <button disabled={!hasRows} onClick={() => openDetails(mobileMenuTriggerRef.current)} role="menuitem" type="button"><ExpandIcon /><span>View all</span></button>
             <button onClick={switchMetric} role="menuitem" type="button"><SwitchIcon /><span>Switch to {METRIC_LABELS[nextMetric]}</span></button>
-            <button onClick={exportCsv} role="menuitem" type="button"><DownloadIcon /><span>Export CSV</span></button>
+            <button disabled={!hasRows} onClick={exportCsv} role="menuitem" type="button"><DownloadIcon /><span>Export CSV</span></button>
           </div>
         ) : null}
       </header>
@@ -319,72 +344,109 @@ export function AnalyticsBreakdownCard({
       ) : <p className={styles.empty}>No data in this period yet.</p>}
 
       <footer className={styles.footer}>
-        <span>{sortedRows.length > 5 ? `Top 5 of ${sortedRows.length}` : `${sortedRows.length} ${sortedRows.length === 1 ? "entry" : "entries"}`}</span>
-        <span>{activeMetric === "scanUsage" ? "Rate by group" : "Share of selected metric"}</span>
+        <div className={styles.footerMeta}>
+          <span>{sortedRows.length > 5 ? `Top 5 of ${sortedRows.length}` : `${sortedRows.length} ${sortedRows.length === 1 ? "entry" : "entries"}`}</span>
+          <span>{activeMetric === "scanUsage" ? "Rate by group" : "Share of selected metric"}</span>
+        </div>
+        <button
+          aria-label={`View all ${title}`}
+          className={styles.viewAllButton}
+          disabled={!hasRows}
+          onClick={(event) => openDetails(event.currentTarget)}
+          type="button"
+        >
+          <span>{hasRows ? "View all" : "No details"}</span>
+          {hasRows ? <ChevronIcon /> : null}
+        </button>
       </footer>
 
       <dialog
         className={styles.dialog}
+        aria-describedby={dialogDescriptionId}
+        aria-labelledby={dialogTitleId}
         onCancel={(event) => { event.preventDefault(); closeDetails(); }}
         onClick={(event) => { if (event.target === event.currentTarget) closeDetails(); }}
         onClose={handleDialogClose}
         ref={dialogRef}
       >
-        <div className={styles.dialogSurface}>
+        <div className={`${styles.dialogSurface} ${hasRows ? "" : styles.dialogSurfaceEmpty}`}>
           <header className={styles.dialogHeader}>
-            <div>
-              <h2>{title}</h2>
-              <p>{rangeLabel} · {METRIC_LABELS[activeMetric]}</p>
+            <div className={styles.dialogTitleBlock}>
+              <span className={styles.dialogEyebrow}>Audience breakdown</span>
+              <h2 id={dialogTitleId}>{title}</h2>
+              <p id={dialogDescriptionId}>{rangeLabel} · {METRIC_LABELS[activeMetric]}</p>
             </div>
-            <button aria-label={`Close ${title}`} className={styles.closeButton} onClick={closeDetails} type="button"><CloseIcon /></button>
+            <div className={styles.dialogHeaderAside}>
+              <span className={styles.dialogCount}>{hasRows ? `${sortedRows.length} entries` : "No entries"}</span>
+              <button aria-label={`Close ${title}`} className={styles.closeButton} onClick={closeDetails} type="button"><CloseIcon /></button>
+            </div>
           </header>
 
-          <div className={styles.searchWrap}>
-            <SearchIcon />
-            <input
-              aria-label={`Search ${title}`}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={`Search ${title.toLocaleLowerCase()}`}
-              ref={searchRef}
-              type="search"
-              value={query}
-            />
-          </div>
+          {hasRows ? (
+            <div className={styles.searchWrap}>
+              <SearchIcon />
+              <input
+                aria-label={`Search ${title}`}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={`Search ${title.toLocaleLowerCase()}`}
+                ref={searchRef}
+                type="search"
+                value={query}
+              />
+            </div>
+          ) : null}
 
-          <div className={styles.dialogTableWrap} tabIndex={0}>
-            <div className={styles.dialogTableHeader} aria-hidden="true">
-              <span>{title}</span>
-              <span>{activeMetric === "scanUsage" ? "Rate" : "Share"}</span>
-              <span>Visitors</span>
-              <span>Views</span>
-            </div>
-            <div className={styles.dialogRows}>
-              {filteredRows.map((row) => {
-                const value = metricValue(row, activeMetric);
-                const fill = activeMetric === "scanUsage" ? value : Math.max(3, (value / max) * 100);
-                const share = activeMetric === "scanUsage" ? value : total ? Math.round((value / total) * 100) : 0;
-                const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
-                return (
-                  <div className={styles.dialogRow} key={row.label}>
-                    <span className={styles.dialogRowFill} style={{ width: `${Math.min(100, fill)}%` }} />
-                    <span className={styles.dialogName}>
-                      {countryCode ? <span aria-hidden="true" className={styles.countryBadge}>{countryCode}</span> : null}
-                      <span>{displayLabel(row.label, kind)}</span>
-                    </span>
-                    <strong>{`${share}%`}</strong>
-                    <strong>{row.visitors.toLocaleString()}</strong>
-                    <strong>{row.pageViews.toLocaleString()}</strong>
-                  </div>
-                );
-              })}
-              {!filteredRows.length ? <p className={styles.noResults}>No matching results.</p> : null}
-            </div>
+          <div className={`${styles.dialogTableWrap} ${hasRows ? "" : styles.dialogTableWrapEmpty}`} tabIndex={hasRows ? 0 : -1}>
+            {hasRows ? (
+              <>
+                <div className={styles.dialogTableHeader} aria-hidden="true">
+                  <span>{title}</span>
+                  <span>{activeMetric === "scanUsage" ? "Rate" : "Share"}</span>
+                  <span>Visitors</span>
+                  <span>Views</span>
+                </div>
+                <div aria-label={`${title} details`} className={styles.dialogRows} role="list">
+                  {filteredRows.map((row) => {
+                    const value = metricValue(row, activeMetric);
+                    const fill = activeMetric === "scanUsage" ? value : Math.max(3, (value / max) * 100);
+                    const share = activeMetric === "scanUsage" ? value : total ? Math.round((value / total) * 100) : 0;
+                    const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
+                    return (
+                      <div className={styles.dialogRow} key={row.label} role="listitem">
+                        <span className={styles.dialogRowFill} style={{ width: `${Math.min(100, fill)}%` }} />
+                        <span className={styles.dialogName}>
+                          {countryCode ? <span aria-hidden="true" className={styles.countryBadge}>{countryCode}</span> : null}
+                          <span>{displayLabel(row.label, kind)}</span>
+                        </span>
+                        <strong>{`${share}%`}</strong>
+                        <strong>{row.visitors.toLocaleString()}</strong>
+                        <strong>{row.pageViews.toLocaleString()}</strong>
+                      </div>
+                    );
+                  })}
+                  {!filteredRows.length ? (
+                    <EmptyState
+                      action={<button className={styles.emptyAction} onClick={() => setQuery("")} type="button">Clear search</button>}
+                      message="Try a shorter search or clear the filter to see every entry."
+                      title="No matching results"
+                    />
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <EmptyState
+                message={`No ${title.toLocaleLowerCase()} were recorded for ${rangeLabel.toLocaleLowerCase()}. Try a wider time window if you expect activity.`}
+                title={`No ${title.toLocaleLowerCase()} in this period`}
+              />
+            )}
           </div>
 
           <footer className={styles.dialogFooter}>
-            <span>{filteredRows.length} of {sortedRows.length}</span>
-            <button onClick={exportCsv} type="button"><DownloadIcon /><span>Export CSV</span></button>
-            <button onClick={closeDetails} type="button">Close</button>
+            <span className={styles.dialogFooterMeta}>{hasRows ? `${filteredRows.length} of ${sortedRows.length} shown` : "Choose another period to explore details"}</span>
+            <div className={styles.dialogFooterActions}>
+              {hasRows ? <button onClick={exportCsv} type="button"><DownloadIcon /><span>Export CSV</span></button> : null}
+              <button onClick={closeDetails} type="button">Close</button>
+            </div>
           </footer>
         </div>
       </dialog>

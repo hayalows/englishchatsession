@@ -61,14 +61,7 @@
   white-space: nowrap;
 }
 
-.desktopActions {
-  align-items: center;
-  display: flex;
-  gap: .2rem;
-}
-
-.desktopActions button,
-.mobileMenuButton,
+.moreButton,
 .closeButton {
   align-items: center;
   appearance: none;
@@ -82,19 +75,19 @@
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.desktopActions button { height: 2.35rem; width: 2.35rem; }
-.desktopActions button:hover,
-.mobileMenuButton:hover,
+.moreButton { height: 2.75rem; width: 2.75rem; }
+.moreButton:hover,
 .closeButton:hover {
   background: var(--surface-subtle);
   border-color: var(--line);
   color: var(--ink);
 }
-.desktopActions button:focus-visible,
-.mobileMenuButton:focus-visible,
+.moreButton:focus-visible,
 .closeButton:focus-visible,
 .mobileMenu button:focus-visible,
-.dialogFooter button:focus-visible {
+.dialogFooter button:focus-visible,
+.viewAllButton:focus-visible,
+.emptyAction:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: 2px;
 }
@@ -110,8 +103,7 @@
   width: 1.12rem;
 }
 
-.mobileMenuButton { display: none; height: 2.75rem; width: 2.75rem; }
-.mobileMenuButton .icon { fill: currentColor; stroke: none; }
+.moreButton .icon { fill: currentColor; stroke: none; }
 
 .mobileMenu {
   background: var(--surface);
@@ -146,6 +138,11 @@
   width: 100%;
 }
 .mobileMenu button:hover { background: var(--surface-subtle); }
+.mobileMenu button:disabled {
+  color: var(--muted-light);
+  cursor: not-allowed;
+  opacity: .62;
+}
 
 .rows { display: grid; gap: .5rem; }
 .row {
@@ -219,11 +216,103 @@
   margin-top: .8rem;
   padding-top: .72rem;
 }
+.footerMeta {
+  display: flex;
+  gap: .65rem;
+  min-width: 0;
+}
+.footerMeta span { min-width: 0; }
+.viewAllButton {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: .65rem;
+  color: var(--teal-700);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 760;
+  gap: .18rem;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: .45rem .35rem .45rem .6rem;
+  transition: background-color 140ms ease, color 140ms ease, transform 120ms ease;
+}
+.viewAllButton:hover { background: var(--teal-50); color: var(--teal-700); }
+.viewAllButton:active { transform: scale(.97); }
+.viewAllButton:disabled {
+  color: var(--muted-light);
+  cursor: not-allowed;
+  opacity: .72;
+}
+.viewAllButton .icon { height: 1rem; width: 1rem; }
+
+.emptyState {
+  align-items: center;
+  display: grid;
+  gap: .42rem;
+  justify-items: center;
+  margin: 0 auto;
+  max-width: 30rem;
+  padding: 1.2rem 1rem .4rem;
+  text-align: center;
+}
+.emptyIconWrap {
+  align-items: center;
+  background: var(--teal-50);
+  border: 1px solid color-mix(in srgb, var(--teal-700), var(--line) 82%);
+  border-radius: .85rem;
+  color: var(--teal-700);
+  display: inline-flex;
+  height: 2.8rem;
+  justify-content: center;
+  width: 2.8rem;
+}
+.emptyIcon {
+  height: 1.25rem;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 1.25rem;
+}
+.emptyState h3 {
+  font-size: .98rem;
+  letter-spacing: -.015em;
+  margin: .05rem 0 0;
+}
+.emptyState p {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 38ch;
+}
+.emptyAction {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: .65rem;
+  color: var(--teal-700);
+  cursor: pointer;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 720;
+  min-height: 2.6rem;
+  padding: .55rem .78rem;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+.emptyAction:hover { background: var(--teal-50); border-color: var(--teal-700); }
+.emptyAction:active { transform: scale(.97); }
 
 .dialog {
   background: transparent;
   border: 0;
+  color: var(--ink);
   height: 100dvh;
+  inset: 0;
   margin: 0;
   max-height: none;
   max-width: none;
@@ -248,6 +337,9 @@
   overflow: hidden;
   width: 100%;
 }
+.dialogSurfaceEmpty {
+  max-height: min(34rem, 70dvh);
+}
 
 .dialogHeader {
   align-items: flex-start;
@@ -267,6 +359,28 @@
   font-size: .8rem;
   line-height: 1.4;
   margin: .25rem 0 0;
+}
+.dialogTitleBlock { min-width: 0; }
+.dialogEyebrow {
+  color: var(--teal-700);
+  display: block;
+  font-size: .65rem;
+  font-weight: 820;
+  letter-spacing: .1em;
+  margin-bottom: .28rem;
+  text-transform: uppercase;
+}
+.dialogHeaderAside {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: .6rem;
+}
+.dialogCount {
+  color: var(--muted-light);
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .closeButton { height: 2.75rem; width: 2.75rem; }
 
@@ -309,6 +423,7 @@
 .searchWrap input::placeholder { color: var(--muted-light); }
 
 .dialogTableWrap {
+  max-height: min(48dvh, 28rem);
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -316,6 +431,14 @@
   padding: 0 .9rem .4rem;
   scrollbar-gutter: stable;
   touch-action: pan-y;
+}
+.dialogTableWrapEmpty {
+  align-content: center;
+  display: grid;
+  max-height: none;
+  min-height: 12rem;
+  overflow: hidden;
+  padding: .4rem .9rem 1.1rem;
 }
 .dialogTableWrap:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
@@ -378,8 +501,6 @@
   font-weight: 700;
   text-align: right;
 }
-.noResults { color: var(--muted); font-size: .88rem; padding: 1.25rem .7rem; }
-
 .dialogFooter {
   align-items: center;
   border-top: 1px solid var(--line);
@@ -388,10 +509,15 @@
   justify-content: flex-end;
   padding: .72rem .9rem;
 }
-.dialogFooter > span:first-child {
+.dialogFooterMeta {
   color: var(--muted-light);
   font-size: .74rem;
   margin-right: auto;
+}
+.dialogFooterActions {
+  align-items: center;
+  display: flex;
+  gap: .55rem;
 }
 .dialogFooter button {
   align-items: center;
@@ -410,6 +536,7 @@
   padding: .58rem .82rem;
 }
 .dialogFooter button:hover { background: var(--surface-subtle); }
+.dialogFooter button:disabled { cursor: not-allowed; opacity: .55; }
 
 @media (max-width: 900px) {
   .metricLabel { display: none; }
@@ -422,8 +549,7 @@
     padding: .9rem;
   }
   .header { margin-bottom: .72rem; }
-  .desktopActions { display: none; }
-  .mobileMenuButton { display: inline-flex; margin: -.35rem -.35rem 0 0; }
+  .moreButton { margin: -.35rem -.35rem 0 0; }
   .metricLabel { display: inline-flex; font-size: .64rem; }
   .row { min-height: 2.65rem; }
   .rowName { font-size: .91rem; }
@@ -443,14 +569,26 @@
     max-width: none;
     width: 100%;
   }
+  .dialogSurfaceEmpty {
+    height: auto;
+    max-height: min(58dvh, 32rem);
+  }
   .dialogHeader { padding: .9rem .9rem .78rem; }
   .dialogHeader h2 { font-size: 1.14rem; }
   .dialogHeader p { font-size: .76rem; }
+  .dialogEyebrow { font-size: .6rem; }
+  .dialogHeaderAside { gap: .35rem; }
+  .dialogCount { font-size: .68rem; }
   .searchWrap { margin: .62rem .7rem; min-height: 2.85rem; }
   .searchWrap input { font-size: 1rem; }
   .dialogTableWrap {
+    max-height: none;
     padding: 0 .6rem .35rem;
     scrollbar-gutter: auto;
+  }
+  .dialogTableWrapEmpty {
+    min-height: 11rem;
+    padding: .25rem .6rem 1rem;
   }
   .dialogTableHeader,
   .dialogRow {
@@ -476,8 +614,13 @@
     padding-inline: .2rem;
   }
   .dialogFooter {
+    align-items: stretch;
+    flex-direction: column;
     padding: .65rem .7rem max(.65rem, env(safe-area-inset-bottom));
   }
+  .dialogFooterMeta { font-size: .72rem; margin: 0; }
+  .dialogFooterActions { justify-content: stretch; }
+  .dialogFooterActions button { flex: 1 1 0; justify-content: center; }
   .dialogFooter button { min-height: 2.75rem; }
 }
 
@@ -487,7 +630,8 @@
   .titleBlock h3 { font-size: 1rem; }
   .titleBlock p { font-size: .74rem; }
   .row { padding-inline: .62rem; }
-  .footer span:last-child { display: none; }
+  .footerMeta span:last-child { display: none; }
+  .viewAllButton { padding-inline: .35rem; }
   .dialogTableHeader,
   .dialogRow {
     gap: .22rem;
@@ -498,15 +642,11 @@
   .dialogRow > strong { font-size: .75rem; }
 }
 
-@media (hover: none) {
-  .desktopActions { display: none; }
-  .mobileMenuButton { display: inline-flex; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .card,
-  .desktopActions button,
-  .mobileMenuButton,
+  .moreButton,
+  .viewAllButton,
+  .emptyAction,
   .closeButton,
   .rowFill { transition: none; }
 }

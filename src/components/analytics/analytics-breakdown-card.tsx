@@ -34,10 +34,6 @@ function metricValue(row: AnalyticsBreakdownRow, metric: AnalyticsPrimaryMetric)
   return row.visitors;
 }
 
-function formatMetric(value: number, metric: AnalyticsPrimaryMetric) {
-  return metric === "scanUsage" ? `${value}%` : value.toLocaleString();
-}
-
 function flagFromCountryLabel(label: string) {
   const match = label.match(/\(([A-Z]{2})\)$/);
   if (!match) return null;
@@ -148,7 +144,7 @@ export function AnalyticsBreakdownCard({
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${title.toLocaleLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${activeMetric}.csv`;
+    anchor.download = `${title.toLocaleLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${activeMetric}.csv`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();

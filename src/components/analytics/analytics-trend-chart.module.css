@@ -1,132 +1,162 @@
 .chartExperience {
-  animation: chartReveal 300ms cubic-bezier(.2, .8, .2, 1);
+  animation: chartReveal 280ms cubic-bezier(.2, .8, .2, 1);
   display: grid;
-  gap: .72rem;
+  gap: .62rem;
 }
 
-.metricTabs {
-  align-items: center;
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-radius: .78rem;
-  display: inline-flex;
-  gap: .2rem;
-  max-width: 100%;
-  padding: .22rem;
-  width: fit-content;
+.summaryStrip {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: -1.05rem -1.05rem .05rem;
 }
 
-.metricTab {
+.summaryCell {
   appearance: none;
   background: transparent;
   border: 0;
-  border-radius: .58rem;
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: .74rem;
-  font-weight: 720;
-  min-height: 38px;
-  padding: .5rem .78rem;
-  transition: background 140ms ease, box-shadow 140ms ease, color 140ms ease;
-  white-space: nowrap;
-}
-
-.metricTab:hover { color: var(--ink); }
-.metricTab[aria-pressed="true"] {
-  background: var(--surface);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink), transparent 90%), 0 0 0 1px color-mix(in srgb, var(--line), transparent 20%);
-  color: var(--teal-700);
-}
-.metricTab:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
-  outline-offset: 2px;
-}
-
-.chartReadout {
-  align-items: end;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  min-height: 46px;
-  padding: .02rem .12rem;
-}
-
-.chartReadout > div:first-child,
-.selectedMetricValue {
+  border-right: 1px solid var(--line);
+  color: inherit;
   display: grid;
-  gap: .12rem;
+  font: inherit;
+  gap: .24rem;
+  min-height: 96px;
+  padding: .9rem 1rem .78rem;
+  position: relative;
+  text-align: left;
+}
+.summaryCell:last-child { border-right: 0; }
+
+.summaryButton {
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.summaryButton:hover { background: color-mix(in srgb, var(--surface-subtle), transparent 24%); }
+.summaryButton::after {
+  background: transparent;
+  bottom: -1px;
+  content: "";
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+.summaryButton[aria-pressed="true"]::after { background: var(--ink); }
+.summaryButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
+  outline-offset: -4px;
 }
 
-.chartReadoutLabel,
-.selectedMetricValue span {
+.summaryTopline {
+  align-items: center;
+  display: flex;
+  gap: .5rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+.summaryLabel {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: .72rem;
+  font-weight: 750;
+  gap: .35rem;
+  letter-spacing: .01em;
+  min-width: 0;
+}
+.summaryCell > strong,
+.summaryButton > strong {
+  align-self: end;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.05em;
+  line-height: 1;
+}
+.summaryCell small {
   color: var(--muted-light);
   font-size: .66rem;
-  font-weight: 700;
-  letter-spacing: .045em;
-  text-transform: uppercase;
+  line-height: 1.35;
+}
+.liveSummary { background: color-mix(in srgb, var(--teal-50), transparent 54%); }
+.liveDot {
+  background: #1ca66a;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #1ca66a, transparent 86%);
+  display: inline-block;
+  height: .45rem;
+  width: .45rem;
 }
 
-.chartReadout > div:first-child strong {
-  font-size: .92rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -.02em;
+.delta {
+  border-radius: .42rem;
+  font-size: .64rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: .28rem .35rem;
+  white-space: nowrap;
 }
+.positive { background: #e9f8ef; color: #167647; }
+.negative { background: #fff0f0; color: #b33a3a; }
+.neutral { background: var(--surface-subtle); color: var(--muted); }
+.pending { background: transparent; color: var(--muted-light); padding-inline: .1rem; }
 
-.selectedMetricValue { text-align: right; }
-.selectedMetricValue strong {
-  color: var(--ink);
-  font-size: 1.08rem;
+.chartContext {
+  align-items: center;
+  display: flex;
+  gap: .7rem;
+  justify-content: space-between;
+  min-height: 30px;
+  padding: 0 .12rem;
+}
+.chartContext span { color: var(--muted); font-size: .7rem; }
+.chartContext span strong { color: var(--ink); }
+.chartContext > strong {
+  font-size: .78rem;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -.035em;
+  white-space: nowrap;
 }
 
 .chartFrame {
   background: var(--surface-subtle);
-  border-radius: 1rem;
-  min-height: 292px;
+  border-radius: .85rem;
+  min-height: 270px;
   overflow: hidden;
-  padding: 0 .15rem;
+  padding: 0 .1rem;
 }
-
 .chart {
   display: block;
-  height: 292px;
+  height: 270px;
   outline: none;
   touch-action: pan-y;
   width: 100%;
 }
-
 .chart:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 16%);
   outline-offset: -3px;
 }
-
 .gridLine {
-  stroke: color-mix(in srgb, var(--line), transparent 16%);
+  stroke: color-mix(in srgb, var(--line), transparent 18%);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
-
 .axisLabel,
 .dayLabel {
   fill: var(--muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
-
-.areaStopStrong { stop-color: var(--teal-100); stop-opacity: .76; }
-.areaStopSoft { stop-color: var(--surface-subtle); stop-opacity: .06; }
+.areaStopStrong { stop-color: var(--teal-100); stop-opacity: .7; }
+.areaStopSoft { stop-color: var(--surface-subtle); stop-opacity: .04; }
 .trendArea { pointer-events: none; }
 .trendLine {
   stroke: var(--teal-700);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3.1;
+  stroke-width: 2.7;
   vector-effect: non-scaling-stroke;
 }
 .selectionLine {
-  opacity: .46;
+  opacity: .42;
   stroke: var(--muted-light);
   stroke-dasharray: 3 5;
   stroke-width: 1;
@@ -139,22 +169,43 @@
   vector-effect: non-scaling-stroke;
 }
 
-.chartFooter {
+.scanIntent {
   align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: .8rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: .72rem .12rem .05rem;
+}
+.scanIntent > div {
+  align-items: baseline;
   display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  padding: 0 .12rem;
+  gap: .45rem;
+  white-space: nowrap;
 }
-.chartFooter strong {
-  color: var(--teal-700);
-  font-size: .72rem;
+.scanIntentLabel {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 750;
 }
-.chartFooter p {
+.scanIntent > div > strong {
+  font-size: 1.08rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.035em;
+}
+.scanIntent p {
   color: var(--muted-light);
   font-size: .69rem;
   line-height: 1.4;
   margin: 0;
+  text-align: right;
+}
+.chartHint {
+  color: var(--muted-light);
+  font-size: .66rem;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0 .12rem;
   text-align: right;
 }
 
@@ -164,28 +215,49 @@
 }
 
 @media (max-width: 560px) {
-  .chartExperience { gap: .55rem; }
-  .metricTabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
+  .chartExperience { gap: .48rem; }
+  .summaryStrip { margin: -.85rem -.7rem 0; }
+  .summaryCell {
+    gap: .18rem;
+    min-height: 76px;
+    padding: .62rem .52rem .55rem;
   }
-  .metricTab {
-    font-size: .68rem;
-    min-height: 36px;
-    padding: .43rem .38rem;
+  .summaryLabel { font-size: .61rem; gap: .24rem; }
+  .summaryCell > strong,
+  .summaryButton > strong { font-size: 1.35rem; }
+  .summaryCell small { display: none; }
+  .delta { font-size: .56rem; padding: .23rem .27rem; }
+  .liveDot { height: .38rem; width: .38rem; }
+
+  .chartContext { min-height: 26px; padding-inline: .02rem; }
+  .chartContext span { font-size: .62rem; }
+  .chartContext > strong { font-size: .68rem; }
+  .chartFrame { min-height: 212px; }
+  .chart { height: 212px; }
+  .axisLabel, .dayLabel { font-size: 10px; }
+
+  .scanIntent {
+    align-items: start;
+    gap: .35rem;
+    grid-template-columns: 1fr;
+    padding-top: .58rem;
   }
-  .chartReadout { min-height: 40px; }
-  .chartReadoutLabel, .selectedMetricValue span { font-size: .6rem; }
-  .chartReadout > div:first-child strong { font-size: .8rem; }
-  .selectedMetricValue strong { font-size: .92rem; }
-  .chartFrame { min-height: 228px; }
-  .chart { height: 228px; }
-  .axisLabel, .dayLabel { font-size: 10.5px; }
-  .chartFooter p { display: none; }
+  .scanIntent > div { white-space: normal; }
+  .scanIntentLabel { font-size: .64rem; }
+  .scanIntent > div > strong { font-size: .95rem; }
+  .scanIntent p { font-size: .64rem; text-align: left; }
+  .chartHint { display: none; }
+}
+
+@media (max-width: 380px) {
+  .summaryCell { padding-inline: .42rem; }
+  .summaryLabel { font-size: .58rem; }
+  .summaryCell > strong,
+  .summaryButton > strong { font-size: 1.25rem; }
+  .delta { font-size: .53rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .chartExperience { animation: none; }
-  .metricTab { transition: none; }
+  .summaryButton { transition: none; }
 }

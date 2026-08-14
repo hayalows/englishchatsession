@@ -1,16 +1,29 @@
+"use client";
+
+import { useState } from "react";
+
 import refinements from "./analytics-dashboard-refinements.module.css";
 import styles from "./analytics-dashboard.module.css";
 
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
-import { AnalyticsTrendChart } from "@/components/analytics/analytics-trend-chart";
+import {
+  AnalyticsTrendChart,
+  type AnalyticsPrimaryMetric,
+} from "@/components/analytics/analytics-trend-chart";
+import type { AnalyticsMetricBreakdowns, AnalyticsBreakdownRow } from "@/lib/analytics/breakdown-types";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
 const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
-const DEFAULT_LIST_ROWS = 5;
 
 type ListRow = { label: string; total: number };
+
+const METRIC_LABELS: Record<AnalyticsPrimaryMetric, string> = {
+  visitors: "Visitors",
+  pageViews: "Page views",
+  scanUsage: "Scan usage",
+};
 
 function displayGeneratedAt(value: string) {
   const date = new Date(value);
@@ -52,7 +65,17 @@ function displayMilestone(seconds: number) {
   return seconds >= 60 ? `${seconds / 60} min active` : `${seconds} sec active`;
 }
 
-function TrendPanel({ report, comparison }: { report: AnalyticsReport; comparison: AnalyticsComparison }) {
+function TrendPanel({
+  report,
+  comparison,
+  activeMetric,
+  onMetricChange,
+}: {
+  report: AnalyticsReport;
+  comparison: AnalyticsComparison;
+  activeMetric: AnalyticsPrimaryMetric;
+  onMetricChange: (metric: AnalyticsPrimaryMetric) => void;
+}) {
   const rows = report.trend;
 
   return (
@@ -61,7 +84,12 @@ function TrendPanel({ report, comparison }: { report: AnalyticsReport; compariso
 
       {rows.length ? (
         <>
-          <AnalyticsTrendChart comparison={comparison} report={report} />
+          <AnalyticsTrendChart
+            activeMetric={activeMetric}
+            comparison={comparison}
+            onMetricChange={onMetricChange}
+            report={report}
+          />
           <details className={styles.dataDisclosure}>
             <summary>View exact trend data ({rows.length})</summary>
             {rows.length > 6 ? (
@@ -102,7 +130,7 @@ function FunnelPanel({ report }: { report: AnalyticsReport }) {
       <div className={styles.panelHeader}>
         <div>
           <p className={styles.eyebrow}>Primary action</p>
-          <h2 id="finder-funnel-title">Finder opens to scan starts</h2>
+          <h2 id="finder-funnel-title">Finder opens to scan use</h2>
           <p>Unique visitors · {report.filters.rangeLabel}</p>
         </div>
         <strong className={styles.heroRate}>{visitors ? `${scanStartRate}%` : "—"}</strong>
@@ -115,12 +143,12 @@ function FunnelPanel({ report }: { report: AnalyticsReport }) {
         </div>
         <div className={styles.flowConnector} aria-hidden="true"><span>↓</span><strong>{visitors ? `${scanStartRate}%` : "—"}</strong></div>
         <div className={styles.flowStage}>
-          <div className={styles.flowStageHeader}><span>Started a scan</span><strong>{scanStarters.toLocaleString()}</strong></div>
+          <div className={styles.flowStageHeader}><span>Used the scanner</span><strong>{scanStarters.toLocaleString()}</strong></div>
           <div className={styles.flowTrack}><span className={`${styles.flowBar} ${styles.flowBarAccent}`} style={{ width: `${scanWidth}%` }} /></div>
-          <small>One event per scan click</small>
+          <small>Visitors who started at least one scan</small>
         </div>
       </div>
-      <p className={styles.panelNote}>The rate uses unique visitors. Scan clicks remain available separately, so repeated use is visible without multiplying calendar checks.</p>
+      <p className={styles.panelNote}>Scan usage is the share of unique visitors who started at least one scan. Repeated scan clicks are measured separately.</p>
     </section>
   );
 }
@@ -214,29 +242,76 @@ function ScanHealthPanel({ report }: { report: AnalyticsReport }) {
   );
 }
 
-function ListRows({ rows, max }: { rows: ListRow[]; max: number }) {
+function breakdownValue(row: AnalyticsBreakdownRow, metric: AnalyticsPrimaryMetric) {
+  if (metric === "pageViews") return row.pageViews;
+  if (metric === "scanUsage") {
+    return row.visitors ? Math.min(100, Math.round((row.scanStarters / row.visitors) * 100)) : 0;
+  }
+  return row.visitors;
+}
+
+function metricCaption(metric: AnalyticsPrimaryMetric, rangeLabel: string) {
+  if (metric === "pageViews") return `Page views · ${rangeLabel}`;
+  if (metric === "scanUsage") return `Visitors who used the scanner · % · ${rangeLabel}`;
+  return `Unique visitors · ${rangeLabel}`;
+}
+
+function MetricBreakdownPanel({
+  title,
+  rows,
+  activeMetric,
+  rangeLabel,
+}: {
+  title: string;
+  rows: AnalyticsBreakdownRow[];
+  activeMetric: AnalyticsPrimaryMetric;
+  rangeLabel: string;
+}) {
+  const sortedRows = [...rows].sort((a, b) => breakdownValue(b, activeMetric) - breakdownValue(a, activeMetric));
+  const max = activeMetric === "scanUsage"
+    ? 100
+    : Math.max(1, ...sortedRows.map((row) => breakdownValue(row, activeMetric)));
+  const titleId = `${title.replaceAll(" ", "-").toLowerCase()}-title`;
+
   return (
-    <div className={styles.rows}>
-      {rows.map((row, index) => (
-        <div className={styles.row} key={`${row.label}-${index}`}>
-          <div className={styles.rowLabel}>
-            <strong>{row.label}</strong>
-            <div aria-hidden="true" className={styles.barTrack}>
-              <div className={styles.bar} style={{ width: `${Math.max(2, (row.total / max) * 100)}%` }} />
+    <section className={styles.panel} aria-labelledby={titleId}>
+      <div className={styles.panelHeader}>
+        <div>
+          <h2 id={titleId}>{title}</h2>
+          <p>{metricCaption(activeMetric, rangeLabel)}</p>
+        </div>
+      </div>
+      {sortedRows.length ? (
+        <>
+          <div className={refinements.breakdownViewport} tabIndex={sortedRows.length > 5 ? 0 : undefined}>
+            <div className={styles.rows}>
+              {sortedRows.map((row, index) => {
+                const value = breakdownValue(row, activeMetric);
+                const width = activeMetric === "scanUsage" ? value : Math.max(2, (value / max) * 100);
+                return (
+                  <div className={styles.row} key={`${row.label}-${index}`}>
+                    <div className={styles.rowLabel}>
+                      <strong>{row.label}</strong>
+                      <div aria-hidden="true" className={styles.barTrack}>
+                        <div className={styles.bar} style={{ width: `${Math.max(0, Math.min(100, width))}%` }} />
+                      </div>
+                    </div>
+                    <strong>{activeMetric === "scanUsage" ? `${value}%` : value.toLocaleString()}</strong>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <strong>{row.total.toLocaleString()}</strong>
-        </div>
-      ))}
-    </div>
+          {sortedRows.length > 5 ? <small className={refinements.breakdownHint}>Scroll inside for all {sortedRows.length}</small> : null}
+        </>
+      ) : <p className={styles.empty}>No data in this period yet.</p>}
+    </section>
   );
 }
 
 function ListPanel({ title, caption, rows }: { title: string; caption: string; rows: ListRow[] }) {
   const max = Math.max(1, ...rows.map((row) => row.total));
   const titleId = `${title.replaceAll(" ", "-").toLowerCase()}-title`;
-  const visibleRows = rows.slice(0, DEFAULT_LIST_ROWS);
-  const hiddenRows = rows.slice(DEFAULT_LIST_ROWS);
 
   return (
     <section className={styles.panel} aria-labelledby={titleId}>
@@ -248,15 +323,22 @@ function ListPanel({ title, caption, rows }: { title: string; caption: string; r
       </div>
       {rows.length ? (
         <>
-          <ListRows max={max} rows={visibleRows} />
-          {hiddenRows.length ? (
-            <details className={refinements.panelRowsDisclosure}>
-              <summary>View all {rows.length}</summary>
-              <div className={refinements.moreRows}>
-                <ListRows max={max} rows={hiddenRows} />
-              </div>
-            </details>
-          ) : null}
+          <div className={refinements.breakdownViewport} tabIndex={rows.length > 5 ? 0 : undefined}>
+            <div className={styles.rows}>
+              {rows.map((row, index) => (
+                <div className={styles.row} key={`${row.label}-${index}`}>
+                  <div className={styles.rowLabel}>
+                    <strong>{row.label}</strong>
+                    <div aria-hidden="true" className={styles.barTrack}>
+                      <div className={styles.bar} style={{ width: `${Math.max(2, (row.total / max) * 100)}%` }} />
+                    </div>
+                  </div>
+                  <strong>{row.total.toLocaleString()}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+          {rows.length > 5 ? <small className={refinements.breakdownHint}>Scroll inside for all {rows.length}</small> : null}
         </>
       ) : <p className={styles.empty}>No data in this period yet.</p>}
     </section>
@@ -276,11 +358,15 @@ function StatusNotice({ report }: { report: AnalyticsReport }) {
 export function AnalyticsDashboard({
   report,
   comparison,
+  breakdowns,
 }: {
   report: AnalyticsReport;
   comparison: AnalyticsComparison;
+  breakdowns: AnalyticsMetricBreakdowns;
 }) {
   const metrics = report.metrics;
+  const [activeMetric, setActiveMetric] = useState<AnalyticsPrimaryMetric>("visitors");
+  const selectedMetricLabel = METRIC_LABELS[activeMetric];
 
   return (
     <div className={styles.page}>
@@ -304,7 +390,12 @@ export function AnalyticsDashboard({
         <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
 
         <div className={styles.primaryGrid}>
-          <TrendPanel comparison={comparison} report={report} />
+          <TrendPanel
+            activeMetric={activeMetric}
+            comparison={comparison}
+            onMetricChange={setActiveMetric}
+            report={report}
+          />
         </div>
 
         <section className={styles.breakdownSection} aria-labelledby="audience-breakdown-title">
@@ -313,12 +404,12 @@ export function AnalyticsDashboard({
               <p className={styles.eyebrow}>Audience</p>
               <h2 id="audience-breakdown-title">Where usage comes from</h2>
             </div>
-            <small>Swipe on mobile</small>
+            <small>{selectedMetricLabel} · swipe on mobile</small>
           </div>
-          <div className={styles.breakdownGrid} aria-label="Finder audience breakdowns">
-            <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.countries} title="Countries" />
-            <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.devices} title="Devices" />
-            <ListPanel caption={`Unique sessions · ${report.filters.rangeLabel}`} rows={report.referrers} title="Traffic sources" />
+          <div className={styles.breakdownGrid} aria-label={`${selectedMetricLabel} breakdowns`}>
+            <MetricBreakdownPanel activeMetric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} title="Countries" />
+            <MetricBreakdownPanel activeMetric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.devices} title="Devices" />
+            <MetricBreakdownPanel activeMetric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.browsers} title="Browsers" />
           </div>
         </section>
 
@@ -335,7 +426,7 @@ export function AnalyticsDashboard({
         <details className={styles.detailDisclosure}>
           <summary>Explore traffic detail</summary>
           <div className={styles.detailGrid}>
-            <ListPanel caption={`Unique visitors · ${report.filters.rangeLabel}`} rows={report.browsers} title="Browsers" />
+            <MetricBreakdownPanel activeMetric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title="Traffic sources" />
             <ListPanel caption={`Recorded scan clicks · ${report.filters.rangeLabel}`} rows={report.scanModes} title="Scan mode mix" />
           </div>
         </details>
@@ -345,9 +436,9 @@ export function AnalyticsDashboard({
           <ul>
             <li><strong>Visitor:</strong> a pseudonymous browser ID. It is not a named person.</li>
             <li><strong>Page view:</strong> one recorded opening/view of the finder page. One visitor can create multiple views.</li>
-            <li><strong>Period change:</strong> Visitors and views compare with the immediately preceding equal-length window using the same audience filter. For Today, the comparison is the same elapsed time yesterday.</li>
+            <li><strong>Scan usage:</strong> the percentage of unique visitors who started at least one scan in the selected period. For example, 3 starters out of 5 visitors is 60% scan usage.</li>
+            <li><strong>Period change:</strong> Visitors and page views use percentage change. Scan usage uses percentage-point change. Today compares with the same elapsed time yesterday.</li>
             <li><strong>Today:</strong> the current UTC/Ghana calendar day from 00:00 to now. Each new date starts a new day view.</li>
-            <li><strong>Scan-start rate:</strong> unique visitors who started a scan divided by unique visitors who opened the finder in the selected window.</li>
             <li><strong>Scan start:</strong> one click/request by the user. Individual calendar checks are never recorded as analytics events.</li>
             <li><strong>Repeat scan:</strong> a visitor ID with at least 2 scan-start events in the selected window. Five or more is shown as a high-frequency signal, not an abuse verdict.</li>
             <li><strong>Returning visitor:</strong> a visitor ID seen before the selected window. Browser storage resets and privacy controls can make this an undercount.</li>

@@ -9,7 +9,7 @@ import styles from "./analytics-trend-chart.module.css";
 
 type TrendRow = AnalyticsReport["trend"][number];
 type Granularity = AnalyticsReport["filters"]["granularity"];
-type MetricKey = "visitors" | "pageViews";
+export type AnalyticsPrimaryMetric = "visitors" | "pageViews" | "scanUsage";
 type DeltaTone = "positive" | "negative" | "neutral" | "pending";
 type Delta = { text: string; tone: DeltaTone; title: string };
 
@@ -23,12 +23,18 @@ const WIDTH = 880;
 const HEIGHT = 270;
 const PADDING = { top: 22, right: 22, bottom: 40, left: 40 };
 
-const METRICS: Array<{ key: MetricKey; label: string; valueLabel: string }> = [
+const METRICS: Array<{ key: AnalyticsPrimaryMetric; label: string; valueLabel: string }> = [
   { key: "visitors", label: "Visitors", valueLabel: "visitors" },
   { key: "pageViews", label: "Page views", valueLabel: "page views" },
+  { key: "scanUsage", label: "Scan usage", valueLabel: "scan usage" },
 ];
 
-function metricValue(row: TrendRow, metric: MetricKey) {
+function scanUsage(row: TrendRow) {
+  return row.visitors ? Math.round((row.scanStarters / row.visitors) * 100) : 0;
+}
+
+function metricValue(row: TrendRow, metric: AnalyticsPrimaryMetric) {
+  if (metric === "scanUsage") return scanUsage(row);
   return row[metric];
 }
 
@@ -72,19 +78,19 @@ function rateDelta(
   if (!ready || !previousVisitors) return {
     text: "—",
     tone: "pending",
-    title: `Scan-rate comparison with ${comparisonLabel} is still building`,
+    title: `Scan-usage comparison with ${comparisonLabel} is still building`,
   };
 
   const change = current - previous;
   if (change === 0) return {
     text: "0 pts",
     tone: "neutral",
-    title: `No scan-start-rate change vs ${comparisonLabel}`,
+    title: `No scan-usage change vs ${comparisonLabel}`,
   };
   return {
     text: `${change > 0 ? "+" : "−"}${Math.abs(change)} pts`,
     tone: change > 0 ? "positive" : "negative",
-    title: `Scan-start rate is ${Math.abs(change)} percentage points ${change > 0 ? "higher" : "lower"} than ${comparisonLabel}`,
+    title: `Scan usage is ${Math.abs(change)} percentage points ${change > 0 ? "higher" : "lower"} than ${comparisonLabel}`,
   };
 }
 
@@ -131,20 +137,23 @@ function DeltaBadge({ delta }: { delta: Delta }) {
 export function AnalyticsTrendChart({
   report,
   comparison,
+  activeMetric,
+  onMetricChange,
 }: {
   report: AnalyticsReport;
   comparison: AnalyticsComparison;
+  activeMetric: AnalyticsPrimaryMetric;
+  onMetricChange: (metric: AnalyticsPrimaryMetric) => void;
 }) {
   const rows = report.trend;
   const granularity = report.filters.granularity;
   const metrics = report.metrics;
   const gradientId = useId().replaceAll(":", "");
-  const [activeMetric, setActiveMetric] = useState<MetricKey>("visitors");
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, rows.length - 1));
 
   const visitorsDelta = countDelta(metrics.visitors, comparison.previous.visitors, comparison.audienceReady, comparison.label);
   const viewsDelta = countDelta(metrics.pageViews, comparison.previous.pageViews, comparison.audienceReady, comparison.label);
-  const scanRateChange = rateDelta(
+  const scanUsageDelta = rateDelta(
     metrics.scanStartRate,
     comparison.previous.scanStartRate,
     comparison.previous.visitors,
@@ -153,7 +162,9 @@ export function AnalyticsTrendChart({
   );
 
   const geometry = useMemo(() => {
-    const maxValue = Math.max(1, ...rows.map((row) => metricValue(row, activeMetric)));
+    const maxValue = activeMetric === "scanUsage"
+      ? 100
+      : Math.max(1, ...rows.map((row) => metricValue(row, activeMetric)));
     const chartWidth = WIDTH - PADDING.left - PADDING.right;
     const chartHeight = HEIGHT - PADDING.top - PADDING.bottom;
     const points: Point[] = rows.map((row, index) => {
@@ -182,10 +193,13 @@ export function AnalyticsTrendChart({
   const selected = geometry.points[clampedIndex] ?? geometry.points.at(-1)!;
   const active = METRICS.find((metric) => metric.key === activeMetric) ?? METRICS[0];
   const selectedValue = metricValue(selected, activeMetric);
+  const selectedValueText = activeMetric === "scanUsage"
+    ? `${selectedValue}%`
+    : selectedValue.toLocaleString();
   const labelEvery = rows.length > 12 ? Math.ceil(rows.length / 6) : rows.length > 7 ? 2 : 1;
 
-  function chooseMetric(metric: MetricKey) {
-    setActiveMetric(metric);
+  function chooseMetric(metric: AnalyticsPrimaryMetric) {
+    onMetricChange(metric);
     setSelectedIndex(Math.max(0, rows.length - 1));
   }
 
@@ -217,13 +231,7 @@ export function AnalyticsTrendChart({
 
   return (
     <div className={styles.chartExperience}>
-      <div className={styles.summaryStrip} aria-label="Primary finder analytics">
-        <div className={`${styles.summaryCell} ${styles.liveSummary}`}>
-          <div className={styles.summaryLabel}><i className={styles.liveDot} aria-hidden="true" />Active now</div>
-          <strong>{metrics.activeNowVisitors.toLocaleString()}</strong>
-          <small>{metrics.activeNowSessions.toLocaleString()} visible sessions · last {ACTIVE_NOW_WINDOW_SECONDS}s</small>
-        </div>
-
+      <div className={styles.summaryStrip} aria-label="Chart metric">
         <button
           aria-pressed={activeMetric === "visitors"}
           className={`${styles.summaryCell} ${styles.summaryButton}`}
@@ -245,16 +253,27 @@ export function AnalyticsTrendChart({
           <strong>{metrics.pageViews.toLocaleString()}</strong>
           <small>Recorded finder opens</small>
         </button>
+
+        <button
+          aria-pressed={activeMetric === "scanUsage"}
+          className={`${styles.summaryCell} ${styles.summaryButton}`}
+          onClick={() => chooseMetric("scanUsage")}
+          type="button"
+        >
+          <span className={styles.summaryTopline}><span className={styles.summaryLabel}>Scan usage</span><DeltaBadge delta={scanUsageDelta} /></span>
+          <strong>{metrics.visitors ? `${metrics.scanStartRate}%` : "—"}</strong>
+          <small>Visitors who started a scan</small>
+        </button>
       </div>
 
       <div className={styles.chartContext} aria-live="polite">
         <span><strong>{active.label}</strong> · {displayTrendLabel(selected.label, granularity)}</span>
-        <strong>{selectedValue.toLocaleString()} {active.valueLabel}</strong>
+        <strong>{selectedValueText}{activeMetric === "scanUsage" ? "" : ` ${active.valueLabel}`}</strong>
       </div>
 
       <div className={styles.chartFrame}>
         <svg
-          aria-label={`Interactive ${active.label.toLowerCase()} line chart. ${displayTrendLabel(selected.label, granularity)} has ${selectedValue} ${active.valueLabel}. Use left and right arrow keys to inspect other periods.`}
+          aria-label={`Interactive ${active.label.toLowerCase()} line chart. ${displayTrendLabel(selected.label, granularity)} has ${selectedValueText}${activeMetric === "scanUsage" ? " scan usage" : ` ${active.valueLabel}`}. Use left and right arrow keys to inspect other periods.`}
           className={styles.chart}
           onKeyDown={handleKeyDown}
           onPointerDown={selectFromPointer}
@@ -275,7 +294,9 @@ export function AnalyticsTrendChart({
             return (
               <g key={tick}>
                 <line className={styles.gridLine} x1={PADDING.left} x2={WIDTH - PADDING.right} y1={y} y2={y} />
-                <text className={styles.axisLabel} textAnchor="end" x={PADDING.left - 10} y={y + 4}>{tick}</text>
+                <text className={styles.axisLabel} textAnchor="end" x={PADDING.left - 10} y={y + 4}>
+                  {activeMetric === "scanUsage" ? `${tick}%` : tick}
+                </text>
               </g>
             );
           })}
@@ -296,21 +317,13 @@ export function AnalyticsTrendChart({
         </svg>
       </div>
 
-      <div className={styles.scanIntent}>
-        <div>
-          <span className={styles.scanIntentLabel}>Scan-start rate</span>
-          <strong>{metrics.visitors ? `${metrics.scanStartRate}%` : "—"}</strong>
-          <DeltaBadge delta={scanRateChange} />
-        </div>
-        <p>
-          {metrics.visitors
-            ? `${metrics.scanStarters.toLocaleString()} of ${metrics.visitors.toLocaleString()} visitors started a scan.`
-            : "The share of visitors who started a scan will appear once visits are recorded."}
-          {metrics.scanStarts ? ` ${metrics.scanStarts.toLocaleString()} total scan starts.` : ""}
-        </p>
+      <div className={styles.liveNowBar} aria-label="Live finder activity">
+        <span className={styles.liveNowLabel}><i className={styles.liveDot} aria-hidden="true" />Active now</span>
+        <strong>{metrics.activeNowVisitors.toLocaleString()}</strong>
+        <small>{metrics.activeNowSessions.toLocaleString()} visible sessions · last {ACTIVE_NOW_WINDOW_SECONDS}s</small>
       </div>
 
-      <p className={styles.chartHint}>Tap Visitors or Page views to switch the chart. Tap or move across the graph to inspect a point.</p>
+      <p className={styles.chartHint}>Tap a metric above to switch the chart and audience breakdowns. Tap or move across the graph to inspect a point.</p>
     </div>
   );
 }

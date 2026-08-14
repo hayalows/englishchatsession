@@ -41,6 +41,9 @@
   position: absolute;
   right: 0;
 }
+.summaryButton[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--surface-subtle), transparent 56%);
+}
 .summaryButton[aria-pressed="true"]::after { background: var(--ink); }
 .summaryButton:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
@@ -50,7 +53,7 @@
 .summaryTopline {
   align-items: center;
   display: flex;
-  gap: .5rem;
+  gap: .45rem;
   justify-content: space-between;
   min-width: 0;
 }
@@ -77,18 +80,19 @@
   font-size: .66rem;
   line-height: 1.35;
 }
-.liveSummary { background: color-mix(in srgb, var(--teal-50), transparent 54%); }
 .liveDot {
   background: #1ca66a;
   border-radius: 50%;
   box-shadow: 0 0 0 3px color-mix(in srgb, #1ca66a, transparent 86%);
   display: inline-block;
+  flex: 0 0 auto;
   height: .45rem;
   width: .45rem;
 }
 
 .delta {
   border-radius: .42rem;
+  flex: 0 0 auto;
   font-size: .64rem;
   font-weight: 800;
   line-height: 1;
@@ -169,35 +173,33 @@
   vector-effect: non-scaling-stroke;
 }
 
-.scanIntent {
+.liveNowBar {
   align-items: center;
   border-top: 1px solid var(--line);
-  display: grid;
-  gap: .8rem;
-  grid-template-columns: auto minmax(0, 1fr);
-  padding: .72rem .12rem .05rem;
-}
-.scanIntent > div {
-  align-items: baseline;
-  display: flex;
-  gap: .45rem;
-  white-space: nowrap;
-}
-.scanIntentLabel {
   color: var(--muted);
+  display: flex;
+  gap: .48rem;
+  min-height: 42px;
+  padding: .55rem .12rem .02rem;
+}
+.liveNowLabel {
+  align-items: center;
+  display: inline-flex;
   font-size: .7rem;
   font-weight: 750;
+  gap: .38rem;
+  white-space: nowrap;
 }
-.scanIntent > div > strong {
-  font-size: 1.08rem;
+.liveNowBar > strong {
+  color: var(--ink);
+  font-size: .96rem;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -.035em;
+  letter-spacing: -.03em;
 }
-.scanIntent p {
+.liveNowBar small {
   color: var(--muted-light);
-  font-size: .69rem;
-  line-height: 1.4;
-  margin: 0;
+  font-size: .67rem;
+  margin-left: auto;
   text-align: right;
 }
 .chartHint {
@@ -220,8 +222,9 @@
   .summaryCell {
     gap: .18rem;
     min-height: 76px;
-    padding: .62rem .52rem .55rem;
+    padding: .62rem .5rem .55rem;
   }
+  .summaryTopline { gap: .2rem; }
   .summaryLabel { font-size: .61rem; gap: .24rem; }
   .summaryCell > strong,
   .summaryButton > strong { font-size: 1.35rem; }
@@ -236,25 +239,24 @@
   .chart { height: 212px; }
   .axisLabel, .dayLabel { font-size: 10px; }
 
-  .scanIntent {
-    align-items: start;
-    gap: .35rem;
-    grid-template-columns: 1fr;
-    padding-top: .58rem;
+  .liveNowBar {
+    gap: .36rem;
+    min-height: 36px;
+    padding-top: .46rem;
   }
-  .scanIntent > div { white-space: normal; }
-  .scanIntentLabel { font-size: .64rem; }
-  .scanIntent > div > strong { font-size: .95rem; }
-  .scanIntent p { font-size: .64rem; text-align: left; }
+  .liveNowLabel { font-size: .64rem; gap: .28rem; }
+  .liveNowBar > strong { font-size: .86rem; }
+  .liveNowBar small { font-size: .61rem; }
   .chartHint { display: none; }
 }
 
 @media (max-width: 380px) {
-  .summaryCell { padding-inline: .42rem; }
-  .summaryLabel { font-size: .58rem; }
+  .summaryCell { padding-inline: .4rem; }
+  .summaryLabel { font-size: .57rem; }
   .summaryCell > strong,
   .summaryButton > strong { font-size: 1.25rem; }
-  .delta { font-size: .53rem; }
+  .delta { font-size: .52rem; padding-inline: .23rem; }
+  .liveNowBar small { max-width: 9.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

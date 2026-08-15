@@ -16,7 +16,6 @@ import {
 import type { AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
-import { displayCompactAnalyticsTimestamp } from "@/lib/analytics/timestamps";
 
 const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
 
@@ -27,29 +26,6 @@ const METRIC_LABELS: Record<AnalyticsPrimaryMetric, string> = {
   pageViews: "Page views",
   scanUsage: "Scan usage",
 };
-
-function displayGeneratedAt(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf())
-    ? "Not available"
-    : new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "UTC",
-    }).format(date) + " UTC";
-}
-
-function displayLatestEventAt(value: string | null) {
-  if (!value) return "No events yet";
-  const date = new Date(value);
-  return Number.isNaN(date.valueOf())
-    ? "Not available"
-    : new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "UTC",
-    }).format(date) + " UTC";
-}
 
 function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"]["granularity"]) {
   if (granularity === "week") {
@@ -320,15 +296,6 @@ export function AnalyticsDashboard({
                 <i aria-hidden="true" className={styles.activeDot} />
                 {metrics.activeNowVisitors.toLocaleString()} active now
               </span>
-              <div
-                aria-label={`Latest event ${displayLatestEventAt(report.latestEventAt)}. Dashboard checked ${displayGeneratedAt(report.generatedAt)}.`}
-                className={styles.freshness}
-                title={`Latest event ${displayLatestEventAt(report.latestEventAt)} · Dashboard checked ${displayGeneratedAt(report.generatedAt)}`}
-              >
-                <span>Latest event {displayCompactAnalyticsTimestamp(report.latestEventAt)}</span>
-                <span aria-hidden="true">·</span>
-                <span>Checked {displayCompactAnalyticsTimestamp(report.generatedAt)}</span>
-              </div>
             </div>
           </div>
         </header>
@@ -385,7 +352,7 @@ export function AnalyticsDashboard({
             <li><strong>Returning visitor:</strong> a visitor ID seen before the selected window. Browser storage resets and privacy controls can make this an undercount.</li>
             <li><strong>Active time:</strong> visible-page milestones at 10 seconds, 30 seconds, 60 seconds, and 3 minutes. Hidden tabs pause the clock.</li>
             <li><strong>Active now:</strong> distinct anonymous visitors with a visible-page heartbeat received in the last 90 seconds. It is an approximate live signal, not an exact count of people.</li>
-            <li><strong>Event time:</strong> Neon records <code>created_at</code> when the server accepts an event. The latest-event label is receipt time, and chart buckets use UTC.</li>
+            <li><strong>Event time:</strong> Neon records <code>created_at</code> when the server accepts an event. Chart buckets use UTC.</li>
             <li><strong>Country, device, browser, and source:</strong> coarse request-level categories. Raw IP addresses, names, searches, results, and booking choices are not stored.</li>
           </ul>
         </details>

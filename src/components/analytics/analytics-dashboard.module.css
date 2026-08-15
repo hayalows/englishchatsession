@@ -60,8 +60,6 @@
 .statusRow {
   align-items: center;
   display: flex;
-  gap: .75rem;
-  justify-content: space-between;
   width: 100%;
 }
 .activeNow {
@@ -81,21 +79,6 @@
   height: .42rem;
   width: .42rem;
 }
-.freshness {
-  align-items: center;
-  color: var(--muted-light);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: .7rem;
-  font-variant-numeric: tabular-nums;
-  gap: .38rem;
-  justify-content: flex-end;
-  line-height: 1.4;
-  max-width: 100%;
-  margin-left: auto;
-  text-align: right;
-}
-
 .notice {
   background: var(--gold-100);
   border: 1px solid #e8ce82;
@@ -396,8 +379,6 @@
     width: 100%;
   }
   .controlRow { justify-content: stretch; }
-  .statusRow { align-items: start; }
-  .freshness { justify-content: flex-start; text-align: left; }
   .detailGrid { grid-template-columns: 1fr; }
 }
 
@@ -408,9 +389,6 @@
   .header h1 { font-size: 2.05rem; margin-bottom: .16rem; }
   .header p:not(.eyebrow) { font-size: .82rem; line-height: 1.45; }
   .headerTools { gap: .38rem; }
-  .statusRow { display: grid; gap: .28rem; justify-content: start; }
-  .freshness { font-size: .68rem; gap: .34rem; margin-left: 0; }
-
   .primaryGrid { margin-top: .55rem; }
   .panel { border-radius: 1.1rem; padding: .9rem; }
   .trendPanel { padding: .9rem .75rem; }

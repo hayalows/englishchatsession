@@ -33,7 +33,7 @@ describe("getAnalyticsComparison", () => {
     expect(analyticsQueryMock).not.toHaveBeenCalled();
   });
 
-  it("compares Today with the same elapsed portion of yesterday once the first day closes", async () => {
+  it("compares Today with the last completed calendar day", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-15T12:00:00Z"));
     analyticsDatabaseStatusMock.mockReturnValue("configured");
@@ -54,6 +54,6 @@ describe("getAnalyticsComparison", () => {
     expect(analyticsQueryMock.mock.calls[0]?.[1]).toEqual(["GH"]);
     const query = String(analyticsQueryMock.mock.calls[0]?.[0]);
     expect(query).toContain("date_trunc('day', now()) - interval '1 day'");
-    expect(query).toContain("now() - interval '1 day'");
+    expect(query).toContain("date_trunc('day', now()) AS previous_end");
   });
 });

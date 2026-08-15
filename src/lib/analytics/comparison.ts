@@ -64,8 +64,8 @@ function utcDayStart(valueMs: number) {
 
 function readiness(range: AnalyticsRange, nowMs = Date.now()) {
   if (range === "24h") {
-    // Today is a UTC/Ghana calendar day. Once the first production day closes,
-    // compare the elapsed portion of today with the same portion of yesterday.
+    // Today is a UTC/Ghana calendar day. Compare day-to-date with the last
+    // completed calendar day so a useful daily baseline exists from midnight.
     const audienceReadyAtMs = utcDayStart(PAGE_VIEW_PRODUCTION_START) + DAY_MS;
     const scanReadyAtMs = utcDayStart(SCAN_PRODUCTION_START) + DAY_MS;
     return {
@@ -118,7 +118,7 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
   const boundsSql = filters.range === "24h"
     ? `SELECT
         date_trunc('day', now()) - interval '1 day' AS previous_start,
-        now() - interval '1 day' AS previous_end`
+        date_trunc('day', now()) AS previous_end`
     : `SELECT
         now() - interval '${config.interval}' AS previous_end,
         now() - (interval '${config.interval}' * 2) AS previous_start`;

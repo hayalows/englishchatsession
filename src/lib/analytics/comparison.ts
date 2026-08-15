@@ -9,7 +9,7 @@ import {
 } from "./filters";
 
 // First production collection points. Preview/test rows existed before these
-// deploys, so comparisons deliberately wait for complete production windows.
+// deploys, so comparisons do not begin until a production calendar day closes.
 const PAGE_VIEW_PRODUCTION_START = Date.parse("2026-08-14T06:45:34Z");
 const SCAN_PRODUCTION_START = Date.parse("2026-08-14T07:37:18Z");
 
@@ -64,10 +64,10 @@ function utcDayStart(valueMs: number) {
 
 function readiness(range: AnalyticsRange, nowMs = Date.now()) {
   if (range === "24h") {
-    // Today is a UTC/Ghana calendar day. A clean same-time-yesterday baseline
-    // exists once we reach the second calendar day after production tracking began.
-    const audienceReadyAtMs = utcDayStart(PAGE_VIEW_PRODUCTION_START) + DAY_MS * 2;
-    const scanReadyAtMs = utcDayStart(SCAN_PRODUCTION_START) + DAY_MS * 2;
+    // Today is a UTC/Ghana calendar day. Once the first production day closes,
+    // compare the elapsed portion of today with the same portion of yesterday.
+    const audienceReadyAtMs = utcDayStart(PAGE_VIEW_PRODUCTION_START) + DAY_MS;
+    const scanReadyAtMs = utcDayStart(SCAN_PRODUCTION_START) + DAY_MS;
     return {
       audienceReady: nowMs >= audienceReadyAtMs,
       scanReady: nowMs >= scanReadyAtMs,

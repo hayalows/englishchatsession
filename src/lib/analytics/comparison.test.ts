@@ -20,9 +20,9 @@ afterEach(() => {
 });
 
 describe("getAnalyticsComparison", () => {
-  it("waits until a complete production calendar-day baseline exists", async () => {
+  it("waits until the first production calendar day closes", async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-15T12:00:00Z"));
+    vi.setSystemTime(new Date("2026-08-14T23:59:59Z"));
     analyticsDatabaseStatusMock.mockReturnValue("configured");
 
     const comparison = await getAnalyticsComparison({ range: "24h" });
@@ -33,9 +33,9 @@ describe("getAnalyticsComparison", () => {
     expect(analyticsQueryMock).not.toHaveBeenCalled();
   });
 
-  it("compares Today with the same elapsed portion of yesterday using the same audience filter", async () => {
+  it("compares Today with the same elapsed portion of yesterday once the first day closes", async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-16T08:00:00Z"));
+    vi.setSystemTime(new Date("2026-08-15T12:00:00Z"));
     analyticsDatabaseStatusMock.mockReturnValue("configured");
     analyticsQueryMock.mockResolvedValue([{ visitors: 8, page_views: 12, scan_starts: 5, scan_starters: 4 }]);
 

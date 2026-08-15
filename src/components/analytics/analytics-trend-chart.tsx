@@ -37,12 +37,22 @@ function metricValue(row: TrendRow, metric: AnalyticsPrimaryMetric) {
   return row[metric];
 }
 
-function countDelta(current: number, previous: number, ready: boolean, comparisonLabel: string): Delta {
-  if (!ready) return {
-    text: "—",
-    tone: "pending",
-    title: `Comparison with ${comparisonLabel} is still building`,
+function newPeriodDelta(noun: string, comparisonLabel: string): Delta {
+  return {
+    text: "New",
+    tone: "positive",
+    title: `${noun} recorded for the first comparable period. A percentage change will appear when ${comparisonLabel} has enough history for comparison.`,
   };
+}
+
+function countDelta(current: number, previous: number, ready: boolean, comparisonLabel: string): Delta {
+  if (!ready) return current > 0
+    ? newPeriodDelta("Activity", comparisonLabel)
+    : {
+      text: "—",
+      tone: "pending",
+      title: `Comparison with ${comparisonLabel} is still building`,
+    };
   if (previous === 0 && current === 0) return {
     text: "0%",
     tone: "neutral",
@@ -74,11 +84,20 @@ function rateDelta(
   ready: boolean,
   comparisonLabel: string,
 ): Delta {
-  if (!ready || !previousVisitors) return {
-    text: "—",
-    tone: "pending",
-    title: `Scan-usage comparison with ${comparisonLabel} is still building`,
-  };
+  if (!ready) return current > 0
+    ? newPeriodDelta("Scan usage", comparisonLabel)
+    : {
+      text: "—",
+      tone: "pending",
+      title: `Scan-usage comparison with ${comparisonLabel} is still building`,
+    };
+  if (!previousVisitors) return current > 0
+    ? newPeriodDelta("Scan usage", comparisonLabel)
+    : {
+      text: "—",
+      tone: "pending",
+      title: `No visitor baseline in ${comparisonLabel}`,
+    };
 
   const change = current - previous;
   if (change === 0) return {

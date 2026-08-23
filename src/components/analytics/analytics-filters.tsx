@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { CalendarBlank, CaretDown, Check, FunnelSimple } from "@phosphor-icons/react";
 
 import {
   ANALYTICS_RANGE_OPTIONS,
@@ -55,39 +56,6 @@ function rangeHref(filters: AnalyticsFiltersProps["filters"], range: AnalyticsRa
     if (filters.value) params.set("value", filters.value);
   }
   return `/analytics?${params.toString()}`;
-}
-
-function CalendarIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.controlIcon} fill="none" viewBox="0 0 24 24">
-      <rect height="16" rx="2.5" width="17" x="3.5" y="5" />
-      <path d="M7.5 3.5v3M16.5 3.5v3M3.5 9.5h17" />
-    </svg>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg aria-hidden="true" className={`${styles.controlIcon} ${styles.chevronIcon}`} fill="none" viewBox="0 0 24 24">
-      <path d="m7 9 5 5 5-5" />
-    </svg>
-  );
-}
-
-function FilterIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.controlIcon} fill="none" viewBox="0 0 24 24">
-      <path d="M4 6h16M7 12h10M10 18h4" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.checkIcon} fill="none" viewBox="0 0 24 24">
-      <path d="m5 12 4.2 4.2L19 6.5" />
-    </svg>
-  );
 }
 
 export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
@@ -152,9 +120,9 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
             ref={rangeTriggerRef}
             type="button"
           >
-            <CalendarIcon />
+            <CalendarBlank aria-hidden="true" className={styles.controlIcon} size={18} />
             <span className={styles.rangeSummaryLabel}>{filters.rangeLabel}</span>
-            <ChevronIcon />
+            <CaretDown aria-hidden="true" className={`${styles.controlIcon} ${styles.chevronIcon}`} size={16} />
           </button>
           {openPanel === "range" ? <div className={styles.rangePanel} id="analytics-range-panel" role="group" aria-label="Time range options">
             <span className={styles.rangePanelLabel}>Time range</span>
@@ -167,7 +135,7 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
                 onClick={() => setOpenPanel(null)}
               >
                 <span>{option.label}</span>
-                {filters.range === option.value ? <CheckIcon /> : null}
+                {filters.range === option.value ? <Check aria-hidden="true" className={styles.checkIcon} size={16} /> : null}
               </a>
             ))}
           </div> : null}
@@ -183,7 +151,7 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
             title="Filter traffic"
             type="button"
           >
-            <FilterIcon />
+            <FunnelSimple aria-hidden="true" className={styles.controlIcon} size={18} />
             <span className={styles.filterText}>Filter</span>
             {hasActiveFilter ? <span className={styles.filterBadge} aria-label="1 active filter">1</span> : null}
           </button>

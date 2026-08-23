@@ -47,3 +47,26 @@
 - The source combines Devices and Browsers as tabs and shows Operating Systems. Finder keeps its current three collected dimensions so this visual refinement does not expand analytics collection or the Neon schema.
 
 final result: passed
+
+## Full dashboard cohesion pass
+
+- Extended the audience cards' flat surface, thin divider, compact header, restrained radius, and subtle hover elevation to the trend, scanner, time-spent, and scan-mode panels.
+- Removed the nested chart frame so the trend reads as one continuous analytics surface. Exact values remain available through pointer, touch, keyboard, and the existing trend-data table.
+- Added clear section hierarchy: Audience, Behavior, and Explore. The always-visible source and scan-mode section removes a disclosure click while metric definitions remain collapsed as secondary help.
+- Kept Inter and the existing Finder color tokens, tightened the display scale, enabled tabular numerals, and corrected panel headings to follow the page's H1-H2-H3 structure.
+- Kept Today as the default view. Range, Filter, and Refresh remain grouped; Filter keeps its text label on narrow phones; opening one filter closes the other; outside clicks close open panels.
+- Replaced remaining handcrafted control SVGs with the project's Phosphor icon family.
+
+### Responsive verification
+
+- Desktop: 1366 x 768, including the chart, all three audience cards, behavior cards, and the always-visible Explore section.
+- Mobile portrait: 375 x 812 with no horizontal document overflow. Time range, Filter, Refresh, More, and card actions retain at least 44px touch targets.
+- Mobile landscape: 844 x 390 with no horizontal document overflow; controls remain readable and do not overlap the heading or KPI strip.
+- The chart height is reduced on mobile to keep the first audience card within a useful initial scroll while preserving exact-value access.
+
+### Scope and data safety
+
+- This pass changes presentation and interaction only. It does not change the Neon analytics schema, event collection, scanner requests, slot scanning, or finder availability behavior.
+- No new visitor attributes are collected.
+
+full dashboard result: passed

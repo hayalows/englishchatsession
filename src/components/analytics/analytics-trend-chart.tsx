@@ -340,7 +340,7 @@ export function AnalyticsTrendChart({
         </svg>
       </div>
 
-      <p className={styles.chartHint}>Select a metric above. Tap or move across the chart to inspect a period.</p>
+      <p className={styles.chartHint}>Hover, tap, or use arrow keys for exact values.</p>
     </div>
   );
 }

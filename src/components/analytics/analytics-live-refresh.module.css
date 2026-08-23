@@ -6,7 +6,7 @@
 .controls button {
   background: var(--surface);
   border: 1px solid var(--line-strong);
-  border-radius: .72rem;
+  border-radius: .55rem;
   color: var(--teal-700);
   cursor: pointer;
   font: inherit;
@@ -37,10 +37,6 @@
 .refreshIcon {
   display: block;
   height: 1.1rem;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
   width: 1.1rem;
 }
 

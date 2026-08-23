@@ -13,16 +13,12 @@ const METRIC_LABELS: Record<AnalyticsPrimaryMetric, string> = {
   scanUsage: "Scan usage",
 };
 
-const METRIC_ORDER: AnalyticsPrimaryMetric[] = ["visitors", "pageViews", "scanUsage"];
-
 type Props = {
   title: string;
   rows: AnalyticsBreakdownRow[];
   activeMetric: AnalyticsPrimaryMetric;
   rangeLabel: string;
-  onMetricChange: (metric: AnalyticsPrimaryMetric) => void;
   kind?: "country" | "device" | "browser" | "source";
-  compact?: boolean;
 };
 
 function scanUsage(row: AnalyticsBreakdownRow) {
@@ -54,37 +50,10 @@ function displayLabel(label: string, kind?: Props["kind"]) {
   return label.replace(/\s*\([A-Z]{2}\)$/, "");
 }
 
-function ExpandIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
-      <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
-      <path d="m3.5 8 5-5M20.5 8l-5-5M3.5 16l5 5M20.5 16l-5 5" />
-    </svg>
-  );
-}
-
-function SwitchIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
-      <path d="M4 7h13M14 4l3 3-3 3M20 17H7M10 14l-3 3 3 3" />
-    </svg>
-  );
-}
-
 function DownloadIcon() {
   return (
     <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
       <path d="M12 4v10M8 10l4 4 4-4M5 20h14" />
-    </svg>
-  );
-}
-
-function MoreIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.icon} viewBox="0 0 24 24">
-      <circle cx="5" cy="12" r="1.6" />
-      <circle cx="12" cy="12" r="1.6" />
-      <circle cx="19" cy="12" r="1.6" />
     </svg>
   );
 }
@@ -144,19 +113,14 @@ export function AnalyticsBreakdownCard({
   rows,
   activeMetric,
   rangeLabel,
-  onMetricChange,
   kind,
-  compact = false,
 }: Props) {
-  const cardRef = useRef<HTMLElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const dialogTitleId = useId();
   const dialogDescriptionId = useId();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
 
   const sortedRows = useMemo(
@@ -170,7 +134,6 @@ export function AnalyticsBreakdownCard({
   const total = activeMetric === "scanUsage"
     ? 0
     : sortedRows.reduce((sum, row) => sum + metricValue(row, activeMetric), 0);
-  const nextMetric = METRIC_ORDER[(METRIC_ORDER.indexOf(activeMetric) + 1) % METRIC_ORDER.length];
   const hasRows = sortedRows.length > 0;
 
   useEffect(() => {
@@ -232,26 +195,6 @@ export function AnalyticsBreakdownCard({
     };
   }, [dialogOpen]);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-
-    function onPointerDown(event: PointerEvent) {
-      const target = event.target;
-      if (target instanceof Node && !cardRef.current?.contains(target)) setMenuOpen(false);
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setMenuOpen(false);
-    }
-
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [menuOpen]);
-
   const filteredRows = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
     if (!normalized) return sortedRows;
@@ -260,7 +203,6 @@ export function AnalyticsBreakdownCard({
 
   function openDetails(trigger: HTMLButtonElement | null) {
     lastTriggerRef.current = trigger;
-    setMenuOpen(false);
     setQuery("");
     setDialogOpen(true);
   }
@@ -274,13 +216,7 @@ export function AnalyticsBreakdownCard({
     requestAnimationFrame(() => lastTriggerRef.current?.focus());
   }
 
-  function switchMetric() {
-    setMenuOpen(false);
-    onMetricChange(nextMetric);
-  }
-
   function exportCsv() {
-    setMenuOpen(false);
     if (!hasRows) return;
     const header = [title, "Share / rate", "Visitors", "Page views", "Scan usage"];
     const csvRows = sortedRows.map((row) => {
@@ -303,35 +239,11 @@ export function AnalyticsBreakdownCard({
   }
 
   return (
-    <section className={`${styles.card} ${compact ? styles.cardCompact : ""}`} aria-label={`${title}, ${METRIC_LABELS[activeMetric]}`} ref={cardRef}>
+    <section className={styles.card} aria-label={`${title}, ${METRIC_LABELS[activeMetric]}`}>
       <header className={styles.header}>
         <div className={styles.titleBlock}>
           <h3>{title}</h3>
-          <p>{rangeLabel}</p>
         </div>
-
-        <div className={styles.headerMeta}>
-          <span className={styles.metricLabel}>{METRIC_LABELS[activeMetric]}</span>
-          <button
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            aria-label={`${title} more actions`}
-            className={styles.moreButton}
-            onClick={() => setMenuOpen((value) => !value)}
-            ref={mobileMenuTriggerRef}
-            type="button"
-          >
-            <MoreIcon />
-          </button>
-        </div>
-
-        {menuOpen ? (
-          <div className={styles.mobileMenu} role="menu">
-            <button disabled={!hasRows} onClick={() => openDetails(mobileMenuTriggerRef.current)} role="menuitem" type="button"><ExpandIcon /><span>View all</span></button>
-            <button onClick={switchMetric} role="menuitem" type="button"><SwitchIcon /><span>Switch to {METRIC_LABELS[nextMetric]}</span></button>
-            <button disabled={!hasRows} onClick={exportCsv} role="menuitem" type="button"><DownloadIcon /><span>Export CSV</span></button>
-          </div>
-        ) : null}
       </header>
 
       {topRows.length ? (
@@ -357,8 +269,7 @@ export function AnalyticsBreakdownCard({
 
       <footer className={styles.footer}>
         <div className={styles.footerMeta}>
-          <span>{sortedRows.length > 5 ? `Top 5 of ${sortedRows.length}` : `${sortedRows.length} ${sortedRows.length === 1 ? "entry" : "entries"}`}</span>
-          <span>{activeMetric === "scanUsage" ? "Rate by group" : "Share of selected metric"}</span>
+          <span>{sortedRows.length > 5 ? `Showing 5 of ${sortedRows.length}` : `${sortedRows.length} ${sortedRows.length === 1 ? "entry" : "entries"}`}</span>
         </div>
         <button
           aria-label={`View all ${title}`}
@@ -367,7 +278,7 @@ export function AnalyticsBreakdownCard({
           onClick={(event) => openDetails(event.currentTarget)}
           type="button"
         >
-          <span>{hasRows ? "View all" : "No details"}</span>
+          <span>{hasRows ? (sortedRows.length > 5 ? "View all" : "Details") : "No details"}</span>
           {hasRows ? <ChevronIcon /> : null}
         </button>
       </footer>

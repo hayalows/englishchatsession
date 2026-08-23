@@ -3,12 +3,11 @@
   border: 1px solid color-mix(in srgb, var(--line), transparent 4%);
   border-radius: 20px;
   box-shadow: 0 1px 2px rgb(15 23 42 / 4%), 0 10px 28px rgb(15 23 42 / 5%);
-  min-height: 18.5rem;
+  min-height: 0;
   padding: 1rem;
   position: relative;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
-.cardCompact { min-height: 0; }
 
 .card:hover,
 .card:focus-within {
@@ -22,7 +21,7 @@
   gap: .8rem;
   justify-content: space-between;
   margin-bottom: .85rem;
-  min-height: 2.75rem;
+  min-height: 1.7rem;
   position: relative;
 }
 
@@ -34,35 +33,6 @@
   line-height: 1.2;
   margin: 0;
 }
-.titleBlock p {
-  color: var(--muted-light);
-  font-size: .76rem;
-  line-height: 1.4;
-  margin: .2rem 0 0;
-}
-
-.headerMeta {
-  align-items: center;
-  display: flex;
-  flex: 0 0 auto;
-  gap: .45rem;
-}
-
-.metricLabel {
-  background: var(--surface-subtle);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: .68rem;
-  font-weight: 780;
-  letter-spacing: .04em;
-  line-height: 1;
-  padding: .42rem .55rem;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.moreButton,
 .closeButton {
   align-items: center;
   appearance: none;
@@ -76,16 +46,12 @@
   transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.moreButton { height: 2.75rem; width: 2.75rem; }
-.moreButton:hover,
 .closeButton:hover {
   background: var(--surface-subtle);
   border-color: var(--line);
   color: var(--ink);
 }
-.moreButton:focus-visible,
 .closeButton:focus-visible,
-.mobileMenu button:focus-visible,
 .dialogFooter button:focus-visible,
 .viewAllButton:focus-visible,
 .emptyAction:focus-visible {
@@ -102,47 +68,6 @@
   stroke-linejoin: round;
   stroke-width: 1.8;
   width: 1.12rem;
-}
-
-.moreButton .icon { fill: currentColor; stroke: none; }
-
-.mobileMenu {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: .9rem;
-  box-shadow: 0 16px 42px rgb(15 23 42 / 16%);
-  display: grid;
-  min-width: 13.5rem;
-  overflow: hidden;
-  padding: .32rem;
-  position: absolute;
-  right: 0;
-  top: calc(100% + .35rem);
-  z-index: 20;
-}
-.mobileMenu button {
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: 0;
-  border-radius: .65rem;
-  color: var(--ink);
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  font-size: .86rem;
-  font-weight: 560;
-  gap: .65rem;
-  min-height: 2.75rem;
-  padding: .65rem .72rem;
-  text-align: left;
-  width: 100%;
-}
-.mobileMenu button:hover { background: var(--surface-subtle); }
-.mobileMenu button:disabled {
-  color: var(--muted-light);
-  cursor: not-allowed;
-  opacity: .62;
 }
 
 .rows { display: grid; gap: .5rem; }
@@ -534,25 +459,17 @@
   min-height: 2.75rem;
   padding: .58rem .82rem;
 }
-.moreButton:active,
 .closeButton:active,
 .dialogFooter button:active { transform: scale(.96); }
 .dialogFooter button:hover { background: var(--surface-subtle); }
 .dialogFooter button:disabled { cursor: not-allowed; opacity: .55; }
 
-@media (max-width: 900px) {
-  .metricLabel { display: none; }
-}
-
 @media (max-width: 760px) {
   .card {
     border-radius: 18px;
-    min-height: 18rem;
     padding: .9rem;
   }
   .header { margin-bottom: .72rem; }
-  .moreButton { margin: -.35rem -.35rem 0 0; }
-  .metricLabel { display: inline-flex; font-size: .64rem; }
   .row { min-height: 2.65rem; }
   .rowName { font-size: .91rem; }
   .row > strong { font-size: .88rem; }
@@ -625,12 +542,8 @@
 }
 
 @media (max-width: 420px) {
-  .headerMeta { gap: .2rem; }
-  .metricLabel { font-size: .61rem; padding-inline: .48rem; }
   .titleBlock h3 { font-size: 1rem; }
-  .titleBlock p { font-size: .74rem; }
   .row { padding-inline: .62rem; }
-  .footerMeta span:last-child { display: none; }
   .viewAllButton { padding-inline: .35rem; }
   .dialogTableHeader,
   .dialogRow {
@@ -644,7 +557,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .card,
-  .moreButton,
   .viewAllButton,
   .emptyAction,
   .closeButton,

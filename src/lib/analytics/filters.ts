@@ -56,7 +56,7 @@ export function normalizeAnalyticsFilters(input: AnalyticsFilterInput = {}) {
   const requestedValue = firstQueryValue(input.value);
   const range = typeof requestedRange === "string" && ANALYTICS_RANGES.includes(requestedRange as AnalyticsRange)
     ? requestedRange as AnalyticsRange
-    : "7d";
+    : "24h";
   const segment = typeof requestedSegment === "string" && ANALYTICS_SEGMENTS.includes(requestedSegment as AnalyticsSegment)
     ? requestedSegment as AnalyticsSegment
     : "all";

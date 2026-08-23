@@ -296,6 +296,11 @@ export function AnalyticsDashboard({
   const metrics = report.metrics;
   const [activeMetric, setActiveMetric] = useState<AnalyticsPrimaryMetric>("visitors");
   const selectedMetricLabel = METRIC_LABELS[activeMetric];
+  const audienceHeading = activeMetric === "scanUsage"
+    ? "Who starts a scan"
+    : activeMetric === "pageViews"
+      ? "Where views come from"
+      : "Where visitors come from";
   const sourceCardTitle = activeMetric === "scanUsage"
     ? "Scan rate by source"
     : activeMetric === "pageViews"
@@ -341,14 +346,14 @@ export function AnalyticsDashboard({
           <div className={styles.sectionHeading}>
             <div>
               <p className={styles.eyebrow}>Audience</p>
-              <h2 id="audience-breakdown-title">Where usage comes from</h2>
+              <h2 id="audience-breakdown-title">{audienceHeading}</h2>
             </div>
-            <small>{selectedMetricLabel} · swipe on mobile</small>
+            <small>{report.filters.rangeLabel}</small>
           </div>
           <div className={styles.breakdownGrid} aria-label={`${selectedMetricLabel} breakdowns`}>
-            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="country" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} title="Countries" />
-            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="device" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.devices} title="Devices" />
-            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="browser" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.browsers} title="Browsers" />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="country" rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} title="Countries" />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="device" rangeLabel={report.filters.rangeLabel} rows={breakdowns.devices} title="Devices" />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="browser" rangeLabel={report.filters.rangeLabel} rows={breakdowns.browsers} title="Browsers" />
           </div>
         </section>
 
@@ -360,7 +365,7 @@ export function AnalyticsDashboard({
         <details className={styles.detailDisclosure}>
           <summary>Sources &amp; scan behavior</summary>
           <div className={styles.detailGrid}>
-            <AnalyticsBreakdownCard activeMetric={activeMetric} compact kind="source" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title={sourceCardTitle} />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="source" rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title={sourceCardTitle} />
             <ListPanel caption={`${report.metrics.scanStarts.toLocaleString()} scan actions · ${report.filters.rangeLabel}`} rows={report.scanModes} title="How scans were started" />
           </div>
         </details>

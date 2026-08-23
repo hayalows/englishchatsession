@@ -30,7 +30,15 @@ describe("analytics filter normalization", () => {
 
   it("fails closed to the simple default view for unsupported values", () => {
     expect(normalizeAnalyticsFilters({ range: "365d", segment: "email", value: "person@example.com" })).toEqual({
-      range: "7d",
+      range: "24h",
+      segment: "all",
+      value: null,
+    });
+  });
+
+  it("opens analytics on Today when no range is provided", () => {
+    expect(normalizeAnalyticsFilters()).toEqual({
+      range: "24h",
       segment: "all",
       value: null,
     });

@@ -29,7 +29,13 @@ describe("analytics header hierarchy", () => {
   it("uses plain-language, compact scan behavior summaries", () => {
     expect(source).toContain('return "Scan all listings"');
     expect(source).toContain('title="How scans were started"');
-    expect(source).toContain('compact kind="source"');
     expect(styles).toContain("align-items: start;");
+  });
+
+  it("uses metric-aware audience headings without desktop swipe instructions", () => {
+    expect(source).toContain('"Where visitors come from"');
+    expect(source).toContain('"Where views come from"');
+    expect(source).toContain('"Who starts a scan"');
+    expect(source).not.toContain("swipe on mobile");
   });
 });

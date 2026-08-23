@@ -308,6 +308,7 @@
   font-size: .74rem;
 }
 .breakdownGrid {
+  align-items: start;
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -396,6 +397,7 @@
   .sectionHeading h2 { font-size: 1.04rem; }
   .sectionHeading small { display: block; font-size: .72rem; }
   .breakdownGrid {
+    align-items: flex-start;
     display: flex;
     gap: .7rem;
     margin-inline: -.8rem;
@@ -410,6 +412,7 @@
   .breakdownGrid > * {
     flex: 0 0 min(86vw, 22rem);
     scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
 
   .rows { gap: .72rem; }

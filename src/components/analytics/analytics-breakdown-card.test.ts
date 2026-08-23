@@ -20,9 +20,11 @@ describe("analytics audience breakdown detail rows", () => {
     expect(styles).toContain("Apple Color Emoji");
   });
 
-  it("supports a compact detail-card variant", () => {
-    expect(source).toContain("compact?: boolean");
-    expect(source).toContain("styles.cardCompact");
-    expect(styles).toContain(".cardCompact { min-height: 0; }");
+  it("keeps every overview card content-sized with one clear detail action", () => {
+    expect(styles).toContain("min-height: 0;");
+    expect(source).toContain("Showing 5 of");
+    expect(source).toContain('sortedRows.length > 5 ? "View all" : "Details"');
+    expect(source).not.toContain("more actions");
+    expect(source).not.toContain("Share of selected metric");
   });
 });

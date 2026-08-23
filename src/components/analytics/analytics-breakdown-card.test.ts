@@ -15,16 +15,24 @@ describe("analytics audience breakdown detail rows", () => {
   });
 
   it("renders country flags from the existing ISO country labels", () => {
-    expect(source).toContain("function countryFlagFromCode");
+    expect(source).toContain('from "country-flag-icons/react/3x2"');
     expect(source).toContain("className={styles.countryFlag}");
-    expect(styles).toContain("Apple Color Emoji");
+    expect(source).toContain("className={styles.countryCodeFallback}");
+    expect(styles).not.toContain("Apple Color Emoji");
   });
 
-  it("keeps every overview card content-sized with one clear detail action", () => {
-    expect(styles).toContain("min-height: 0;");
-    expect(source).toContain("Showing 5 of");
-    expect(source).toContain('sortedRows.length > 5 ? "View all" : "Details"');
-    expect(source).not.toContain("more actions");
+  it("uses a compact Vercel-style action dock without duplicating card metadata", () => {
+    expect(source).toContain("className={styles.metricLabel}");
+    expect(source).toContain("className={styles.actionDock}");
+    expect(source).toContain('data-tooltip="View all"');
+    expect(source).toContain('data-tooltip="Export CSV"');
+    expect(source).toContain("ArrowsOutSimple");
+    expect(source).toContain("DownloadSimple");
+    expect(styles).toContain(".card:hover .actionDock");
+    expect(styles).toContain(".card:focus-within .actionDock");
+    expect(styles).toContain(".titleBlock::after");
+    expect(styles).toContain("@media (hover: none), (pointer: coarse)");
+    expect(source).not.toContain("Showing 5 of");
     expect(source).not.toContain("Share of selected metric");
   });
 });

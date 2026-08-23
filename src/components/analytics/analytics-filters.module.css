@@ -19,7 +19,7 @@
 
 .controlTrigger {
   align-items: center;
-  border-radius: .72rem;
+  border-radius: .55rem;
   cursor: pointer;
   display: inline-flex;
   font-size: .78rem;
@@ -39,7 +39,7 @@
   background: var(--surface);
   border: 1px solid var(--line-strong);
   color: var(--ink);
-  min-width: 11.5rem;
+  min-width: 10.5rem;
 }
 .rangeDisclosure > .controlTrigger:hover,
 .rangeDisclosure[data-open="true"] > .controlTrigger {
@@ -70,13 +70,8 @@
 
 .controlIcon,
 .checkIcon {
-  fill: none;
   flex: 0 0 auto;
   height: 1.05rem;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
   width: 1.05rem;
 }
 
@@ -237,11 +232,6 @@
   .rangeSummaryLabel { flex: 1 1 auto; }
   .rangePanel { left: 0; right: auto; width: min(18rem, calc(100vw - 1.6rem)); }
   .filterPanel { left: 0; right: 0; width: auto; }
-}
-
-@media (max-width: 390px) {
-  .filterDisclosure > .controlTrigger { gap: 0; padding-inline: .72rem; }
-  .filterText { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

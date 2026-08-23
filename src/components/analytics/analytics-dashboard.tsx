@@ -124,10 +124,10 @@ function ScannerPanel({ report }: { report: AnalyticsReport }) {
     <section className={`${styles.panel} ${styles.scannerPanel}`} aria-labelledby="scanner-journey-title">
       <div className={styles.panelHeader}>
         <div>
-          <p className={styles.eyebrow}>Scanner</p>
-          <h2 id="scanner-journey-title">From visit to scan</h2>
-          <p>{report.filters.rangeLabel} - unique visitors</p>
+          <h3 id="scanner-journey-title">Scanner use</h3>
+          <p>From visit to scan</p>
         </div>
+        <span className={styles.panelMetric}>{report.filters.rangeLabel}</span>
       </div>
 
       <div aria-label="Finder to scanner journey" className={styles.metricHero}>
@@ -149,19 +149,19 @@ function ScannerPanel({ report }: { report: AnalyticsReport }) {
           <span>scan actions</span>
         </div>
         <div className={styles.scanStat}>
-          <strong>{repeatScanVisitors.toLocaleString()}</strong>
-          <span>repeat visitors</span>
-          <small>{scanStarters ? `${repeatScanRate}% of starters` : "No scan baseline"}</small>
+          <strong>{scanStarters ? `${repeatScanRate}%` : "—"}</strong>
+          <span>repeat rate</span>
+          <small>{scanStarters ? `${repeatScanVisitors.toLocaleString()} visitors` : "No scan baseline"}</small>
+        </div>
+        <div className={styles.scanStat}>
+          <strong>{scanStarters ? `${scansPerStarter}×` : "—"}</strong>
+          <span>per starter</span>
         </div>
       </div>
 
       <details className={refinements.scanDetailDisclosure}>
-        <summary>Repeat-use details</summary>
+        <summary>More scan detail</summary>
         <div className={refinements.scanDetailRows}>
-          <div className={refinements.scanDetailRow}>
-            <span>Scans per starter</span>
-            <strong>{scanStarters ? `${scansPerStarter}×` : "—"}</strong>
-          </div>
           <div className={refinements.scanDetailRow}>
             <span>Returning visitors</span>
             <strong>{returningVisitors.toLocaleString()} · {returningVisitorRate}%</strong>
@@ -191,10 +191,10 @@ function EngagementPanel({ report }: { report: AnalyticsReport }) {
     <section className={`${styles.panel} ${styles.engagementPanel}`} aria-labelledby="engagement-title">
       <div className={styles.panelHeader}>
         <div>
-          <p className={styles.eyebrow}>Attention</p>
-          <h2 id="engagement-title">Time spent</h2>
-          <p>Visible sessions - {report.filters.rangeLabel}</p>
+          <h3 id="engagement-title">Time spent</h3>
+          <p>Visible sessions</p>
         </div>
+        <span className={styles.panelMetric}>{report.filters.rangeLabel}</span>
       </div>
       {report.engagement.length ? (
         <>
@@ -251,9 +251,10 @@ function ListPanel({ title, caption, rows }: { title: string; caption: string; r
     <section className={`${styles.panel} ${styles.compactPanel}`} aria-labelledby={titleId}>
       <div className={styles.panelHeader}>
         <div>
-          <h2 id={titleId}>{title}</h2>
+          <h3 id={titleId}>{title}</h3>
           <p>{caption}</p>
         </div>
+        <span className={styles.panelMetric}>Share</span>
       </div>
       {rows.length ? (
         <div className={styles.rows}>
@@ -357,18 +358,33 @@ export function AnalyticsDashboard({
           </div>
         </section>
 
-        <div className={styles.insightsGrid}>
-          <ScannerPanel report={report} />
-          <EngagementPanel report={report} />
-        </div>
+        <section className={styles.insightsSection} aria-labelledby="visitor-behavior-title">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Behavior</p>
+              <h2 id="visitor-behavior-title">How visitors use Finder</h2>
+            </div>
+            <small>{report.filters.rangeLabel}</small>
+          </div>
+          <div className={styles.insightsGrid}>
+            <ScannerPanel report={report} />
+            <EngagementPanel report={report} />
+          </div>
+        </section>
 
-        <details className={styles.detailDisclosure}>
-          <summary>Sources &amp; scan behavior</summary>
+        <section className={styles.secondarySection} aria-labelledby="traffic-behavior-title">
+          <div className={styles.sectionHeading}>
+            <div>
+              <p className={styles.eyebrow}>Explore</p>
+              <h2 id="traffic-behavior-title">Sources &amp; scan behavior</h2>
+            </div>
+            <small>{report.filters.rangeLabel}</small>
+          </div>
           <div className={styles.detailGrid}>
             <AnalyticsBreakdownCard activeMetric={activeMetric} kind="source" rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title={sourceCardTitle} />
             <ListPanel caption={`${report.metrics.scanStarts.toLocaleString()} scan actions · ${report.filters.rangeLabel}`} rows={report.scanModes} title="How scans were started" />
           </div>
-        </details>
+        </section>
 
         <details className={styles.definitions}>
           <summary>Metric notes</summary>

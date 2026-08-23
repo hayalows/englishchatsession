@@ -7,12 +7,14 @@ const styles = readFileSync(new URL("./analytics-filters.module.css", import.met
 
 describe("analytics header filters", () => {
   it("keeps time-range links and audience filters in the compact toolbar", () => {
+    expect(source).toContain('from "@phosphor-icons/react"');
     expect(source).toContain("function rangeHref");
     expect(source).toContain('input name="range" type="hidden" value={filters.range}');
     expect(source).toContain("className={styles.rangePanel}");
     expect(source).toContain("className={styles.filterPanel}");
     expect(styles).toContain("min-height: 44px;");
     expect(styles).toContain(".rangePanel");
+    expect(styles).not.toContain(".filterText { display: none; }");
   });
 
   it("keeps the time and traffic panels exclusive and dismissible", () => {

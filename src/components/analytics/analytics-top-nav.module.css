@@ -14,7 +14,7 @@
   justify-content: space-between;
   margin: 0 auto;
   max-width: var(--private-shell-max, 1280px);
-  min-height: 76px;
+  min-height: 68px;
   padding: .75rem var(--private-shell-gutter, clamp(1rem, 3vw, 1.85rem));
 }
 
@@ -44,7 +44,7 @@
 .actions { align-items: center; display: flex; gap: .45rem; margin-left: auto; }
 .actions a, .logoutButton, .menuTrigger {
   align-items: center;
-  border-radius: 999px;
+  border-radius: .55rem;
   display: inline-flex;
   font: inherit;
   font-size: .78rem;

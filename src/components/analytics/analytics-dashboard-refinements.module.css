@@ -77,8 +77,8 @@
 
 .scanDetailDisclosure {
   border-top: 1px solid var(--line);
-  margin-top: .72rem;
-  padding-top: .28rem;
+  margin: .68rem .9rem 0;
+  padding-top: .2rem;
 }
 .scanDetailDisclosure summary {
   align-items: center;

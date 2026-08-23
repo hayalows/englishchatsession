@@ -2,20 +2,14 @@
 
 import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowClockwise } from "@phosphor-icons/react";
 
 import styles from "./analytics-live-refresh.module.css";
 
 const REFRESH_INTERVAL_MS = 60_000;
 
 function RefreshIcon({ spinning }: { spinning: boolean }) {
-  return (
-    <svg aria-hidden="true" className={`${styles.refreshIcon} ${spinning ? styles.spinning : ""}`} fill="none" viewBox="0 0 24 24">
-      <path d="M20 11a8 8 0 0 0-14.9-4L3 9" />
-      <path d="M3 4v5h5" />
-      <path d="M4 13a8 8 0 0 0 14.9 4L21 15" />
-      <path d="M21 20v-5h-5" />
-    </svg>
-  );
+  return <ArrowClockwise aria-hidden="true" className={`${styles.refreshIcon} ${spinning ? styles.spinning : ""}`} size={18} />;
 }
 
 export function AnalyticsLiveRefresh() {

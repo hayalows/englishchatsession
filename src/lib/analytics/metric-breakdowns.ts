@@ -25,14 +25,14 @@ const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
   country: "coalesce(nullif(events.country, ''), 'Unknown')",
   device: "coalesce(nullif(events.device_type, ''), 'Unknown')",
   browser: "coalesce(nullif(events.browser, ''), 'Unknown')",
-  source: "coalesce(nullif(events.referrer_host, ''), 'Direct / unknown')",
+  source: "coalesce(nullif(events.metadata->>'utmSource', ''), nullif(nullif(events.referrer_host, ''), 'englishchatsession.vercel.app'), 'Direct / unknown')",
 };
 
 const DIMENSION_SQL = {
   countries: "coalesce(nullif(events.country, ''), 'Unknown')",
   devices: "coalesce(nullif(events.device_type, ''), 'Unknown')",
   browsers: "coalesce(nullif(events.browser, ''), 'Unknown')",
-  referrers: "coalesce(nullif(events.referrer_host, ''), 'Direct / unknown')",
+  referrers: "coalesce(nullif(events.metadata->>'utmSource', ''), nullif(nullif(events.referrer_host, ''), 'englishchatsession.vercel.app'), 'Direct / unknown')",
 } as const;
 
 type BreakdownQueryRow = {

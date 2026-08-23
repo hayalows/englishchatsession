@@ -1,4 +1,6 @@
 .page {
+  --private-shell-gutter: clamp(1rem, 3vw, 1.85rem);
+  --private-shell-max: 1280px;
   background: var(--canvas);
   color: var(--ink);
   min-height: 100vh;
@@ -6,8 +8,8 @@
 
 .main {
   margin: 0 auto;
-  max-width: 1280px;
-  padding: clamp(1.5rem, 4vw, 2.8rem) clamp(1rem, 3vw, 1.85rem) 4rem;
+  max-width: var(--private-shell-max);
+  padding: clamp(1.5rem, 4vw, 2.8rem) var(--private-shell-gutter) 4rem;
 }
 
 .header {
@@ -383,7 +385,8 @@
 }
 
 @media (max-width: 640px) {
-  .main { padding: 1rem .8rem 3rem; }
+  .page { --private-shell-gutter: .8rem; }
+  .main { padding-block: 1rem 3rem; }
   .header { gap: .62rem; margin-bottom: .75rem; }
   .header .eyebrow { font-size: .7rem; margin-bottom: .28rem; }
   .header h1 { font-size: 2.05rem; margin-bottom: .16rem; }
@@ -433,7 +436,7 @@
 }
 
 @media (max-width: 380px) {
-  .main { padding-inline: .65rem; }
+  .page { --private-shell-gutter: .65rem; }
   .header h1 { font-size: 1.95rem; }
   .breakdownGrid {
     margin-inline: -.65rem;

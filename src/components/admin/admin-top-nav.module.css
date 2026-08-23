@@ -15,26 +15,22 @@
   gap: .35rem;
 }
 
-.adminNav > a {
+.menuTrigger,
+.menuPanel a,
+.logoutButton {
   align-items: center;
-  border-radius: 999px;
-  color: var(--muted);
   display: inline-flex;
+  font: inherit;
   font-size: .78rem;
-  font-weight: 700;
+  font-weight: 740;
+  justify-content: center;
   min-height: 44px;
   padding: .7rem .82rem;
   text-decoration: none;
   transition: background-color 160ms ease, color 160ms ease, transform 120ms ease;
 }
 
-.adminNav > a:hover {
-  background: var(--surface-subtle);
-  color: var(--teal-700);
-}
-
-.adminNav > a:active { transform: scale(.98); }
-
+.menuTrigger,
 .logoutButton {
   background: var(--surface);
   border: 1px solid var(--line-strong);
@@ -50,13 +46,43 @@
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 120ms ease;
 }
 
+.menuTrigger:hover,
 .logoutButton:hover {
   background: var(--teal-50);
   border-color: #a8c8cc;
 }
 
+.menuTrigger:active,
 .logoutButton:active { transform: scale(.98); }
-.logoutButton:focus-visible, .adminNav > a:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
+.logoutButton:focus-visible,
+.menuTrigger:focus-visible,
+.menuPanel a:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
+
+.moreMenu { position: relative; }
+.menuPanel {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: .85rem;
+  box-shadow: 0 18px 48px rgba(15, 42, 61, .18);
+  display: grid;
+  gap: .25rem;
+  min-width: 11.5rem;
+  padding: .4rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + .45rem);
+  z-index: 40;
+}
+.menuPanel a,
+.menuPanel .logoutButton {
+  border: 0;
+  border-radius: .58rem;
+  color: var(--teal-700);
+  justify-content: flex-start;
+  width: 100%;
+}
+.menuPanel a:hover,
+.menuPanel .logoutButton:hover { background: var(--teal-50); }
 
 :global(section[aria-labelledby="pre-audit-title"]),
 :global(section[aria-labelledby="audit-required-title"]) {
@@ -142,8 +168,7 @@
 @media (max-width: 700px) {
   .navShell { gap: .65rem; }
   .brandCopy small { display: none; }
-  .adminNav > a { display: none; }
-  .logoutButton { font-size: .76rem; min-height: 44px; padding-inline: .85rem; }
+  .menuTrigger { font-size: .76rem; min-height: 44px; padding-inline: .85rem; }
 
   :global(main button),
   :global(main a[role="button"]) { touch-action: manipulation; }
@@ -213,7 +238,7 @@
   .navShell { gap: .45rem; padding-inline: .7rem; }
   .brandCopy { display: grid !important; }
   .brandCopy strong { font-size: .8rem; }
-  .logoutButton { padding-inline: .78rem; }
+  .menuTrigger { padding-inline: .78rem; }
 
   :global(main section) { scroll-margin-top: 7.5rem; }
 
@@ -236,11 +261,11 @@
 @media (max-width: 360px) {
   .navShell { gap: .35rem; padding-inline: .55rem; }
   .brandCopy strong { font-size: .73rem; }
-  .logoutButton { font-size: .7rem; padding-inline: .65rem; }
+  .menuTrigger { font-size: .7rem; padding-inline: .65rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logoutButton, .adminNav > a { transition: none; }
+  .logoutButton, .menuTrigger, .menuPanel a { transition: none; }
   .adminSiteHeader ~ :global(main) :global(section),
   .adminSiteHeader ~ :global(main) :global(details),
   .adminSiteHeader ~ :global(main) :global(article) { animation: none; }

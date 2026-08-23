@@ -20,6 +20,8 @@ describe("administrator visual shell", () => {
     expect(navSource).toContain("Administrator console");
     expect(navSource).toContain("/api/admin/logout");
     expect(navSource).toContain("Preparation guide");
+    expect(navSource).toContain("More");
+    expect(navSource).toContain("aria-expanded");
     expect(navSource).not.toContain('href="/"');
     expect(navSource).not.toContain("Student finder");
   });
@@ -27,8 +29,15 @@ describe("administrator visual shell", () => {
   it("keeps the English Chat Finder name visible and removes low-priority header links on narrow screens", () => {
     expect(navCss).toContain(".brandCopy { display: grid !important; }");
     expect(navCss).toContain(".brandCopy strong");
-    expect(navCss).toContain(".adminNav > a { display: none; }");
+    expect(navCss).toContain(".menuPanel");
     expect(navCss).not.toContain(".brandCopy { display: none !important; }");
+  });
+
+  it("uses one private-page grid for the admin navigation and dashboard", () => {
+    const shellCss = readFileSync(new URL("../../app/admin/admin-v1-8.module.css", import.meta.url), "utf8");
+    expect(shellCss).toContain("--private-shell-max");
+    expect(shellCss).toContain(":global(.nav-shell)");
+    expect(shellCss).toContain("main[class*=\"adminShell\"]");
   });
 
   it("keeps controls readable and comfortably tappable", () => {

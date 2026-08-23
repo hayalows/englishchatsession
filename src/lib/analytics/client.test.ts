@@ -108,6 +108,62 @@ describe("first-party analytics client", () => {
     expect(fetchMock.mock.calls.filter((call) => String(call[1]?.body).includes('"eventName":"engagement"')).length).toBe(1);
   });
 
+  it("does not send the same engagement milestone twice after a reload in one tab session", () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    const sessionStorage = storage();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("window", {
+      location: { pathname: "/", search: "", hostname: "englishchatsession.vercel.app" },
+      localStorage: storage(),
+      sessionStorage,
+      setTimeout,
+      clearTimeout,
+    });
+    const documentStub = new EventTarget() as EventTarget & { referrer: string; visibilityState: string };
+    documentStub.referrer = "";
+    documentStub.visibilityState = "visible";
+    vi.stubGlobal("document", documentStub);
+
+    const firstCleanup = startFirstPartyAnalytics();
+    vi.advanceTimersByTime(10_000);
+    firstCleanup();
+
+    const secondCleanup = startFirstPartyAnalytics();
+    vi.advanceTimersByTime(10_000);
+    secondCleanup();
+
+    const tenSecondEvents = fetchMock.mock.calls
+      .map((call) => JSON.parse(String(call[1]?.body)))
+      .filter((event) => event.eventName === "engagement" && event.metadata?.milestoneSeconds === 10);
+    expect(tenSecondEvents).toHaveLength(1);
+  });
+
+  it("stores privacy-safe first-touch campaign attribution on page views", () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("window", {
+      location: {
+        pathname: "/",
+        search: "?utm_source=linkedin&utm_medium=social&utm_campaign=ghana_launch&utm_term=private-search",
+        hostname: "englishchatsession.vercel.app",
+      },
+      localStorage: storage(),
+      sessionStorage: storage(),
+    });
+    vi.stubGlobal("document", { referrer: "https://www.linkedin.com/feed/" });
+
+    trackFirstPartyEvent();
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(body.metadata).toEqual({
+      utmSource: "linkedin",
+      utmMedium: "social",
+      utmCampaign: "ghana_launch",
+    });
+    expect(body.metadata).not.toHaveProperty("utmTerm");
+  });
+
   it.each(["/admin", "/admin/analytics", "/analytics", "/analytics/login"]) (
     "does not send page views from %s",
     (pathname) => {

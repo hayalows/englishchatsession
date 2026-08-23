@@ -89,6 +89,19 @@
 .neutral { background: var(--surface-subtle); color: var(--muted); }
 .pending { background: transparent; color: var(--muted-light); padding-inline: .1rem; }
 
+.baselineNote {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: .7rem;
+  gap: .28rem;
+  justify-content: flex-end;
+  line-height: 1.4;
+  margin: -.1rem .12rem 0;
+}
+.baselineNote span:first-child { color: var(--ink); font-weight: 700; }
+
 .chartContext {
   align-items: center;
   display: flex;
@@ -144,6 +157,13 @@
   stroke-width: 2.7;
   vector-effect: non-scaling-stroke;
 }
+.dataPoint {
+  fill: var(--surface);
+  pointer-events: none;
+  stroke: color-mix(in srgb, var(--teal-700), transparent 30%);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
 .selectionLine {
   opacity: .42;
   stroke: var(--muted-light);
@@ -186,6 +206,7 @@
   .summaryButton > strong { font-size: 1.4rem; }
   .summaryCell small { display: none; }
   .delta { font-size: .62rem; padding: .24rem .29rem; }
+  .baselineNote { font-size: .66rem; justify-content: flex-start; margin-inline: .02rem; }
 
   .chartContext { min-height: 28px; padding-inline: .02rem; }
   .chartContext span { font-size: .7rem; }

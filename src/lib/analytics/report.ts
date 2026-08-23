@@ -88,7 +88,7 @@ const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
   country: "coalesce(nullif(country, ''), 'Unknown')",
   device: "coalesce(nullif(device_type, ''), 'Unknown')",
   browser: "coalesce(nullif(browser, ''), 'Unknown')",
-  source: "coalesce(nullif(referrer_host, ''), 'Direct / unknown')",
+  source: "coalesce(nullif(metadata->>'utmSource', ''), nullif(nullif(referrer_host, ''), 'englishchatsession.vercel.app'), 'Direct / unknown')",
 };
 
 type MetricRow = {
@@ -324,19 +324,34 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           WHERE events.created_at >= bounds.range_start
             AND events.created_at < bounds.current_bucket + interval '${config.bucketInterval}'
             AND ${scope.clause}
+        ),
+        bucketed_events AS (
+          SELECT buckets.bucket, events.*
+          FROM buckets
+          LEFT JOIN filtered_events events
+            ON events.created_at >= buckets.bucket
+           AND events.created_at < buckets.bucket + interval '${config.bucketInterval}'
+        ),
+        bucket_page_view_visitors AS (
+          SELECT DISTINCT bucket, visitor_id
+          FROM bucketed_events
+          WHERE event_name = 'page_view'
         )
         SELECT
-          to_char(buckets.bucket, '${config.bucketFormat}') AS bucket_label,
-          count(DISTINCT filtered_events.visitor_id) FILTER (WHERE filtered_events.event_name = 'page_view') AS visitors,
-          count(*) FILTER (WHERE filtered_events.event_name = 'page_view') AS page_views,
-          count(DISTINCT filtered_events.visitor_id) FILTER (WHERE filtered_events.event_name = 'scan_started') AS scan_starters,
-          count(*) FILTER (WHERE filtered_events.event_name = 'scan_started') AS scan_starts
-        FROM buckets
-        LEFT JOIN filtered_events
-          ON filtered_events.created_at >= buckets.bucket
-         AND filtered_events.created_at < buckets.bucket + interval '${config.bucketInterval}'
-        GROUP BY buckets.bucket
-        ORDER BY buckets.bucket
+          to_char(events.bucket, '${config.bucketFormat}') AS bucket_label,
+          count(DISTINCT events.visitor_id) FILTER (WHERE events.event_name = 'page_view') AS visitors,
+          count(*) FILTER (WHERE events.event_name = 'page_view') AS page_views,
+          count(DISTINCT events.visitor_id) FILTER (
+            WHERE events.event_name = 'scan_started'
+              AND scan_visitor.visitor_id IS NOT NULL
+          ) AS scan_starters,
+          count(*) FILTER (WHERE events.event_name = 'scan_started') AS scan_starts
+        FROM bucketed_events events
+        LEFT JOIN bucket_page_view_visitors scan_visitor
+          ON scan_visitor.bucket = events.bucket
+         AND scan_visitor.visitor_id = events.visitor_id
+        GROUP BY events.bucket
+        ORDER BY events.bucket
       `, scope.params),
       analyticsQuery<CountRow>(`
         WITH bounds AS (SELECT ${config.startSql} AS start_at)
@@ -347,7 +362,11 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
       `, scope.params),
       analyticsQuery<CountRow>(`
         WITH bounds AS (SELECT ${config.startSql} AS start_at)
-        SELECT coalesce(nullif(referrer_host, ''), 'Direct / unknown') AS label, count(DISTINCT session_id) AS total
+        SELECT coalesce(
+          nullif(metadata->>'utmSource', ''),
+          nullif(nullif(referrer_host, ''), 'englishchatsession.vercel.app'),
+          'Direct / unknown'
+        ) AS label, count(DISTINCT session_id) AS total
         FROM analytics_events, bounds
         WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8

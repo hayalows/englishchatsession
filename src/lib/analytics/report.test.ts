@@ -111,6 +111,20 @@ describe("getAnalyticsReport", () => {
     }
   });
 
+  it("keeps daily scan usage inside the page-view cohort for the same bucket", async () => {
+    analyticsDatabaseStatusMock.mockReturnValue("configured");
+    analyticsQueryMock.mockResolvedValue([]);
+
+    await getAnalyticsReport({ range: "7d" });
+
+    const trendQuery = analyticsQueryMock.mock.calls
+      .map(([query]) => String(query))
+      .find((query) => query.includes("bucket_label"));
+
+    expect(trendQuery).toContain("bucket_page_view_visitors");
+    expect(trendQuery).toContain("scan_visitor.visitor_id IS NOT NULL");
+  });
+
   it("keeps the report renderable when analytics is disabled", async () => {
     analyticsDatabaseStatusMock.mockReturnValue("disabled");
 

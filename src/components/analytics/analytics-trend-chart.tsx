@@ -29,7 +29,9 @@ const METRICS: Array<{ key: AnalyticsPrimaryMetric; label: string; valueLabel: s
 ];
 
 function scanUsage(row: TrendRow) {
-  return row.visitors ? Math.round((row.scanStarters / row.visitors) * 100) : 0;
+  return row.visitors
+    ? Math.max(0, Math.min(100, Math.round((row.scanStarters / row.visitors) * 100)))
+    : 0;
 }
 
 function metricValue(row: TrendRow, metric: AnalyticsPrimaryMetric) {
@@ -37,22 +39,12 @@ function metricValue(row: TrendRow, metric: AnalyticsPrimaryMetric) {
   return row[metric];
 }
 
-function newPeriodDelta(noun: string, comparisonLabel: string): Delta {
-  return {
-    text: "New",
-    tone: "positive",
-    title: `${noun} recorded for the first comparable period. A percentage change will appear when ${comparisonLabel} has enough history for comparison.`,
-  };
-}
-
 function countDelta(current: number, previous: number, ready: boolean, comparisonLabel: string): Delta {
-  if (!ready) return current > 0
-    ? newPeriodDelta("Activity", comparisonLabel)
-    : {
-      text: "—",
-      tone: "pending",
-      title: `Comparison with ${comparisonLabel} is still building`,
-    };
+  if (!ready) return {
+    text: "—",
+    tone: "pending",
+    title: `Comparison with ${comparisonLabel} is still building`,
+  };
   if (previous === 0 && current === 0) return {
     text: "0%",
     tone: "neutral",
@@ -84,15 +76,17 @@ function rateDelta(
   ready: boolean,
   comparisonLabel: string,
 ): Delta {
-  if (!ready) return current > 0
-    ? newPeriodDelta("Scan usage", comparisonLabel)
-    : {
-      text: "—",
-      tone: "pending",
-      title: `Scan-usage comparison with ${comparisonLabel} is still building`,
-    };
+  if (!ready) return {
+    text: "—",
+    tone: "pending",
+    title: `Scan-usage comparison with ${comparisonLabel} is still building`,
+  };
   if (!previousVisitors) return current > 0
-    ? newPeriodDelta("Scan usage", comparisonLabel)
+    ? {
+      text: "New",
+      tone: "positive",
+      title: `Scan usage recorded now, with no visitor baseline in ${comparisonLabel}`,
+    }
     : {
       text: "—",
       tone: "pending",
@@ -126,18 +120,15 @@ function displayTrendLabel(value: string, granularity: Granularity, compact = fa
     : { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
 }
 
-function smoothPath(points: Array<{ x: number; y: number }>) {
+function linePath(points: Array<{ x: number; y: number }>) {
   if (!points.length) return "";
-  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  return points.map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`).join(" ");
+}
 
-  let path = `M ${points[0].x} ${points[0].y}`;
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const current = points[index];
-    const next = points[index + 1];
-    const midpoint = (current.x + next.x) / 2;
-    path += ` C ${midpoint} ${current.y}, ${midpoint} ${next.y}, ${next.x} ${next.y}`;
-  }
-  return path;
+function displayReadyAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return value;
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
 }
 
 function uniqueTicks(max: number) {
@@ -196,7 +187,7 @@ export function AnalyticsTrendChart({
       };
     });
 
-    const path = smoothPath(points.map((point) => ({ x: point.x, y: point.y })));
+    const path = linePath(points.map((point) => ({ x: point.x, y: point.y })));
     const baseline = PADDING.top + chartHeight;
     const area = points.length
       ? `${path} L ${points.at(-1)?.x ?? PADDING.left} ${baseline} L ${points[0].x} ${baseline} Z`
@@ -215,6 +206,8 @@ export function AnalyticsTrendChart({
     ? `${selectedValue}%`
     : selectedValue.toLocaleString();
   const labelEvery = rows.length > 12 ? Math.ceil(rows.length / 6) : rows.length > 7 ? 2 : 1;
+  const activeComparisonReady = activeMetric === "scanUsage" ? comparison.scanReady : comparison.audienceReady;
+  const activeComparisonReadyAt = activeMetric === "scanUsage" ? comparison.scanReadyAt : comparison.audienceReadyAt;
 
   function chooseMetric(metric: AnalyticsPrimaryMetric) {
     onMetricChange(metric);
@@ -284,6 +277,14 @@ export function AnalyticsTrendChart({
         </button>
       </div>
 
+      {!activeComparisonReady ? (
+        <p className={styles.baselineNote} role="status">
+          <span>Baseline building</span>
+          <span aria-hidden="true">·</span>
+          <span>Comparison begins {displayReadyAt(activeComparisonReadyAt)}</span>
+        </p>
+      ) : null}
+
       <div className={styles.chartContext} aria-live="polite">
         <span><strong>{active.label}</strong> · {displayTrendLabel(selected.label, granularity)}</span>
         <strong>{selectedValueText}{activeMetric === "scanUsage" ? "" : ` ${active.valueLabel}`}</strong>
@@ -321,6 +322,10 @@ export function AnalyticsTrendChart({
 
           <path className={styles.trendArea} d={geometry.area} fill={`url(#${gradientId})`} />
           <path className={styles.trendLine} d={geometry.path} fill="none" pathLength="1" />
+
+          {geometry.points.map((point, index) => (
+            <circle aria-hidden="true" className={styles.dataPoint} cx={point.x} cy={point.y} key={`${point.label}-point-${index}`} r="2.4" />
+          ))}
 
           <line className={styles.selectionLine} x1={selected.x} x2={selected.x} y1={PADDING.top} y2={geometry.baseline} />
           <circle className={styles.trendPoint} cx={selected.x} cy={selected.y} r="5" />

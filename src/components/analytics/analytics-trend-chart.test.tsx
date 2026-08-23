@@ -81,7 +81,7 @@ function comparison(overrides: Partial<{
 }
 
 describe("analytics KPI comparison badges", () => {
-  it("shows a truthful New state while the first comparable baseline is building", () => {
+  it("shows one neutral baseline message while comparison history is building", () => {
     const markup = renderToStaticMarkup(
       <AnalyticsTrendChart
         activeMetric="visitors"
@@ -91,9 +91,10 @@ describe("analytics KPI comparison badges", () => {
       />,
     );
 
-    expect(markup.match(/>New</g)).toHaveLength(3);
-    expect(markup).toContain("A percentage change will appear when yesterday has enough history for comparison.");
-    expect(markup).not.toContain(">—<");
+    expect(markup).not.toContain(">New<");
+    expect(markup).toContain("Baseline building");
+    expect(markup).toContain("Comparison begins 16 Aug");
+    expect(markup.match(/>—</g)).toHaveLength(3);
   });
 
   it("shows percentage changes once a comparable baseline exists", () => {
@@ -119,5 +120,31 @@ describe("analytics KPI comparison badges", () => {
     expect(markup).toContain(">−50%<");
     expect(markup).toContain(">+50 pts<");
     expect(markup).not.toContain(">New<");
+  });
+
+  it("never renders scan usage above 100 percent even when legacy rows are inconsistent", () => {
+    const inconsistentReport: AnalyticsReport = {
+      ...report,
+      metrics: { ...report.metrics, visitors: 4, scanStarters: 4, scanStartRate: 100 },
+      trend: [{
+        label: "2026-08-15 12",
+        visitors: 4,
+        pageViews: 4,
+        scanStarters: 5,
+        scanStarts: 5,
+      }],
+    };
+
+    const markup = renderToStaticMarkup(
+      <AnalyticsTrendChart
+        activeMetric="scanUsage"
+        comparison={comparison()}
+        onMetricChange={() => undefined}
+        report={inconsistentReport}
+      />,
+    );
+
+    expect(markup).toContain("100% scan usage");
+    expect(markup).not.toContain("125%");
   });
 });

@@ -27,7 +27,7 @@ const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
   country: "coalesce(nullif(events.country, ''), 'Unknown')",
   device: "coalesce(nullif(events.device_type, ''), 'Unknown')",
   browser: "coalesce(nullif(events.browser, ''), 'Unknown')",
-  source: "coalesce(nullif(events.referrer_host, ''), 'Direct / unknown')",
+  source: "coalesce(nullif(events.metadata->>'utmSource', ''), nullif(nullif(events.referrer_host, ''), 'englishchatsession.vercel.app'), 'Direct / unknown')",
 };
 
 type PreviousRow = {

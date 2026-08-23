@@ -67,7 +67,17 @@ function browserName(userAgent: string) {
 }
 
 function safeMetadata(eventName: string, value: unknown) {
-  if (eventName === "page_view" || eventName === "presence") return {};
+  if (eventName === "presence") return {};
+  if (eventName === "page_view") {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const input = value as Record<string, unknown>;
+    const attribution = {
+      utmSource: text(input.utmSource, 80),
+      utmMedium: text(input.utmMedium, 80),
+      utmCampaign: text(input.utmCampaign, 80),
+    };
+    return Object.fromEntries(Object.entries(attribution).filter(([, entry]) => Boolean(entry)));
+  }
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const input = value as Record<string, unknown>;
@@ -165,6 +175,8 @@ export async function POST(request: NextRequest) {
 
   const userAgent = request.headers.get("user-agent") ?? "";
   const country = nullableText(request.headers.get("x-vercel-ip-country"), 8);
+  const incomingReferrer = nullableText(payload.referrerHost, 120)?.toLowerCase() ?? null;
+  const referrer = incomingReferrer === request.nextUrl.hostname.toLowerCase() ? null : incomingReferrer;
 
   try {
     await analyticsQuery(
@@ -176,7 +188,7 @@ export async function POST(request: NextRequest) {
         sessionId,
         eventName,
         pagePath,
-        nullableText(payload.referrerHost, 120),
+        referrer,
         country,
         deviceType(userAgent),
         browserName(userAgent),

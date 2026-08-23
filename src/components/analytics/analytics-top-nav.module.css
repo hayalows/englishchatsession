@@ -13,9 +13,9 @@
   gap: 1rem;
   justify-content: space-between;
   margin: 0 auto;
-  max-width: 1160px;
+  max-width: var(--private-shell-max, 1280px);
   min-height: 76px;
-  padding: .75rem clamp(1rem, 3vw, 1.75rem);
+  padding: .75rem var(--private-shell-gutter, clamp(1rem, 3vw, 1.85rem));
 }
 
 .brand {
@@ -68,7 +68,7 @@
 .menuPanel a, .menuPanel .logoutButton { border-radius: .55rem; justify-content: flex-start; width: 100%; }
 
 @media (max-width: 480px) {
-  .inner { min-height: 68px; padding-inline: .75rem; }
+  .inner { min-height: 68px; }
   .mark { height: 2.25rem; width: 2.25rem; }
   .copy small { display: none; }
   .fullName { display: none; }

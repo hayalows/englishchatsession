@@ -19,4 +19,10 @@ describe("analytics audience breakdown detail rows", () => {
     expect(source).toContain("className={styles.countryFlag}");
     expect(styles).toContain("Apple Color Emoji");
   });
+
+  it("supports a compact detail-card variant", () => {
+    expect(source).toContain("compact?: boolean");
+    expect(source).toContain("styles.cardCompact");
+    expect(styles).toContain(".cardCompact { min-height: 0; }");
+  });
 });

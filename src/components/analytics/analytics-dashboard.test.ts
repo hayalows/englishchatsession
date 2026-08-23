@@ -16,4 +16,20 @@ describe("analytics header hierarchy", () => {
     expect(source).not.toContain("displayLatestEventAt");
     expect(styles).not.toContain(".freshness");
   });
+
+  it("keeps the insight cards focused on one primary question", () => {
+    expect(source).toContain('const ENGAGEMENT_PREVIEW_MILESTONES = [10, 30, 180]');
+    expect(source).toContain('started a scan');
+    expect(source).toContain('reached 1 minute');
+    expect(source).toContain('Repeat-use details');
+    expect(source).not.toContain('Opened finder');
+    expect(source).not.toContain('See repeat-use detail');
+  });
+
+  it("uses plain-language, compact scan behavior summaries", () => {
+    expect(source).toContain('return "Scan all listings"');
+    expect(source).toContain('title="How scans were started"');
+    expect(source).toContain('compact kind="source"');
+    expect(styles).toContain("align-items: start;");
+  });
 });

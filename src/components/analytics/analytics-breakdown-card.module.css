@@ -8,6 +8,7 @@
   position: relative;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
+.cardCompact { min-height: 0; }
 
 .card:hover,
 .card:focus-within {

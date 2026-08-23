@@ -22,6 +22,7 @@ type Props = {
   rangeLabel: string;
   onMetricChange: (metric: AnalyticsPrimaryMetric) => void;
   kind?: "country" | "device" | "browser" | "source";
+  compact?: boolean;
 };
 
 function scanUsage(row: AnalyticsBreakdownRow) {
@@ -145,6 +146,7 @@ export function AnalyticsBreakdownCard({
   rangeLabel,
   onMetricChange,
   kind,
+  compact = false,
 }: Props) {
   const cardRef = useRef<HTMLElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -301,7 +303,7 @@ export function AnalyticsBreakdownCard({
   }
 
   return (
-    <section className={styles.card} aria-label={`${title}, ${METRIC_LABELS[activeMetric]}`} ref={cardRef}>
+    <section className={`${styles.card} ${compact ? styles.cardCompact : ""}`} aria-label={`${title}, ${METRIC_LABELS[activeMetric]}`} ref={cardRef}>
       <header className={styles.header}>
         <div className={styles.titleBlock}>
           <h3>{title}</h3>

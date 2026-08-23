@@ -17,7 +17,7 @@ import type { AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types"
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
-const ENGAGEMENT_MILESTONES = [10, 30, 60, 180] as const;
+const ENGAGEMENT_PREVIEW_MILESTONES = [10, 30, 180] as const;
 
 type ListRow = { label: string; total: number };
 
@@ -42,6 +42,12 @@ function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"
 
 function displayMilestone(seconds: number) {
   return seconds >= 60 ? `${seconds / 60} min` : `${seconds} sec`;
+}
+
+function displayScanMode(label: string) {
+  if (label === "all") return "Scan all listings";
+  if (label === "name") return "Scan by name";
+  return label === "Unknown" ? "Other" : label;
 }
 
 function TrendPanel({
@@ -110,6 +116,7 @@ function ScannerPanel({ report }: { report: AnalyticsReport }) {
     returningVisitors,
     returningVisitorRate,
     scansPerStarter,
+    scanStartRate,
   } = report.metrics;
   const starterWidth = visitors ? Math.min(100, Math.max(2, (scanStarters / visitors) * 100)) : 0;
 
@@ -123,37 +130,38 @@ function ScannerPanel({ report }: { report: AnalyticsReport }) {
         </div>
       </div>
 
-      <div aria-label="Finder to scanner journey" className={styles.scanFlow}>
-        <div className={styles.scanStage}>
-          <div className={styles.scanStageTop}><span>Opened finder</span><strong>{visitors.toLocaleString()}</strong></div>
-          <div className={styles.flowTrack}><span className={styles.flowBar} style={{ width: "100%" }} /></div>
+      <div aria-label="Finder to scanner journey" className={styles.metricHero}>
+        <div className={styles.metricHeroMain}>
+          <strong>{visitors ? `${scanStartRate}%` : "—"}</strong>
+          <span>started a scan</span>
         </div>
-        <div className={styles.scanStage}>
-          <div className={styles.scanStageTop}><span>Started a scan</span><strong>{scanStarters.toLocaleString()}</strong></div>
-          <div className={styles.flowTrack}><span className={`${styles.flowBar} ${styles.flowBarAccent}`} style={{ width: `${starterWidth}%` }} /></div>
-          <small>{visitors ? `${scanStarters.toLocaleString()} of ${visitors.toLocaleString()} visitors` : "No visitor baseline yet"}</small>
+        <span className={styles.metricHeroMeta}>
+          {visitors ? `${scanStarters.toLocaleString()} of ${visitors.toLocaleString()} visitors` : "No visitor baseline yet"}
+        </span>
+        <div aria-hidden="true" className={styles.flowTrack}>
+          <span className={`${styles.flowBar} ${styles.flowBarAccent}`} style={{ width: `${starterWidth}%` }} />
         </div>
       </div>
 
       <div aria-label="Scanner activity summary" className={styles.scanStats}>
         <div className={styles.scanStat}>
           <strong>{scanStarts.toLocaleString()}</strong>
-          <span>scan starts</span>
+          <span>scan actions</span>
         </div>
         <div className={styles.scanStat}>
-          <strong>{scanStarters ? `${repeatScanRate}%` : "—"}</strong>
-          <span>repeat use</span>
-          <small>{repeatScanVisitors.toLocaleString()} visitors - 2+ scans</small>
-        </div>
-        <div className={styles.scanStat}>
-          <strong>{scanStarters ? `${scansPerStarter}x` : "—"}</strong>
-          <span>per starter</span>
+          <strong>{repeatScanVisitors.toLocaleString()}</strong>
+          <span>repeat visitors</span>
+          <small>{scanStarters ? `${repeatScanRate}% of starters` : "No scan baseline"}</small>
         </div>
       </div>
 
       <details className={refinements.scanDetailDisclosure}>
-        <summary>See repeat-use detail</summary>
+        <summary>Repeat-use details</summary>
         <div className={refinements.scanDetailRows}>
+          <div className={refinements.scanDetailRow}>
+            <span>Scans per starter</span>
+            <strong>{scanStarters ? `${scansPerStarter}×` : "—"}</strong>
+          </div>
           <div className={refinements.scanDetailRow}>
             <span>Returning visitors</span>
             <strong>{returningVisitors.toLocaleString()} · {returningVisitorRate}%</strong>
@@ -164,10 +172,9 @@ function ScannerPanel({ report }: { report: AnalyticsReport }) {
               <strong>{row.total.toLocaleString()}</strong>
             </div>
           )) : <p className={styles.empty}>Scan frequency will appear after visitors use the scanner.</p>}
+          <p className={styles.panelNote}>Five-plus scans are a signal to investigate, not a verdict.</p>
         </div>
       </details>
-
-      <p className={styles.panelNote}>One scan action counts once. Five-plus scans are a signal to investigate, not a verdict.</p>
     </section>
   );
 }
@@ -191,24 +198,38 @@ function EngagementPanel({ report }: { report: AnalyticsReport }) {
       </div>
       {report.engagement.length ? (
         <>
-          <div className={styles.engagementLead}>
-            <div>
-              <strong>{engagedSessions.toLocaleString()}</strong>
-              <span>sessions reached 1 min</span>
+          <div className={`${styles.metricHero} ${styles.metricHeroAttention}`}>
+            <div className={styles.metricHeroMain}>
+              <strong>{report.metrics.sessions ? `${engagedRate}%` : "—"}</strong>
+              <span>reached 1 minute</span>
             </div>
-            {report.metrics.sessions ? <b>{engagedRate}%</b> : null}
+            <span className={styles.metricHeroMeta}>
+              {report.metrics.sessions
+                ? `${engagedSessions.toLocaleString()} of ${report.metrics.sessions.toLocaleString()} visible sessions`
+                : "No session baseline yet"}
+            </span>
+            <div aria-hidden="true" className={styles.barTrack}>
+              <div className={`${styles.bar} ${styles.engagementBar}`} style={{ width: `${engagedRate}%` }} />
+            </div>
           </div>
           <div className={styles.engagementRows}>
-            {ENGAGEMENT_MILESTONES.map((milestone) => {
+            {ENGAGEMENT_PREVIEW_MILESTONES.map((milestone) => {
               const row = values.get(milestone);
               const sessions = row?.sessions ?? 0;
+              const rate = report.metrics.sessions
+                ? Math.round((sessions / report.metrics.sessions) * 100)
+                : 0;
               return (
-                <div className={styles.engagementRow} key={milestone}>
+                <div
+                  aria-label={`${displayMilestone(milestone)}: ${sessions.toLocaleString()} of ${report.metrics.sessions.toLocaleString()} sessions, ${rate}%`}
+                  className={styles.engagementRow}
+                  key={milestone}
+                >
                   <div className={styles.engagementRowTop}>
                     <span>{displayMilestone(milestone)}</span>
-                    <strong>{sessions.toLocaleString()}</strong>
+                    <strong>{rate}%</strong>
                   </div>
-                  <div className={styles.barTrack}>
+                  <div aria-hidden="true" className={styles.barTrack}>
                     <div className={`${styles.bar} ${styles.engagementBar}`} style={{ width: `${Math.max(0, Math.min(100, (sessions / baseline) * 100))}%` }} />
                   </div>
                 </div>
@@ -223,11 +244,11 @@ function EngagementPanel({ report }: { report: AnalyticsReport }) {
 }
 
 function ListPanel({ title, caption, rows }: { title: string; caption: string; rows: ListRow[] }) {
-  const max = Math.max(1, ...rows.map((row) => row.total));
+  const total = rows.reduce((sum, row) => sum + row.total, 0);
   const titleId = `${title.replaceAll(" ", "-").toLowerCase()}-title`;
 
   return (
-    <section className={styles.panel} aria-labelledby={titleId}>
+    <section className={`${styles.panel} ${styles.compactPanel}`} aria-labelledby={titleId}>
       <div className={styles.panelHeader}>
         <div>
           <h2 id={titleId}>{title}</h2>
@@ -239,12 +260,12 @@ function ListPanel({ title, caption, rows }: { title: string; caption: string; r
           {rows.map((row, index) => (
             <div className={styles.row} key={`${row.label}-${index}`}>
               <div className={styles.rowLabel}>
-                <strong>{row.label}</strong>
+                <strong>{displayScanMode(row.label)}</strong>
                 <div aria-hidden="true" className={styles.barTrack}>
-                  <div className={styles.bar} style={{ width: `${Math.max(2, (row.total / max) * 100)}%` }} />
+                  <div className={styles.bar} style={{ width: `${total ? Math.max(2, (row.total / total) * 100) : 0}%` }} />
                 </div>
               </div>
-              <strong>{row.total.toLocaleString()}</strong>
+              <strong>{total ? `${Math.round((row.total / total) * 100)}%` : "0%"}</strong>
             </div>
           ))}
         </div>
@@ -275,6 +296,11 @@ export function AnalyticsDashboard({
   const metrics = report.metrics;
   const [activeMetric, setActiveMetric] = useState<AnalyticsPrimaryMetric>("visitors");
   const selectedMetricLabel = METRIC_LABELS[activeMetric];
+  const sourceCardTitle = activeMetric === "scanUsage"
+    ? "Scan rate by source"
+    : activeMetric === "pageViews"
+      ? "Views by source"
+      : "Visitors by source";
 
   return (
     <div className={styles.page}>
@@ -332,10 +358,10 @@ export function AnalyticsDashboard({
         </div>
 
         <details className={styles.detailDisclosure}>
-          <summary>Traffic sources &amp; scan modes</summary>
+          <summary>Sources &amp; scan behavior</summary>
           <div className={styles.detailGrid}>
-            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="source" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title="Traffic sources" />
-            <ListPanel caption={`Recorded scan clicks · ${report.filters.rangeLabel}`} rows={report.scanModes} title="Scan mode mix" />
+            <AnalyticsBreakdownCard activeMetric={activeMetric} compact kind="source" onMetricChange={setActiveMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title={sourceCardTitle} />
+            <ListPanel caption={`${report.metrics.scanStarts.toLocaleString()} scan actions · ${report.filters.rangeLabel}`} rows={report.scanModes} title="How scans were started" />
           </div>
         </details>
 

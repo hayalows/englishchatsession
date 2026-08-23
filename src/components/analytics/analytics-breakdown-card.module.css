@@ -1,37 +1,62 @@
 .card {
   background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--line), transparent 4%);
-  border-radius: 20px;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 4%), 0 10px 28px rgb(15 23 42 / 5%);
-  min-height: 0;
-  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: .45rem;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 3%);
+  min-height: 13.7rem;
+  padding: 0;
   position: relative;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .card:hover,
 .card:focus-within {
-  border-color: color-mix(in srgb, var(--teal-700), var(--line) 78%);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 5%), 0 14px 38px rgb(15 23 42 / 8%);
+  border-color: color-mix(in srgb, var(--ink), var(--line) 78%);
+  box-shadow: 0 4px 16px rgb(15 23 42 / 7%);
 }
 
 .header {
-  align-items: flex-start;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
   display: flex;
-  gap: .8rem;
+  gap: .7rem;
   justify-content: space-between;
-  margin-bottom: .85rem;
-  min-height: 1.7rem;
+  margin: 0;
+  min-height: 2.7rem;
+  padding: 0 .9rem;
   position: relative;
 }
 
-.titleBlock { min-width: 0; }
+.titleBlock {
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  min-width: 0;
+  position: relative;
+}
+.titleBlock::after {
+  background: var(--ink);
+  bottom: -1px;
+  content: "";
+  height: 1px;
+  left: 0;
+  position: absolute;
+  width: calc(100% + .2rem);
+}
 .titleBlock h3 {
-  font-size: 1.02rem;
-  font-weight: 680;
-  letter-spacing: -.022em;
-  line-height: 1.2;
+  font-size: .78rem;
+  font-weight: 570;
+  letter-spacing: -.01em;
+  line-height: 1.25;
   margin: 0;
+}
+.metricLabel {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: .62rem;
+  font-weight: 650;
+  letter-spacing: .02em;
+  text-transform: uppercase;
 }
 .closeButton {
   align-items: center;
@@ -53,7 +78,7 @@
 }
 .closeButton:focus-visible,
 .dialogFooter button:focus-visible,
-.viewAllButton:focus-visible,
+.actionButton:focus-visible,
 .emptyAction:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: 2px;
@@ -70,20 +95,24 @@
   width: 1.12rem;
 }
 
-.rows { display: grid; gap: .5rem; }
+.rows {
+  display: grid;
+  gap: .25rem;
+  padding: .45rem .58rem;
+}
 .row {
   align-items: center;
-  border-radius: .72rem;
+  border-radius: .5rem;
   display: grid;
-  gap: .65rem;
+  gap: .55rem;
   grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 2.55rem;
+  min-height: 1.82rem;
   overflow: hidden;
-  padding: 0 .72rem;
+  padding: 0 .62rem;
   position: relative;
 }
 .rowFill {
-  background: color-mix(in srgb, var(--surface-subtle), var(--line) 14%);
+  background: color-mix(in srgb, var(--surface-subtle), var(--line) 9%);
   border-radius: inherit;
   bottom: 0;
   left: 0;
@@ -96,9 +125,9 @@
 .rowName {
   align-items: center;
   display: flex;
-  font-size: .88rem;
-  font-weight: 540;
-  gap: .5rem;
+  font-size: .76rem;
+  font-weight: 500;
+  gap: .42rem;
   min-width: 0;
 }
 .rowName > span:last-child {
@@ -107,69 +136,116 @@
   white-space: nowrap;
 }
 .row > strong {
-  font-size: .86rem;
+  font-size: .75rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 730;
+  font-weight: 680;
 }
 
 .countryFlag {
+  flex: 0 0 auto;
+  height: .84rem;
+  width: 1.12rem;
+}
+.countryCodeFallback {
   align-items: center;
+  border: 1px solid var(--line);
+  border-radius: .25rem;
+  color: var(--muted);
   display: inline-flex;
   flex: 0 0 auto;
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-  font-size: 1.05rem;
-  height: 1.45rem;
+  font-size: .58rem;
+  font-weight: 700;
+  height: 1rem;
   justify-content: center;
   line-height: 1;
-  width: 1.45rem;
+  width: 1.35rem;
 }
 
-.empty { color: var(--muted); font-size: .86rem; line-height: 1.5; margin: 1rem 0; }
-.footer {
+.empty { color: var(--muted); font-size: .78rem; line-height: 1.5; margin: .85rem .9rem; }
+.actionHandle {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  bottom: .48rem;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  height: .45rem;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  transition: opacity 120ms ease;
+  width: 2.2rem;
+}
+.actionDock {
   align-items: center;
-  border-top: 1px solid color-mix(in srgb, var(--line), transparent 18%);
-  color: var(--muted-light);
+  background: color-mix(in srgb, var(--surface), white 18%);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  bottom: .38rem;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 12%);
   display: flex;
-  font-size: .72rem;
-  gap: .65rem;
-  justify-content: space-between;
-  line-height: 1.4;
-  margin-top: .8rem;
-  padding-top: .72rem;
+  gap: .08rem;
+  left: 50%;
+  opacity: 0;
+  padding: .18rem;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, .3rem) scale(.97);
+  transition: opacity 140ms ease-out, transform 160ms ease-out;
+  z-index: 10;
 }
-.footerMeta {
-  display: flex;
-  gap: .65rem;
-  min-width: 0;
+.card:hover .actionDock,
+.card:focus-within .actionDock {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0) scale(1);
 }
-.footerMeta span { min-width: 0; }
-.viewAllButton {
+.card:hover .actionHandle,
+.card:focus-within .actionHandle { opacity: 0; }
+.actionButton {
   align-items: center;
   appearance: none;
   background: transparent;
   border: 0;
-  border-radius: .65rem;
-  color: var(--teal-700);
+  border-radius: 999px;
+  color: var(--ink);
   cursor: pointer;
   display: inline-flex;
-  flex: 0 0 auto;
-  font: inherit;
-  font-size: .78rem;
-  font-weight: 760;
-  gap: .18rem;
+  height: 2rem;
   justify-content: center;
-  min-height: 2.75rem;
-  padding: .45rem .35rem .45rem .6rem;
-  transition: background-color 140ms ease, color 140ms ease, transform 120ms ease;
+  padding: 0;
+  position: relative;
+  transition: background-color 140ms ease, transform 120ms ease;
+  width: 2rem;
 }
-.viewAllButton:hover { background: var(--teal-50); color: var(--teal-700); }
-.viewAllButton:active { transform: scale(.97); }
-.viewAllButton:disabled {
+.actionButton:hover { background: var(--surface-subtle); }
+.actionButton:active { transform: scale(.94); }
+.actionButton:disabled {
   color: var(--muted-light);
   cursor: not-allowed;
-  opacity: .72;
+  opacity: .5;
 }
-.viewAllButton .icon { height: 1rem; width: 1rem; }
+.actionButton::after {
+  background: var(--ink);
+  border-radius: .38rem;
+  bottom: calc(100% + .55rem);
+  color: var(--surface);
+  content: attr(data-tooltip);
+  font-size: .68rem;
+  font-weight: 600;
+  left: 50%;
+  opacity: 0;
+  padding: .28rem .42rem;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, .18rem);
+  transition: opacity 120ms ease, transform 140ms ease;
+  white-space: nowrap;
+}
+.actionButton:hover::after,
+.actionButton:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
 
 .emptyState {
   align-items: center;
@@ -466,14 +542,25 @@
 
 @media (max-width: 760px) {
   .card {
-    border-radius: 18px;
-    padding: .9rem;
+    border-radius: .65rem;
+    min-height: 15.5rem;
   }
-  .header { margin-bottom: .72rem; }
-  .row { min-height: 2.65rem; }
-  .rowName { font-size: .91rem; }
-  .row > strong { font-size: .88rem; }
-  .footer { font-size: .73rem; }
+  .header { min-height: 2.85rem; padding-inline: .82rem; }
+  .titleBlock h3 { font-size: .84rem; }
+  .metricLabel { font-size: .64rem; }
+  .rows { gap: .38rem; padding: .65rem .55rem 3.55rem; }
+  .row { min-height: 2.2rem; }
+  .rowName { font-size: .82rem; }
+  .row > strong { font-size: .8rem; }
+  .actionHandle { display: none; }
+  .actionDock {
+    bottom: .48rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0) scale(1);
+  }
+  .actionButton { height: 2.75rem; width: 2.75rem; }
+  .actionButton::after { display: none; }
 
   .dialog { padding: 0; }
   .dialog[open] {
@@ -526,9 +613,8 @@
   .dialogName { font-size: .83rem; gap: .38rem; }
   .dialogRow > strong { font-size: .78rem; }
   .countryFlag {
-    font-size: .98rem;
-    height: 1.3rem;
-    width: 1.3rem;
+    height: .92rem;
+    width: 1.23rem;
   }
   .dialogFooter {
     align-items: stretch;
@@ -542,9 +628,8 @@
 }
 
 @media (max-width: 420px) {
-  .titleBlock h3 { font-size: 1rem; }
+  .titleBlock h3 { font-size: .82rem; }
   .row { padding-inline: .62rem; }
-  .viewAllButton { padding-inline: .35rem; }
   .dialogTableHeader,
   .dialogRow {
     gap: .22rem;
@@ -555,9 +640,24 @@
   .dialogRow > strong { font-size: .75rem; }
 }
 
+@media (hover: none), (pointer: coarse) {
+  .rows { padding-bottom: 3.55rem; }
+  .actionHandle { display: none; }
+  .actionDock {
+    bottom: .48rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0) scale(1);
+  }
+  .actionButton { height: 2.75rem; width: 2.75rem; }
+  .actionButton::after { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card,
-  .viewAllButton,
+  .actionButton,
+  .actionDock,
+  .actionHandle,
   .emptyAction,
   .closeButton,
   .rowFill { transition: none; }

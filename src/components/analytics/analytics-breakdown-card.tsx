@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  ArrowsOutSimple,
+  DownloadSimple,
+  FileText,
+  MagnifyingGlass,
+  X,
+} from "@phosphor-icons/react";
+import * as CountryFlags from "country-flag-icons/react/3x2";
 
 import type { AnalyticsBreakdownRow } from "@/lib/analytics/breakdown-types";
 import type { AnalyticsPrimaryMetric } from "@/components/analytics/analytics-trend-chart";
@@ -35,14 +43,10 @@ function countryCodeFromLabel(label: string) {
   return label.match(/\(([A-Z]{2})\)$/)?.[1] ?? null;
 }
 
-function countryFlagFromCode(code: string) {
-  return String.fromCodePoint(
-    ...code.toUpperCase().split("").map((letter) => 127397 + letter.charCodeAt(0)),
-  );
-}
-
 function CountryFlag({ code }: { code: string }) {
-  return <span aria-hidden="true" className={styles.countryFlag}>{countryFlagFromCode(code)}</span>;
+  const Flag = CountryFlags[code as keyof typeof CountryFlags];
+  if (!Flag) return <span aria-hidden="true" className={styles.countryCodeFallback}>{code}</span>;
+  return <Flag aria-hidden="true" className={styles.countryFlag} />;
 }
 
 function displayLabel(label: string, kind?: Props["kind"]) {
@@ -50,46 +54,16 @@ function displayLabel(label: string, kind?: Props["kind"]) {
   return label.replace(/\s*\([A-Z]{2}\)$/, "");
 }
 
-function DownloadIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
-      <path d="M12 4v10M8 10l4 4 4-4M5 20h14" />
-    </svg>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
-      <path d="m8 10 4 4 4-4" />
-    </svg>
-  );
-}
-
 function SearchIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.searchIcon} fill="none" viewBox="0 0 24 24">
-      <circle cx="10.5" cy="10.5" r="6" />
-      <path d="m15 15 5 5" />
-    </svg>
-  );
+  return <MagnifyingGlass aria-hidden="true" className={styles.searchIcon} size={18} />;
 }
 
 function CloseIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.icon} fill="none" viewBox="0 0 24 24">
-      <path d="m6 6 12 12M18 6 6 18" />
-    </svg>
-  );
+  return <X aria-hidden="true" className={styles.icon} size={18} />;
 }
 
 function EmptyStateIcon() {
-  return (
-    <svg aria-hidden="true" className={styles.emptyIcon} fill="none" viewBox="0 0 24 24">
-      <path d="M5 4.75h10.5L19 8.25v11H5z" />
-      <path d="M15 4.75v3.5h4M8 12h8M8 15.25h5" />
-    </svg>
-  );
+  return <FileText aria-hidden="true" className={styles.emptyIcon} size={20} />;
 }
 
 function EmptyState({ title, message, action }: { title: string; message: string; action?: ReactNode }) {
@@ -244,6 +218,7 @@ export function AnalyticsBreakdownCard({
         <div className={styles.titleBlock}>
           <h3>{title}</h3>
         </div>
+        <span className={styles.metricLabel}>{METRIC_LABELS[activeMetric]}</span>
       </header>
 
       {topRows.length ? (
@@ -267,21 +242,29 @@ export function AnalyticsBreakdownCard({
         </div>
       ) : <p className={styles.empty}>No data in this period yet.</p>}
 
-      <footer className={styles.footer}>
-        <div className={styles.footerMeta}>
-          <span>{sortedRows.length > 5 ? `Showing 5 of ${sortedRows.length}` : `${sortedRows.length} ${sortedRows.length === 1 ? "entry" : "entries"}`}</span>
-        </div>
+      <span aria-hidden="true" className={styles.actionHandle} />
+      <div aria-label={`${title} actions`} className={styles.actionDock} role="group">
         <button
           aria-label={`View all ${title}`}
-          className={styles.viewAllButton}
+          className={styles.actionButton}
+          data-tooltip="View all"
           disabled={!hasRows}
           onClick={(event) => openDetails(event.currentTarget)}
           type="button"
         >
-          <span>{hasRows ? (sortedRows.length > 5 ? "View all" : "Details") : "No details"}</span>
-          {hasRows ? <ChevronIcon /> : null}
+          <ArrowsOutSimple aria-hidden="true" size={17} />
         </button>
-      </footer>
+        <button
+          aria-label={`Export ${title} as CSV`}
+          className={styles.actionButton}
+          data-tooltip="Export CSV"
+          disabled={!hasRows}
+          onClick={exportCsv}
+          type="button"
+        >
+          <DownloadSimple aria-hidden="true" size={17} />
+        </button>
+      </div>
 
       <dialog
         className={styles.dialog}
@@ -367,7 +350,7 @@ export function AnalyticsBreakdownCard({
           <footer className={styles.dialogFooter}>
             <span className={styles.dialogFooterMeta}>{hasRows ? `${filteredRows.length} of ${sortedRows.length} shown` : "Choose another period to explore details"}</span>
             <div className={styles.dialogFooterActions}>
-              {hasRows ? <button onClick={exportCsv} type="button"><DownloadIcon /><span>Export CSV</span></button> : null}
+              {hasRows ? <button onClick={exportCsv} type="button"><DownloadSimple aria-hidden="true" size={18} /><span>Export CSV</span></button> : null}
               <button onClick={closeDetails} type="button">Close</button>
             </div>
           </footer>

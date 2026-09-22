@@ -27,6 +27,8 @@ type AnalyticsFiltersProps = {
     rangeLabel: string;
     segment: AnalyticsSegment;
     value: string | null;
+    from: string | null;
+    to: string | null;
     segmentLabel: string;
     trendLabel: string;
   };
@@ -64,7 +66,7 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
   const filtersRef = useRef<HTMLElement>(null);
   const rangeTriggerRef = useRef<HTMLButtonElement>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
-  const filterKey = `${filters.range}:${filters.segment}:${filters.value ?? ""}`;
+  const filterKey = `${filters.range}:${filters.from ?? ""}:${filters.to ?? ""}:${filters.segment}:${filters.value ?? ""}`;
   const previousFilterKey = useRef(filterKey);
 
   useEffect(() => {
@@ -100,7 +102,13 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
   const hasCurrentValue = Boolean(filters.value && !options.some((option) => option.label === filters.value));
   const segmentName = filters.segment === "source" ? "traffic source" : filters.segment;
   const hasActiveFilter = Boolean(filters.value);
-  const clearHref = `/analytics?range=${filters.range}`;
+  const clearParams = new URLSearchParams({ range: filters.range });
+  if (filters.range === "custom" && filters.from && filters.to) {
+    clearParams.set("from", filters.from);
+    clearParams.set("to", filters.to);
+  }
+  const clearHref = `/analytics?${clearParams.toString()}`;
+  const today = new Date().toISOString().slice(0, 10);
 
   function handleFilterChange(event: ChangeEvent<HTMLSelectElement>) {
     setOpenPanel(null);
@@ -126,7 +134,7 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
           </button>
           {openPanel === "range" ? <div className={styles.rangePanel} id="analytics-range-panel" role="group" aria-label="Time range options">
             <span className={styles.rangePanelLabel}>Time range</span>
-            {ANALYTICS_RANGE_OPTIONS.map((option) => (
+            {ANALYTICS_RANGE_OPTIONS.filter((option) => option.value !== "custom").map((option) => (
               <a
                 aria-current={filters.range === option.value ? "true" : undefined}
                 className={styles.rangeOption}
@@ -138,6 +146,23 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
                 {filters.range === option.value ? <Check aria-hidden="true" className={styles.checkIcon} size={16} /> : null}
               </a>
             ))}
+            <form action="/analytics" className={styles.form} method="get" onSubmit={() => setOpenPanel(null)}>
+              <input name="range" type="hidden" value="custom" />
+              {filters.segment !== "all" ? <input name="segment" type="hidden" value={filters.segment} /> : null}
+              {filters.value ? <input name="value" type="hidden" value={filters.value} /> : null}
+              <label className={styles.field}>
+                <span>From</span>
+                <input defaultValue={filters.from ?? today} max={filters.to ?? today} name="from" required type="date" />
+              </label>
+              <label className={styles.field}>
+                <span>To</span>
+                <input defaultValue={filters.to ?? today} max={today} name="to" required type="date" />
+              </label>
+              <button className={styles.rangeOption} type="submit">
+                <span>Apply custom range</span>
+                {filters.range === "custom" ? <Check aria-hidden="true" className={styles.checkIcon} size={16} /> : null}
+              </button>
+            </form>
           </div> : null}
         </div>
 
@@ -158,6 +183,8 @@ export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
           {openPanel === "filter" ? <div className={styles.filterPanel} id="analytics-filter-panel" role="group" aria-label="Traffic filter options">
             <form action="/analytics" className={styles.form} method="get" onSubmit={() => setOpenPanel(null)}>
               <input name="range" type="hidden" value={filters.range} />
+              {filters.range === "custom" && filters.from ? <input name="from" type="hidden" value={filters.from} /> : null}
+              {filters.range === "custom" && filters.to ? <input name="to" type="hidden" value={filters.to} /> : null}
               <div className={styles.filterPanelHeader}>
                 <div>
                   <strong>Filter traffic</strong>

@@ -34,6 +34,8 @@ type RangeConfig = {
   bucketInterval: string;
   bucketFormat: string;
   trendLabel: string;
+  endClause: string;
+  currentBucketSql: string;
 };
 
 const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
@@ -45,6 +47,8 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketInterval: "1 hour",
     bucketFormat: "YYYY-MM-DD HH24:00",
     trendLabel: "Hourly, UTC",
+    endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   "7d": {
     label: "Last 7 days",
@@ -54,6 +58,8 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketInterval: "1 day",
     bucketFormat: "YYYY-MM-DD",
     trendLabel: "Daily, UTC",
+    endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   "30d": {
     label: "Last 30 days",
@@ -63,6 +69,8 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketInterval: "1 day",
     bucketFormat: "YYYY-MM-DD",
     trendLabel: "Daily, UTC",
+    endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   "60d": {
     label: "Last 60 days",
@@ -72,6 +80,8 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketInterval: "1 week",
     bucketFormat: 'IYYY-"W"IW',
     trendLabel: "Weekly, UTC",
+    endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   "90d": {
     label: "Last 90 days",
@@ -81,8 +91,52 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketInterval: "1 week",
     bucketFormat: 'IYYY-"W"IW',
     trendLabel: "Weekly, UTC",
+    endClause: "TRUE",
+    currentBucketSql: "now()",
+  },
+  all: {
+    label: "All time",
+    interval: "all time",
+    startSql: "'2026-08-13T00:00:00Z'::timestamptz",
+    granularity: "week",
+    bucketInterval: "1 week",
+    bucketFormat: 'IYYY-"W"IW',
+    trendLabel: "Weekly, UTC",
+    endClause: "TRUE",
+    currentBucketSql: "now()",
+  },
+  custom: {
+    label: "Custom range",
+    interval: "custom",
+    startSql: "date_trunc('day', now())",
+    granularity: "day",
+    bucketInterval: "1 day",
+    bucketFormat: "YYYY-MM-DD",
+    trendLabel: "Daily, UTC",
+    endClause: "TRUE",
+    currentBucketSql: "now()",
   },
 };
+
+function customRangeConfig(filters: ReturnType<typeof normalizeAnalyticsFilters>): RangeConfig {
+  const base = RANGE_CONFIG[filters.range];
+  if (filters.range !== "custom" || !filters.from || !filters.to) return base;
+  const start = new Date(`${filters.from}T00:00:00Z`);
+  const end = new Date(`${filters.to}T00:00:00Z`);
+  const days = Math.max(1, Math.round((end.valueOf() - start.valueOf()) / 86_400_000) + 1);
+  const weekly = days > 45;
+  return {
+    ...base,
+    label: `${filters.from} → ${filters.to}`,
+    startSql: `'${filters.from}T00:00:00Z'::timestamptz`,
+    endClause: `created_at < ('${filters.to}T00:00:00Z'::timestamptz + interval '1 day')`,
+    currentBucketSql: `'${filters.to}T00:00:00Z'::timestamptz`,
+    granularity: weekly ? "week" : "day",
+    bucketInterval: weekly ? "1 week" : "1 day",
+    bucketFormat: weekly ? 'IYYY-"W"IW' : "YYYY-MM-DD",
+    trendLabel: weekly ? "Weekly, UTC" : "Daily, UTC",
+  };
+}
 
 const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
   country: "coalesce(nullif(country, ''), 'Unknown')",
@@ -141,7 +195,7 @@ function filterScope(filters: ReturnType<typeof normalizeAnalyticsFilters>) {
 
 function emptyReport(status: AnalyticsDatabaseStatus | "error", filtersInput: AnalyticsFilterInput = {}): AnalyticsReport {
   const filters = normalizeAnalyticsFilters(filtersInput);
-  const config = RANGE_CONFIG[filters.range];
+  const config = customRangeConfig(filters);
   return {
     status,
     generatedAt: new Date().toISOString(),
@@ -195,6 +249,8 @@ export type AnalyticsReport = {
     rangeLabel: string;
     segment: AnalyticsSegment;
     value: string | null;
+    from: string | null;
+    to: string | null;
     segmentLabel: string;
     trendLabel: string;
     granularity: TrendGranularity;
@@ -238,7 +294,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
   const status = analyticsDatabaseStatus();
   if (status !== "configured") return emptyReport(status, filters);
 
-  const config = RANGE_CONFIG[filters.range];
+  const config = customRangeConfig(filters);
   const scope = filterScope(filters);
   const filterOptionsColumn = filters.segment === "all" ? null : SEGMENT_SQL[filters.segment];
 
@@ -253,6 +309,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           FROM analytics_events events CROSS JOIN bounds
           WHERE events.created_at >= bounds.start_at
             AND ${scope.clause}
+            AND ${config.endClause}
         ),
         active_presence AS (
           SELECT DISTINCT events.visitor_id, events.session_id
@@ -312,7 +369,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           SELECT
             ${config.startSql} AS range_start,
             date_trunc('${config.granularity}', ${config.startSql}) AS first_bucket,
-            date_trunc('${config.granularity}', now()) AS current_bucket
+            date_trunc('${config.granularity}', ${config.currentBucketSql}) AS current_bucket
         ),
         buckets AS (
           SELECT generate_series(bounds.first_bucket, bounds.current_bucket, interval '${config.bucketInterval}') AS bucket
@@ -324,6 +381,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           WHERE events.created_at >= bounds.range_start
             AND events.created_at < bounds.current_bucket + interval '${config.bucketInterval}'
             AND ${scope.clause}
+            AND ${config.endClause}
         ),
         bucketed_events AS (
           SELECT buckets.bucket, events.*
@@ -358,6 +416,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
         SELECT coalesce(nullif(country, ''), 'Unknown') AS label, count(DISTINCT visitor_id) AS total
         FROM analytics_events, bounds
         WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
+            AND ${config.endClause}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8
       `, scope.params),
       analyticsQuery<CountRow>(`
@@ -369,6 +428,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
         ) AS label, count(DISTINCT session_id) AS total
         FROM analytics_events, bounds
         WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
+            AND ${config.endClause}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8
       `, scope.params),
       analyticsQuery<CountRow>(`
@@ -376,6 +436,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
         SELECT coalesce(nullif(device_type, ''), 'Unknown') AS label, count(DISTINCT visitor_id) AS total
         FROM analytics_events, bounds
         WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
+            AND ${config.endClause}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8
       `, scope.params),
       analyticsQuery<CountRow>(`
@@ -383,6 +444,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
         SELECT coalesce(nullif(browser, ''), 'Unknown') AS label, count(DISTINCT visitor_id) AS total
         FROM analytics_events, bounds
         WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${scope.clause}
+            AND ${config.endClause}
         GROUP BY 1 ORDER BY 2 DESC LIMIT 8
       `, scope.params),
       analyticsQuery<CountRow>(`
@@ -390,6 +452,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
         SELECT coalesce(nullif(metadata->>'scanMode', ''), 'Unknown') AS label, count(*) AS total
         FROM analytics_events, bounds
         WHERE event_name = 'scan_started' AND created_at >= bounds.start_at AND ${scope.clause}
+            AND ${config.endClause}
         GROUP BY 1 ORDER BY 2 DESC
       `, scope.params),
       analyticsQuery<EngagementRow>(`
@@ -400,6 +463,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           count(DISTINCT session_id) AS sessions
         FROM analytics_events, bounds
         WHERE event_name = 'engagement' AND created_at >= bounds.start_at AND ${scope.clause}
+            AND ${config.endClause}
         GROUP BY 1 ORDER BY 1
       `, scope.params),
       analyticsQuery<FrequencyRow>(`
@@ -407,6 +471,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
         filtered_events AS (
           SELECT events.* FROM analytics_events events, bounds
           WHERE events.created_at >= bounds.start_at AND ${scope.clause}
+            AND ${config.endClause}
         ),
         page_view_visitors AS (
           SELECT DISTINCT visitor_id FROM filtered_events WHERE event_name = 'page_view'
@@ -441,7 +506,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           WITH bounds AS (SELECT ${config.startSql} AS start_at)
           SELECT ${filterOptionsColumn} AS label, count(DISTINCT visitor_id) AS total
           FROM analytics_events, bounds
-          WHERE event_name = 'page_view' AND created_at >= bounds.start_at
+          WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${config.endClause}
           GROUP BY 1 ORDER BY 2 DESC LIMIT 30
         `)
         : Promise.resolve([] as CountRow[]),

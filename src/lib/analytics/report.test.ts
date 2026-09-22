@@ -25,6 +25,8 @@ describe("analytics filter normalization", () => {
       range: "90d",
       segment: "country",
       value: "GH",
+      from: null,
+      to: null,
     });
   });
 
@@ -33,6 +35,8 @@ describe("analytics filter normalization", () => {
       range: "24h",
       segment: "all",
       value: null,
+      from: null,
+      to: null,
     });
   });
 
@@ -41,6 +45,8 @@ describe("analytics filter normalization", () => {
       range: "24h",
       segment: "all",
       value: null,
+      from: null,
+      to: null,
     });
   });
 
@@ -49,6 +55,8 @@ describe("analytics filter normalization", () => {
       range: "24h",
       segment: "all",
       value: null,
+      from: null,
+      to: null,
     });
   });
 });

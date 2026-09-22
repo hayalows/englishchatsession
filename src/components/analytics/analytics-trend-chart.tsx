@@ -160,9 +160,10 @@ export function AnalyticsTrendChart({
   const gradientId = useId().replaceAll(":", "");
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, rows.length - 1));
 
-  const visitorsDelta = countDelta(metrics.visitors, comparison.previous.visitors, comparison.audienceReady, comparison.label);
-  const viewsDelta = countDelta(metrics.pageViews, comparison.previous.pageViews, comparison.audienceReady, comparison.label);
-  const scanUsageDelta = rateDelta(
+  const comparisonDisabled = report.filters.range === "all";
+  const visitorsDelta = comparisonDisabled ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" } : countDelta(metrics.visitors, comparison.previous.visitors, comparison.audienceReady, comparison.label);
+  const viewsDelta = comparisonDisabled ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" } : countDelta(metrics.pageViews, comparison.previous.pageViews, comparison.audienceReady, comparison.label);
+  const scanUsageDelta = comparisonDisabled ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" } : rateDelta(
     metrics.scanStartRate,
     comparison.previous.scanStartRate,
     comparison.previous.visitors,
@@ -277,7 +278,7 @@ export function AnalyticsTrendChart({
         </button>
       </div>
 
-      {!activeComparisonReady ? (
+      {!comparisonDisabled && !activeComparisonReady ? (
         <p className={styles.baselineNote} role="status">
           <span>Baseline building</span>
           <span aria-hidden="true">·</span>

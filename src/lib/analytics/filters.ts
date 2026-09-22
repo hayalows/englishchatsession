@@ -4,6 +4,8 @@ export const ANALYTICS_RANGE_OPTIONS = [
   { value: "30d", label: "Last 30 days" },
   { value: "60d", label: "Last 60 days" },
   { value: "90d", label: "Last 90 days" },
+  { value: "all", label: "All time" },
+  { value: "custom", label: "Custom" },
 ] as const;
 
 export const ANALYTICS_SEGMENT_OPTIONS = [
@@ -23,6 +25,8 @@ export type AnalyticsFilterInput = {
   range?: unknown;
   segment?: unknown;
   value?: unknown;
+  from?: unknown;
+  to?: unknown;
 };
 
 export const ANALYTICS_SEGMENT_LABELS: Record<AnalyticsSegment, string> = {
@@ -45,6 +49,13 @@ export function displayCountryLabel(value: string) {
   }
 }
 
+function normalizeDate(value: unknown) {
+  const raw = firstQueryValue(value);
+  if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const date = new Date(`${raw}T00:00:00Z`);
+  return Number.isNaN(date.valueOf()) ? null : raw;
+}
+
 function firstQueryValue(value: unknown) {
   if (Array.isArray(value)) return value[0];
   return value;
@@ -54,6 +65,8 @@ export function normalizeAnalyticsFilters(input: AnalyticsFilterInput = {}) {
   const requestedRange = firstQueryValue(input.range);
   const requestedSegment = firstQueryValue(input.segment);
   const requestedValue = firstQueryValue(input.value);
+  const requestedFrom = normalizeDate(input.from);
+  const requestedTo = normalizeDate(input.to);
   const range = typeof requestedRange === "string" && ANALYTICS_RANGES.includes(requestedRange as AnalyticsRange)
     ? requestedRange as AnalyticsRange
     : "24h";
@@ -63,8 +76,11 @@ export function normalizeAnalyticsFilters(input: AnalyticsFilterInput = {}) {
   const value = segment === "all" || typeof requestedValue !== "string"
     ? null
     : requestedValue.trim().slice(0, 120) || null;
+  const customDatesValid = Boolean(requestedFrom && requestedTo && requestedFrom <= requestedTo);
+  const from = range === "custom" && customDatesValid ? requestedFrom : null;
+  const to = range === "custom" && customDatesValid ? requestedTo : null;
 
-  return { range, segment, value } as const;
+  return { range, segment, value, from, to } as const;
 }
 
 export function parseAnalyticsSearchParams(searchParams: Record<string, string | string[] | undefined>) {
@@ -72,6 +88,8 @@ export function parseAnalyticsSearchParams(searchParams: Record<string, string |
     range: searchParams.range,
     segment: searchParams.segment,
     value: searchParams.value,
+    from: searchParams.from,
+    to: searchParams.to,
   });
 }
 

@@ -19,7 +19,19 @@ const RANGE_START_SQL: Record<AnalyticsRange, string> = {
   "30d": "now() - interval '30 days'",
   "60d": "now() - interval '60 days'",
   "90d": "now() - interval '90 days'",
+  all: "'2026-08-13T00:00:00Z'::timestamptz",
+  custom: "date_trunc('day', now())",
 };
+
+function rangeBounds(filters: ReturnType<typeof normalizeAnalyticsFilters>) {
+  if (filters.range === "custom" && filters.from && filters.to) {
+    return {
+      startSql: `'${filters.from}T00:00:00Z'::timestamptz`,
+      endClause: `events.created_at < ('${filters.to}T00:00:00Z'::timestamptz + interval '1 day')`,
+    };
+  }
+  return { startSql: RANGE_START_SQL[filters.range], endClause: "TRUE" };
+}
 
 const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
   country: "coalesce(nullif(events.country, ''), 'Unknown')",
@@ -69,6 +81,7 @@ function filterScope(filters: ReturnType<typeof normalizeAnalyticsFilters>) {
 async function queryBreakdown(
   dimensionSql: string,
   startSql: string,
+  endClause: string,
   scope: ReturnType<typeof filterScope>,
 ) {
   return analyticsQuery<BreakdownQueryRow>(`
@@ -82,6 +95,7 @@ async function queryBreakdown(
       FROM analytics_events events CROSS JOIN bounds
       WHERE events.event_name = 'page_view'
         AND events.created_at >= bounds.start_at
+        AND ${endClause}
         AND ${scope.clause}
     ),
     page_view_rollup AS (
@@ -96,6 +110,7 @@ async function queryBreakdown(
       FROM analytics_events events CROSS JOIN bounds
       WHERE events.event_name = 'scan_started'
         AND events.created_at >= bounds.start_at
+        AND ${endClause}
         AND ${scope.clause}
     )
     SELECT
@@ -123,15 +138,15 @@ export async function getAnalyticsMetricBreakdowns(
   if (analyticsDatabaseStatus() !== "configured") return EMPTY_ANALYTICS_METRIC_BREAKDOWNS;
 
   const filters = normalizeAnalyticsFilters(filtersInput);
-  const startSql = RANGE_START_SQL[filters.range];
+  const { startSql, endClause } = rangeBounds(filters);
   const scope = filterScope(filters);
 
   try {
     const [countries, devices, browsers, referrers] = await Promise.all([
-      queryBreakdown(DIMENSION_SQL.countries, startSql, scope),
-      queryBreakdown(DIMENSION_SQL.devices, startSql, scope),
-      queryBreakdown(DIMENSION_SQL.browsers, startSql, scope),
-      queryBreakdown(DIMENSION_SQL.referrers, startSql, scope),
+      queryBreakdown(DIMENSION_SQL.countries, startSql, endClause, scope),
+      queryBreakdown(DIMENSION_SQL.devices, startSql, endClause, scope),
+      queryBreakdown(DIMENSION_SQL.browsers, startSql, endClause, scope),
+      queryBreakdown(DIMENSION_SQL.referrers, startSql, endClause, scope),
     ]);
 
     return {

@@ -14,6 +14,8 @@ const report: AnalyticsReport = {
     rangeLabel: "Today",
     segment: "all",
     value: null,
+    from: null,
+    to: null,
     segmentLabel: "All traffic",
     trendLabel: "Hourly, UTC",
     granularity: "hour",

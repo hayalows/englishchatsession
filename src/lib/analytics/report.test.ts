@@ -25,6 +25,8 @@ describe("analytics filter normalization", () => {
       range: "90d",
       segment: "country",
       value: "GH",
+      from: null,
+      to: null,
     });
   });
 

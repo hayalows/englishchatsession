@@ -35,6 +35,7 @@ type RangeConfig = {
   bucketFormat: string;
   trendLabel: string;
   endClause: string;
+  currentBucketSql: string;
 };
 
 const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
@@ -47,6 +48,7 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketFormat: "YYYY-MM-DD HH24:00",
     trendLabel: "Hourly, UTC",
     endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   "7d": {
     label: "Last 7 days",
@@ -57,6 +59,7 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketFormat: "YYYY-MM-DD",
     trendLabel: "Daily, UTC",
     endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   "30d": {
     label: "Last 30 days",
@@ -67,6 +70,7 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketFormat: "YYYY-MM-DD",
     trendLabel: "Daily, UTC",
     endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   "60d": {
     label: "Last 60 days",
@@ -77,6 +81,7 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketFormat: 'IYYY-"W"IW',
     trendLabel: "Weekly, UTC",
     endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   "90d": {
     label: "Last 90 days",
@@ -87,6 +92,7 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketFormat: 'IYYY-"W"IW',
     trendLabel: "Weekly, UTC",
     endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   all: {
     label: "All time",
@@ -97,6 +103,7 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketFormat: 'IYYY-"W"IW',
     trendLabel: "Weekly, UTC",
     endClause: "TRUE",
+    currentBucketSql: "now()",
   },
   custom: {
     label: "Custom range",
@@ -107,6 +114,7 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
     bucketFormat: "YYYY-MM-DD",
     trendLabel: "Daily, UTC",
     endClause: "TRUE",
+    currentBucketSql: "now()",
   },
 };
 
@@ -122,6 +130,7 @@ function customRangeConfig(filters: ReturnType<typeof normalizeAnalyticsFilters>
     label: `${filters.from} → ${filters.to}`,
     startSql: `'${filters.from}T00:00:00Z'::timestamptz`,
     endClause: `created_at < ('${filters.to}T00:00:00Z'::timestamptz + interval '1 day')`,
+    currentBucketSql: `'${filters.to}T00:00:00Z'::timestamptz`,
     granularity: weekly ? "week" : "day",
     bucketInterval: weekly ? "1 week" : "1 day",
     bucketFormat: weekly ? 'IYYY-"W"IW' : "YYYY-MM-DD",
@@ -308,7 +317,6 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           WHERE events.event_name = 'presence'
             AND events.created_at >= now() - interval '${ACTIVE_NOW_WINDOW_SECONDS} seconds'
             AND ${scope.clause}
-            AND ${config.endClause}
         ),
         page_views AS (
           SELECT * FROM filtered_events WHERE event_name = 'page_view'
@@ -361,7 +369,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           SELECT
             ${config.startSql} AS range_start,
             date_trunc('${config.granularity}', ${config.startSql}) AS first_bucket,
-            date_trunc('${config.granularity}', now()) AS current_bucket
+            date_trunc('${config.granularity}', ${config.currentBucketSql}) AS current_bucket
         ),
         buckets AS (
           SELECT generate_series(bounds.first_bucket, bounds.current_bucket, interval '${config.bucketInterval}') AS bucket
@@ -498,7 +506,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
           WITH bounds AS (SELECT ${config.startSql} AS start_at)
           SELECT ${filterOptionsColumn} AS label, count(DISTINCT visitor_id) AS total
           FROM analytics_events, bounds
-          WHERE event_name = 'page_view' AND created_at >= bounds.start_at
+          WHERE event_name = 'page_view' AND created_at >= bounds.start_at AND ${config.endClause}
           GROUP BY 1 ORDER BY 2 DESC LIMIT 30
         `)
         : Promise.resolve([] as CountRow[]),

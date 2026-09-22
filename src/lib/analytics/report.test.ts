@@ -59,6 +59,33 @@ describe("analytics filter normalization", () => {
       to: null,
     });
   });
+
+  it("keeps valid custom date bounds", () => {
+    expect(normalizeAnalyticsFilters({ range: "custom", from: "2020-01-01", to: "2020-01-07" })).toEqual({
+      range: "custom",
+      segment: "all",
+      value: null,
+      from: "2020-01-01",
+      to: "2020-01-07",
+    });
+  });
+
+  it("falls back to Today for impossible, reversed, or future custom ranges", () => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const invalidRanges = [
+      { from: "2020-02-30", to: "2020-03-01" },
+      { from: "2020-01-08", to: "2020-01-07" },
+      { from: tomorrow, to: tomorrow },
+    ];
+
+    for (const dates of invalidRanges) {
+      expect(normalizeAnalyticsFilters({ range: "custom", ...dates })).toMatchObject({
+        range: "24h",
+        from: null,
+        to: null,
+      });
+    }
+  });
 });
 
 describe("getAnalyticsReport", () => {
@@ -125,6 +152,24 @@ describe("getAnalyticsReport", () => {
     for (const [query] of analyticsQueryMock.mock.calls) {
       expect(String(query)).toContain("date_trunc('day', now())");
     }
+  });
+
+  it("applies inclusive UTC calendar-day bounds to custom reports", async () => {
+    analyticsDatabaseStatusMock.mockReturnValue("configured");
+    analyticsQueryMock.mockResolvedValue([]);
+
+    const report = await getAnalyticsReport({ range: "custom", from: "2020-01-01", to: "2020-01-07" });
+
+    expect(report.filters).toMatchObject({
+      range: "custom",
+      rangeLabel: "2020-01-01 → 2020-01-07",
+      from: "2020-01-01",
+      to: "2020-01-07",
+      granularity: "day",
+    });
+    const queries = analyticsQueryMock.mock.calls.map(([query]) => String(query));
+    expect(queries.some((query) => query.includes("'2020-01-01T00:00:00Z'::timestamptz")
+      && query.includes("created_at < ('2020-01-07T00:00:00Z'::timestamptz + interval '1 day')"))).toBe(true);
   });
 
   it("keeps daily scan usage inside the page-view cohort for the same bucket", async () => {

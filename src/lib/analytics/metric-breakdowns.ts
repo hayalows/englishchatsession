@@ -19,7 +19,7 @@ const RANGE_START_SQL: Record<AnalyticsRange, string> = {
   "30d": "now() - interval '30 days'",
   "60d": "now() - interval '60 days'",
   "90d": "now() - interval '90 days'",
-  all: "'-infinity'::timestamptz",
+  all: "'2026-08-13T00:00:00Z'::timestamptz",
   custom: "date_trunc('day', now())",
 };
 

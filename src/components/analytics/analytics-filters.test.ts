@@ -17,6 +17,13 @@ describe("analytics header filters", () => {
     expect(styles).not.toContain(".filterText { display: none; }");
   });
 
+  it("submits valid custom dates and blocks reversed or future ranges", () => {
+    expect(source).not.toContain('onSubmit={() => setOpenPanel(null)}');
+    expect(source).toContain("value={customFrom}");
+    expect(source).toContain("min={customFrom || undefined}");
+    expect(source).toContain("disabled={!customRangeValid}");
+  });
+
   it("keeps the time and traffic panels exclusive and dismissible", () => {
     expect(source).toContain('type OpenPanel = "range" | "filter" | null;');
     expect(source).toContain('document.addEventListener("pointerdown", handlePointerDown)');

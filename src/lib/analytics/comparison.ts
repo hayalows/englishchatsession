@@ -119,7 +119,20 @@ export function emptyAnalyticsComparison(filtersInput: AnalyticsFilterInput = {}
 
 export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput = {}): Promise<AnalyticsComparison> {
   const filters = normalizeAnalyticsFilters(filtersInput);
-  const comparison = emptyAnalyticsComparison(filters);
+  let comparison = emptyAnalyticsComparison(filters);
+  if (filters.range === "custom" && filters.from && filters.to) {
+    const fromMs = Date.parse(`${filters.from}T00:00:00Z`);
+    const toExclusiveMs = Date.parse(`${filters.to}T00:00:00Z`) + DAY_MS;
+    const durationMs = toExclusiveMs - fromMs;
+    const previousStartMs = fromMs - durationMs;
+    comparison = {
+      ...comparison,
+      audienceReady: previousStartMs >= PAGE_VIEW_PRODUCTION_START,
+      scanReady: previousStartMs >= SCAN_PRODUCTION_START,
+      audienceReadyAt: new Date(PAGE_VIEW_PRODUCTION_START + durationMs).toISOString(),
+      scanReadyAt: new Date(SCAN_PRODUCTION_START + durationMs).toISOString(),
+    };
+  }
   if (analyticsDatabaseStatus() !== "configured") return comparison;
   if (filters.range === "all") return comparison;
   if (filters.range === "custom" && (!filters.from || !filters.to)) return comparison;

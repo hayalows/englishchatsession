@@ -91,7 +91,7 @@ const RANGE_CONFIG: Record<AnalyticsRange, RangeConfig> = {
   all: {
     label: "All time",
     interval: "all time",
-    startSql: "'-infinity'::timestamptz",
+    startSql: "'2026-08-13T00:00:00Z'::timestamptz",
     granularity: "week",
     bucketInterval: "1 week",
     bucketFormat: 'IYYY-"W"IW',

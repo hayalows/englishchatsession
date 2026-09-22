@@ -1164,7 +1164,7 @@ export function AvailabilityBoard() {
         </section>
 
         <footer className="site-footer" id="about">
-          <div className="footer-brand"><strong>English Chat Finder</strong><small>Helping students find available English Chat volunteer sessions.</small><span>Designed and built by Papa Kojo Mensah</span></div>
+          <div className="footer-brand"><strong>English Chat Finder</strong><small>Helping students find available English Chat volunteer sessions.</small><span>Designed and built by <a href="https://pkm.hayalows.com" rel="noreferrer" target="_blank">Papa Kojo Mensah <span aria-hidden="true">↗</span><span className="sr-only">’s portfolio (opens in a new tab)</span></a></span></div>
           <nav aria-label="Helpful links"><a href={OFFICIAL_SCHEDULE} rel="noreferrer" target="_blank">Official schedule <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a><a href={PREPARE_PAGE} rel="noreferrer" target="_blank">Prepare for your session <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span></a></nav>
           <p className="footer-guidance">Availability is checked from Google Calendar. Confirm and book the exact time on Google.</p>
         </footer>

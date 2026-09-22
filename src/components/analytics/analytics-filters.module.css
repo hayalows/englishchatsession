@@ -163,7 +163,10 @@
 
 .field { display: grid; gap: .35rem; }
 .field > span { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-.field select {
+ .rangePanel .form { display: grid; gap: .55rem; border-top: 1px solid var(--line); margin-top: .2rem; padding: .65rem .3rem .2rem; }
+
+.field select,
+.field input {
   appearance: auto;
   background: var(--surface);
   border: 1px solid var(--line-strong);
@@ -175,7 +178,8 @@
   padding: .58rem .72rem;
   width: 100%;
 }
-.field select:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
+.field select:focus-visible,
+.field input:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
 .field select:disabled { color: var(--muted-light); cursor: not-allowed; }
 
 .activeFilter {

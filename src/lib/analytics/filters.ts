@@ -53,7 +53,7 @@ function normalizeDate(value: unknown) {
   const raw = firstQueryValue(value);
   if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
   const date = new Date(`${raw}T00:00:00Z`);
-  return Number.isNaN(date.valueOf()) ? null : raw;
+  return Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== raw ? null : raw;
 }
 
 function firstQueryValue(value: unknown) {
@@ -67,7 +67,15 @@ export function normalizeAnalyticsFilters(input: AnalyticsFilterInput = {}) {
   const requestedValue = firstQueryValue(input.value);
   const requestedFrom = normalizeDate(input.from);
   const requestedTo = normalizeDate(input.to);
-  const range = typeof requestedRange === "string" && ANALYTICS_RANGES.includes(requestedRange as AnalyticsRange)
+  const requestedRangeIsSupported = typeof requestedRange === "string"
+    && ANALYTICS_RANGES.includes(requestedRange as AnalyticsRange);
+  const customDatesValid = Boolean(
+    requestedFrom
+      && requestedTo
+      && requestedFrom <= requestedTo
+      && requestedTo <= new Date().toISOString().slice(0, 10),
+  );
+  const range = requestedRangeIsSupported && (requestedRange !== "custom" || customDatesValid)
     ? requestedRange as AnalyticsRange
     : "24h";
   const segment = typeof requestedSegment === "string" && ANALYTICS_SEGMENTS.includes(requestedSegment as AnalyticsSegment)
@@ -76,7 +84,6 @@ export function normalizeAnalyticsFilters(input: AnalyticsFilterInput = {}) {
   const value = segment === "all" || typeof requestedValue !== "string"
     ? null
     : requestedValue.trim().slice(0, 120) || null;
-  const customDatesValid = Boolean(requestedFrom && requestedTo && requestedFrom <= requestedTo);
   const from = range === "custom" && customDatesValid ? requestedFrom : null;
   const to = range === "custom" && customDatesValid ? requestedTo : null;
 

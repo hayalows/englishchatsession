@@ -21,6 +21,8 @@ const RANGE_CONFIG: Record<AnalyticsRange, { interval: string; durationMs: numbe
   "30d": { interval: "30 days", durationMs: 30 * DAY_MS, label: "previous 30 days" },
   "60d": { interval: "60 days", durationMs: 60 * DAY_MS, label: "previous 60 days" },
   "90d": { interval: "90 days", durationMs: 90 * DAY_MS, label: "previous 90 days" },
+  all: { interval: "0 days", durationMs: 0, label: "all time" },
+  custom: { interval: "0 days", durationMs: 0, label: "previous period" },
 };
 
 const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
@@ -63,6 +65,18 @@ function utcDayStart(valueMs: number) {
 }
 
 function readiness(range: AnalyticsRange, nowMs = Date.now()) {
+  if (range === "all") {
+    const readyAt = new Date(PAGE_VIEW_PRODUCTION_START).toISOString();
+    return { audienceReady: false, scanReady: false, audienceReadyAt: readyAt, scanReadyAt: readyAt };
+  }
+  if (range === "custom") {
+    return {
+      audienceReady: true,
+      scanReady: true,
+      audienceReadyAt: new Date(PAGE_VIEW_PRODUCTION_START).toISOString(),
+      scanReadyAt: new Date(SCAN_PRODUCTION_START).toISOString(),
+    };
+  }
   if (range === "24h") {
     // Today is a UTC/Ghana calendar day. Compare day-to-date with the last
     // completed calendar day so a useful daily baseline exists from midnight.
@@ -107,6 +121,8 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
   const filters = normalizeAnalyticsFilters(filtersInput);
   const comparison = emptyAnalyticsComparison(filters);
   if (analyticsDatabaseStatus() !== "configured") return comparison;
+  if (filters.range === "all") return comparison;
+  if (filters.range === "custom" && (!filters.from || !filters.to)) return comparison;
   if (!comparison.audienceReady && !comparison.scanReady) return comparison;
 
   const config = RANGE_CONFIG[filters.range];
@@ -119,9 +135,13 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
     ? `SELECT
         date_trunc('day', now()) - interval '1 day' AS previous_start,
         date_trunc('day', now()) AS previous_end`
-    : `SELECT
-        now() - interval '${config.interval}' AS previous_end,
-        now() - (interval '${config.interval}' * 2) AS previous_start`;
+    : filters.range === "custom" && filters.from && filters.to
+      ? `SELECT
+          '${filters.from}T00:00:00Z'::timestamptz - (('${filters.to}T00:00:00Z'::timestamptz + interval '1 day') - '${filters.from}T00:00:00Z'::timestamptz) AS previous_start,
+          '${filters.from}T00:00:00Z'::timestamptz AS previous_end`
+      : `SELECT
+          now() - interval '${config.interval}' AS previous_end,
+          now() - (interval '${config.interval}' * 2) AS previous_start`;
 
   try {
     const rows = await analyticsQuery<PreviousRow>(`

@@ -314,6 +314,7 @@ function Sheet({ title, description, detents = [.45, .92], initialDetent = 0, on
 
   function grabberClick() {
     if (suppressClick.current) { suppressClick.current = false; return; }
+    if (top === 0) { onDismiss(); return; }
     rest(detentRef.current === top ? 0 : top);
   }
   function grabberKey(event: KeyboardEvent<HTMLButtonElement>) {
@@ -367,7 +368,7 @@ function Sheet({ title, description, detents = [.45, .92], initialDetent = 0, on
     >
       <motion.div ref={sheetRef} className={[styles.sheet, className].filter(Boolean).join(" ")} style={style} data-expanded={expanded ? "" : undefined} onKeyDown={sheetKey}>
         <div className={styles.header} onPointerDown={headerDown} onPointerMove={headerMove} onPointerUp={headerUp} onPointerCancel={headerUp}>
-          <button type="button" className={styles.grabber} data-grabber="" aria-label={expanded ? "Collapse sheet" : "Expand sheet"} aria-expanded={expanded} onClick={grabberClick} onKeyDown={grabberKey}>
+          <button type="button" className={styles.grabber} data-grabber="" aria-label={top === 0 ? "Dismiss sheet" : expanded ? "Collapse sheet" : "Expand sheet"} aria-expanded={top > 0 ? expanded : undefined} onClick={grabberClick} onKeyDown={grabberKey}>
             <span className={styles.grabberBar} aria-hidden="true" />
           </button>
           <div className={styles.headRow}>

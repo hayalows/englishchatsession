@@ -211,3 +211,18 @@
 @media (prefers-contrast: more) {
   .surface::after { border-color: var(--border-strong); }
 }
+
+/* Inside a sheet, the calendar participates in its scrolling layout. */
+.inline { display: block; width: 100%; height: auto; }
+.inline .surface { position: relative; overflow: visible; background: transparent; box-shadow: none !important; }
+.inline .surface::after { display: none; }
+.inline .panel { position: relative; width: 100%; padding: 0; }
+.inline .panel .rail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem; margin: 0; padding: 0 0 1rem; overflow: visible; }
+.inline .preset { min-height: 40px; height: auto; font-size: .8125rem; padding: .5rem .625rem; }
+.inline .railHighlight { display: none; }
+.inline .footer { gap: .75rem; }
+.inline .summary { flex-basis: 100%; }
+.inline .actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+.inline .actions button { min-height: 44px; }
+.inline .summaryCount { color: var(--text-secondary); font-size: .75rem; }
+.inline .footer { position: sticky; bottom: 0; z-index: 3; background: var(--surface-raised); padding-bottom: .5rem; }

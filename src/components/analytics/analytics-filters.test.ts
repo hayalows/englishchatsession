@@ -6,11 +6,11 @@ const source = readFileSync(new URL("./analytics-filters.tsx", import.meta.url),
 const styles = readFileSync(new URL("./analytics-filters.module.css", import.meta.url), "utf8");
 
 describe("analytics header filters", () => {
-  it("uses the range, custom-date, and audience filter primitives", () => {
-    expect(source).toContain('from "../arc/segmented-control/segmented-control"');
+  it("uses the unified date and audience filter primitives", () => {
+    expect(source).not.toContain("<SegmentedControl");
     expect(source).toContain('from "../arc/date-range-picker/date-range-picker"');
     expect(source).toContain('from "../arc/filter-toolbar/filter-toolbar"');
-    expect(source).toContain("<SegmentedControl");
+    expect(source).toContain("presets={DATE_PRESETS}");
     expect(source).toContain("<DateRangePicker");
     expect(source).toContain("<AnalyticsFilterInteraction");
     expect(source).toContain("function rangeHref");
@@ -18,7 +18,7 @@ describe("analytics header filters", () => {
   });
 
   it("keeps custom ranges bounded to recorded history through today", () => {
-    expect(source).toContain("minDate={new Date(2026, 7, 13)}");
+    expect(source).toContain("minDate={HISTORY_START}");
     expect(source).toContain("maxDate={todayUtc}");
     expect(source).toContain("function utcCalendarToday()");
     expect(source).toContain("onChange={chooseCustom}");
@@ -40,7 +40,7 @@ describe("analytics header filters", () => {
   it("moves secondary controls into a mobile bottom sheet", () => {
     expect(source).toContain('from "../arc/bottom-sheet/bottom-sheet"');
     expect(source).toContain("<BottomSheet");
-    expect(source).toContain("Analytics filters");
+    expect(source).toContain('title="Date range"');
     expect(source).toContain("mobileFilterButton");
     expect(styles).toContain(".desktopControls");
     expect(styles).toContain(".mobileControls");

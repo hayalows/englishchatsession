@@ -16,7 +16,9 @@ export interface DateRange {
 
 /** A shortcut in the preset rail. `range` receives the viewer's local today. */
 export interface DateRangePreset {
+  id?: string;
   label: string;
+  description?: string;
   range: (today: Date) => DateRange;
 }
 
@@ -33,7 +35,14 @@ export interface DateRangePickerProps {
   /** Uncontrolled starting value. */
   defaultValue?: DateRange | null;
   /** Called with the applied range. */
-  onChange?: (range: DateRange) => void;
+  onChange?: (range: DateRange, preset?: DateRangePreset) => void;
+  /** Preserve a preset's reporting semantics separately from its calendar preview. */
+  selectedPreset?: string;
+  displayLabel?: string;
+  timeZone?: "local" | "UTC";
+  /** Render the calendar in an existing sheet instead of opening another dialog. */
+  inline?: boolean;
+  onCancel?: () => void;
   /** Accessible name of the trigger and the dialog. Defaults to "Date range". */
   label?: string;
   placeholder?: string;
@@ -81,9 +90,9 @@ export const defaultDateRangePresets: DateRangePreset[] = [
 ];
 
 /** Today turns over at local midnight; returning to the tab reads it again. Empty on the server so markup never depends on its clock. */
-const subscribeToday = (notify: () => void) => {
+const subscribeToday = (notify: () => void, timeZone: "local" | "UTC" = "local") => {
   let timer = 0;
-  const schedule = () => { const now = new Date(); timer = window.setTimeout(() => { notify(); schedule(); }, addDays(now, 1).getTime() - now.getTime() + 1000); };
+  const schedule = () => { const now = new Date(); const midnight = timeZone === "UTC" ? Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) : addDays(now, 1).getTime(); timer = window.setTimeout(() => { notify(); schedule(); }, midnight - now.getTime() + 1000); };
   const onVisible = () => { if (document.visibilityState === "visible") notify(); };
   schedule();
   document.addEventListener("visibilitychange", onVisible);
@@ -92,8 +101,10 @@ const subscribeToday = (notify: () => void) => {
 const readToday = () => keyOf(new Date());
 const serverToday = () => "";
 /** The viewer's local date, or undefined during server render and hydration. */
-export function useToday() {
-  const key = useSyncExternalStore(subscribeToday, readToday, serverToday);
+export function useToday(timeZone: "local" | "UTC" = "local") {
+  const subscribe = useCallback((notify: () => void) => subscribeToday(notify, timeZone), [timeZone]);
+  const read = useCallback(() => timeZone === "UTC" ? new Date().toISOString().slice(0, 10) : readToday(), [timeZone]);
+  const key = useSyncExternalStore(subscribe, read, serverToday);
   return useMemo(() => (key ? fromKey(key) : undefined), [key]);
 }
 
@@ -276,9 +287,9 @@ function Months({ children, direction, reduced }: { children: ReactNode; directi
     variants={reduced ? fade : slide} initial="enter" animate="center" exit="exit">{children}</motion.div>;
 }
 
-export function DateRangePicker({ value, defaultValue = null, onChange, label = "Date range", placeholder = "Select dates", presets = defaultDateRangePresets, minDate, maxDate, weekStartsOn = 0, locale = "en-US", months = "auto", boundary, className }: DateRangePickerProps) {
+export function DateRangePicker({ value, defaultValue = null, onChange, selectedPreset, displayLabel, timeZone = "local", inline = false, onCancel, label = "Date range", placeholder = "Select dates", presets = defaultDateRangePresets, minDate, maxDate, weekStartsOn = 0, locale = "en-US", months = "auto", boundary, className }: DateRangePickerProps) {
   const reduced = useReducedFlag();
-  const today = useToday();
+  const today = useToday(timeZone);
   const uid = useId();
   const [inner, setInner] = useState<DateRange | null>(defaultValue);
   const committed = value !== undefined ? value : inner;
@@ -289,6 +300,7 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
   const [view, setView] = useState<Date>(() => monthStart(committed?.end ?? new Date(2000, 0, 1)));
   const [direction, setDirection] = useState(1);
   const [draft, setDraft] = useState<DateRange | null>(committed);
+  const [draftPreset, setDraftPreset] = useState<DateRangePreset | undefined>(() => selectedPreset === undefined ? undefined : presets.find(preset => preset.id === selectedPreset));
   const [anchor, setAnchor] = useState<Date | null>(null);
   const [hover, setHover] = useState<Date | null>(null);
   const [focusKey, setFocusKey] = useState("");
@@ -305,7 +317,7 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
   const count = compact ? 1 : 2;
   const visible = useMemo(() => Array.from({ length: count }, (_, index) => addMonths(view, index)), [count, view]);
   const shown = anchor ? ordered(anchor, hover ?? anchor) : draft;
-  const activePreset = today && !anchor ? presets.findIndex(preset => sameRange(preset.range(today), draft)) : -1;
+  const activePreset = today && !anchor ? draftPreset ? presets.indexOf(draftPreset) : selectedPreset === undefined ? presets.findIndex(preset => sameRange(preset.range(today), draft)) : -1 : -1;
   const days = shown ? dayDiff(shown.end, shown.start) + 1 : 0;
   const committedDirection = useDirection(committed);
   const shownDirection = useDirection(shown);
@@ -389,10 +401,10 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
   /* ---------- Layout: two months when there is room, one compact month otherwise ---------- */
   const measureLayout = useCallback(() => {
     const box = bounds();
-    const available = Math.max(0, box.right - box.left - EDGE * 2);
+    const available = Math.max(0, (inline ? rootRef.current?.clientWidth ?? box.right - box.left : box.right - box.left) - EDGE * 2);
     const single = months === 1 || (months === "auto" && available < WIDE_MIN);
     return { single, width: Math.min(352, available) };
-  }, [bounds, months]);
+  }, [bounds, months, inline]);
 
   useEffect(() => {
     if (!open) return;
@@ -412,6 +424,7 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
     setCompact(layout.single);
     setPanelWidth(layout.width);
     setDraft(committed);
+    setDraftPreset(selectedPreset === undefined ? undefined : presets.find(preset => preset.id === selectedPreset));
     setAnchor(null);
     setHover(null);
     setView(viewFor(committed, layout.single, today));
@@ -422,19 +435,30 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
   };
 
   const close = useCallback((focus: boolean) => {
+    if (inline) { onCancel?.(); return; }
     if (focus) pendingFocus.current = "trigger";
     setDirection(0);
     setOpen(false);
     setAnchor(null);
     setHover(null);
-  }, []);
+  }, [inline, onCancel]);
+
+  useEffect(() => {
+    if (!inline || !today) return;
+    const layout = measureLayout();
+    setCompact(layout.single);
+    setPanelWidth(layout.width);
+    setView(layout.single ? monthStart(committed?.end ?? today) : addMonths(monthStart(committed?.end ?? today), -1));
+    setFocusKey(keyOf(committed?.start ?? today));
+    setOpen(true);
+  }, [inline, today, committed, measureLayout]);
 
   const apply = () => {
     const next = anchor ? { start: anchor, end: anchor } : draft;
     if (!next) return;
     if (value === undefined) setInner(next);
-    onChange?.(next);
-    close(true);
+    onChange?.(next, draftPreset);
+    if (!inline) close(true);
   };
 
   /* ---------- Focus management ---------- */
@@ -449,18 +473,18 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
   }, [focusKey, open, view, compact]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || inline) return;
     const down = (event: PointerEvent) => { if (!rootRef.current?.contains(event.target as Node)) close(false); };
     document.addEventListener("pointerdown", down);
     return () => document.removeEventListener("pointerdown", down);
-  }, [close, open]);
+  }, [close, open, inline]);
 
   const onRootKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape" && open) { event.preventDefault(); event.stopPropagation(); close(true); }
+    if (event.key === "Escape" && open && !inline) { event.preventDefault(); event.stopPropagation(); close(true); }
   };
   const onRootBlur = (event: ReactFocusEvent<HTMLDivElement>) => {
     const next = event.relatedTarget as Node | null;
-    if (open && next && !event.currentTarget.contains(next)) close(false);
+    if (open && !inline && next && !event.currentTarget.contains(next)) close(false);
   };
 
   /* ---------- Month navigation and picking ---------- */
@@ -479,6 +503,7 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
   };
 
   const pick = (date: Date) => {
+    setDraftPreset(undefined);
     setFocusKey(keyOf(date));
     if (!anchor) { setAnchor(date); setHover(date); return; }
     setDraft(ordered(anchor, date));
@@ -489,6 +514,7 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
   const choosePreset = (preset: DateRangePreset) => {
     if (!today) return;
     const range = preset.range(today);
+    setDraftPreset(preset);
     setDraft(range);
     setAnchor(null);
     setHover(null);
@@ -517,12 +543,13 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
 
   const onRailKey = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const keys = compact ? ["ArrowLeft", "ArrowRight"] : ["ArrowUp", "ArrowDown"];
-    if (!keys.includes(event.key)) return;
+    const step = inline ? ({ ArrowLeft: -1, ArrowRight: 1, ArrowUp: -2, ArrowDown: 2 } as Record<string, number>)[event.key] : event.key === keys[0] ? -1 : event.key === keys[1] ? 1 : undefined;
+    if (step === undefined) return;
     const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("[data-preset]"));
     const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
     if (at < 0) return;
     event.preventDefault();
-    buttons[(at + (event.key === keys[1] ? 1 : -1) + buttons.length) % buttons.length]?.focus();
+    buttons[(at + step + buttons.length) % buttons.length]?.focus();
   };
 
   /** The day that owns the tab stop: the focused day when it is on screen, else the first visible day of the range, else the 1st. */
@@ -549,20 +576,20 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
   }, [activePreset, compact, go, gh, gw, gx, gy, open, reduced]);
 
   /* ---------- Copy ---------- */
-  const committedText = format(committed);
-  const shownText = shown ? format(shown) : "No dates";
-  const countText = shown ? `${days} ${days === 1 ? "day" : "days"}` : "";
+  const committedText = displayLabel ?? format(committed);
+  const shownText = draftPreset && !anchor ? draftPreset.label : shown ? format(shown) : "No dates";
+  const countText = draftPreset?.description && !anchor ? draftPreset.description : shown ? `${days} ${days === 1 ? "day" : "days"} · ${timeZone === "UTC" ? "UTC" : "local time"}` : "";
   const status = !open ? "" : anchor ? `Start ${formatters.label.format(anchor)}. Choose an end date.` : shown ? `${shownText}, ${countText}` : "";
-  const layoutId = reduced ? undefined : `${uid}-value`;
+  const layoutId = reduced || inline ? undefined : `${uid}-value`;
 
   const cellSize = compact && panelWidth ? Math.max(32, Math.min(42, Math.floor((panelWidth - 24) / 7))) : WIDE_CELL;
 
   const quiet = open ? (reduced ? { opacity: 0 } : { opacity: 0, filter: `blur(${blur.subtle}px)` }) : { opacity: 1, filter: "blur(0px)" };
   const quietTransition = open ? { duration: .12, ease: standardEase } : { duration: .22, ease: enterEase, delay: reduced ? 0 : .1 };
 
-  return <motion.div ref={rootRef} className={[styles.root, className].filter(Boolean).join(" ")} style={{ width: rootWidth }} data-open={open || undefined} onKeyDown={onRootKey} onBlur={onRootBlur}>
+  return <motion.div ref={rootRef} className={[styles.root, inline && styles.inline, className].filter(Boolean).join(" ")} style={inline ? undefined : { width: rootWidth }} data-open={open || undefined} onKeyDown={onRootKey} onBlur={onRootBlur}>
     {/* The trigger stays in place under the panel. Its icons fade, while the value itself flies to the panel footer and back. */}
-    <button ref={triggerRef} type="button" className={styles.trigger} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${uid}-panel` : undefined}
+    {!inline && <button ref={triggerRef} type="button" className={styles.trigger} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${uid}-panel` : undefined}
       aria-label={`${label}: ${committedText}`} disabled={!today} inert={open || undefined} onClick={openPanel}>
       <motion.span className={styles.triggerIcon} initial={false} animate={quiet} transition={quietTransition}><CalendarDays size={16} strokeWidth={1.75} aria-hidden="true" /></motion.span>
       {open || !layoutId
@@ -573,12 +600,12 @@ export function DateRangePicker({ value, defaultValue = null, onChange, label = 
           <Rolling text={committedText} direction={committedDirection} reduced={reduced} />
         </motion.span>}
       <motion.span className={styles.chevron} initial={false} animate={quiet} transition={quietTransition}><ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /></motion.span>
-    </button>
+    </button>}
 
-    <motion.div className={styles.surface} style={{ width, height, borderRadius: radius, x }}>
+    <motion.div className={styles.surface} style={inline ? undefined : { width, height, borderRadius: radius, x }}>
       <AnimatePresence>
-        {open && today && <motion.div key="panel" ref={panelRef} id={`${uid}-panel`} className={styles.panel} role="dialog" aria-label={label} data-compact={compact || undefined}
-          style={{ "--cell": `${cellSize}px`, width: compact && panelWidth ? panelWidth : undefined } as CSSProperties} exit={{ opacity: 1, transition: { duration: .14 } }}>
+        {open && today && <motion.div key="panel" ref={panelRef} id={`${uid}-panel`} className={styles.panel} role={inline ? "group" : "dialog"} aria-label={label} data-compact={compact || undefined}
+          style={{ "--cell": `${cellSize}px`, width: !inline && compact && panelWidth ? panelWidth : undefined } as CSSProperties} exit={{ opacity: 1, transition: { duration: .14 } }}>
           <motion.div className={styles.body} variants={reduced ? faceFade : faceIn} initial="hidden" animate="shown" exit="gone">
             <div ref={railRef} className={styles.rail} role="group" aria-label="Presets" onKeyDown={onRailKey}>
               <motion.span className={styles.railHighlight} style={{ x: gx, y: gy, width: gw, height: gh, opacity: go }} aria-hidden="true" />

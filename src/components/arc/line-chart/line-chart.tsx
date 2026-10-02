@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent, type Ref } from "react";
 import { AnimatePresence, animate, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
-import { motionTokens } from "@/lib/motion-tokens";
+import { motionTokens } from "../../../lib/motion-tokens";
 import styles from "./line-chart.module.css";
 
 export interface LineChartSeries {

@@ -1,244 +1,217 @@
 .filters {
-  margin: 0;
-  position: relative;
-  z-index: 8;
+  --accent: var(--teal-700);
+  --accent-foreground: white;
+  --accent-strong: var(--teal-600);
+  --accent-subtle: var(--teal-50);
+  --background: var(--canvas);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --border-subtle: color-mix(in srgb, var(--line), transparent 42%);
+  --control-height-lg: 44px;
+  --control-height-md: 38px;
+  --control-height-sm: 32px;
+  --danger: var(--red-700);
+  --duration-considered: .38s;
+  --duration-fast: .14s;
+  --duration-instant: .08s;
+  --duration-spring: .34s;
+  --duration-standard: .22s;
+  --ease-enter: cubic-bezier(.2, .8, .2, 1);
+  --ease-spring: cubic-bezier(.2, .8, .2, 1);
+  --ease-standard: cubic-bezier(.22, 1, .36, 1);
+  --focus-ring: var(--gold-500);
+  --font-body: var(--font-ui);
+  --font-display: var(--font-ui);
+  --foreground: var(--ink);
+  --leading-body: 1.45;
+  --leading-display: 1.08;
+  --radius-control: .55rem;
+  --radius-panel: .75rem;
+  --radius-pill: 999px;
+  --shadow-floating: 0 16px 42px rgba(7, 47, 79, .15);
+  --shadow-raised: 0 6px 22px rgba(7, 47, 79, .08);
+  --shadow-resting: 0 1px 2px rgba(7, 47, 79, .04);
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --success: #167647;
+  --surface-muted: var(--surface-subtle);
+  --surface-raised: var(--surface);
+  --text-2xl: 1.35rem;
+  --text-3xl: 1.75rem;
+  --text-base: .9rem;
+  --text-lg: 1rem;
+  --text-muted: var(--muted-light);
+  --text-secondary: var(--muted);
+  --text-sm: .78rem;
+  --text-xs: .68rem;
+  --tracking-body: 0;
+  --tracking-display: -.02em;
+  --warning: var(--amber-800);
+  min-width: 0;
+  width: 100%;
 }
 
-.form { position: relative; }
-
-.toolbar {
-  align-items: center;
-  display: flex;
-  gap: .5rem;
-  justify-content: flex-end;
-  position: relative;
+.filters button {
+  box-shadow: none;
+  min-height: 0;
 }
 
-.rangeDisclosure,
-.filterDisclosure { position: relative; }
-
-.controlTrigger {
-  align-items: center;
-  border-radius: .55rem;
-  cursor: pointer;
-  display: inline-flex;
-  font-size: .78rem;
-  font-weight: 750;
-  gap: .45rem;
-  justify-content: center;
-  list-style: none;
-  min-height: 44px;
-  padding: .48rem .72rem;
-  touch-action: manipulation;
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 100ms ease;
-  user-select: none;
-  white-space: nowrap;
+.filters button:active {
+  transform: none;
 }
 
-.rangeDisclosure > .controlTrigger {
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  color: var(--ink);
-  min-width: 10.5rem;
-}
-.rangeDisclosure > .controlTrigger:hover,
-.rangeDisclosure[data-open="true"] > .controlTrigger {
-  background: var(--teal-50);
-  border-color: #a8cccc;
-  color: var(--teal-700);
+.desktopControls {
+  display: block;
 }
 
-.filterDisclosure > .controlTrigger {
-  background: var(--surface-subtle);
-  border: 1px solid var(--line-strong);
-  color: var(--ink);
-}
-.filterDisclosure > .controlTrigger:hover,
-.filterDisclosure[data-open="true"] > .controlTrigger {
-  background: var(--teal-50);
-  border-color: #a8cccc;
-  color: var(--teal-700);
+.mobileControls {
+  display: none;
 }
 
-.controlTrigger:active { transform: scale(.96); }
-
-.controlTrigger:focus-visible,
-.rangeOption:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
-  outline-offset: 2px;
-}
-
-.controlIcon,
-.checkIcon {
-  flex: 0 0 auto;
-  height: 1.05rem;
-  width: 1.05rem;
-}
-
-.rangeSummaryLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chevronIcon {
-  height: .95rem;
-  margin-left: .2rem;
-  transition: transform 160ms ease;
-  width: .95rem;
-}
-.rangeDisclosure[data-open="true"] .chevronIcon { transform: rotate(180deg); }
-
-.rangePanel,
-.filterPanel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: .95rem;
-  box-shadow: 0 18px 48px rgba(15, 42, 61, .18);
-  margin-top: .45rem;
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 20;
-}
-
-.rangePanel {
+.controlStack {
   display: grid;
-  gap: .18rem;
-  padding: .35rem;
-  width: min(16.5rem, calc(100vw - 1.25rem));
+  gap: .6rem;
+  min-width: 0;
+  width: 100%;
 }
 
-.rangePanelLabel {
+.rangeGroup,
+.filterGroup {
+  display: grid;
+  gap: .28rem;
+  min-width: 0;
+}
+
+.controlLabel {
   color: var(--muted-light);
-  font-size: .66rem;
-  font-weight: 800;
-  letter-spacing: .07em;
-  padding: .48rem .65rem .28rem;
+  font-size: .62rem;
+  font-weight: 720;
+  letter-spacing: .035em;
   text-transform: uppercase;
 }
 
-.rangeOption {
+.rangeControls {
   align-items: center;
-  border-radius: .62rem;
-  color: var(--ink);
-  display: flex;
-  font-size: .82rem;
-  gap: .7rem;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: .55rem .65rem;
-  text-decoration: none;
+  display: grid;
+  gap: .45rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
 }
-.rangeOption:hover,
-.rangeOption[aria-current="true"] {
-  background: var(--teal-50);
-  color: var(--teal-700);
-}
-.checkIcon { height: 1rem; width: 1rem; }
 
-.filterBadge {
+.rangeControls > * {
+  min-width: 0;
+}
+
+.mobileFilterButton {
+  align-items: center;
+  appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: .55rem;
+  box-shadow: none;
+  color: var(--ink);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: .72rem;
+  font-weight: 720;
+  gap: .4rem;
+  justify-content: center;
+  min-height: 40px !important;
+  padding: .45rem .62rem;
+}
+
+.mobileFilterButton:hover {
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
+  box-shadow: none;
+}
+
+.mobileFilterButton strong {
   align-items: center;
   background: var(--teal-700);
   border-radius: 999px;
   color: white;
   display: inline-flex;
-  font-size: .64rem;
-  height: 1.2rem;
+  font-size: .62rem;
+  height: 1.18rem;
   justify-content: center;
-  min-width: 1.2rem;
-  padding: 0 .3rem;
+  min-width: 1.18rem;
+  padding-inline: .25rem;
 }
 
-.filterPanel {
-  padding: .9rem;
-  width: min(25rem, calc(100vw - 2rem));
-}
-.filterPanel .form { display: grid; gap: .8rem; }
-.filterPanelHeader { align-items: start; display: flex; gap: 1rem; justify-content: space-between; }
-.filterPanelHeader > div { display: grid; gap: .2rem; }
-.filterPanelHeader strong { font-size: .86rem; letter-spacing: -.01em; }
-.filterPanelHeader span { color: var(--muted); font-size: .72rem; line-height: 1.4; }
-.clearLink { color: var(--teal-700); font-size: .74rem; font-weight: 750; padding: .25rem 0; white-space: nowrap; }
-.clearLink:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
-
-.field { display: grid; gap: .35rem; }
-.field > span { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
- .rangePanel .form { display: grid; gap: .55rem; border-top: 1px solid var(--line); margin-top: .2rem; padding: .65rem .3rem .2rem; }
-
-.field select,
-.field input {
-  appearance: auto;
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: .7rem;
-  color: var(--ink);
-  font: inherit;
-  font-size: .82rem;
-  min-height: 46px;
-  padding: .58rem .72rem;
-  width: 100%;
-}
-.field select:focus-visible,
-.field input:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
-.field select:disabled { color: var(--muted-light); cursor: not-allowed; }
-
-.activeFilter {
-  align-items: center;
-  color: var(--muted);
-  display: inline-flex;
-  font-size: .72rem;
-  gap: .45rem;
-  margin: .48rem .15rem 0;
-}
-.activeFilter > span {
-  background: var(--teal-50);
-  border: 1px solid color-mix(in srgb, var(--teal-700), transparent 72%);
-  border-radius: 999px;
-  color: var(--teal-700);
-  font-weight: 750;
-  max-width: min(76vw, 30rem);
-  overflow: hidden;
-  padding: .35rem .58rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.activeFilter > a {
-  align-items: center;
-  border-radius: 999px;
-  color: var(--muted);
-  display: inline-flex;
-  font-size: 1rem;
-  height: 32px;
-  justify-content: center;
-  width: 32px;
-}
-.activeFilter > a:hover { background: var(--surface-subtle); color: var(--ink); }
-.activeFilter > a:focus-visible { outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%); outline-offset: 2px; }
-
-.srOnly {
-  border: 0;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  padding: 0;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
+.mobileFilterButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
+  outline-offset: 2px;
 }
 
-@media (max-width: 640px) {
-  .toolbar { gap: .4rem; justify-content: stretch; }
-  .rangeDisclosure { flex: 1 1 auto; min-width: 0; }
-  .filterDisclosure { position: static; }
-  .rangeDisclosure > .controlTrigger { justify-content: flex-start; min-width: 0; width: 100%; }
-  .rangeSummaryLabel { flex: 1 1 auto; }
-  .rangePanel { left: 0; right: auto; width: min(18rem, calc(100vw - 1.6rem)); }
-  .filterPanel { left: 0; right: 0; width: auto; }
+@media (max-width: 760px) {
+  .desktopControls {
+    display: none;
+  }
+
+  .mobileControls {
+    align-items: center;
+    display: grid;
+    gap: .45rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
+  .mobileRange {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .controlStack {
+    gap: 1rem;
+  }
+
+  .rangeGroup,
+  .filterGroup {
+    gap: .45rem;
+  }
+
+  .rangeControls {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .controlLabel {
+    font-size: .66rem;
+  }
+
+  .filters {
+    --control-height-md: 42px;
+    --control-height-sm: 38px;
+    --space-4: .75rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileControls {
+    gap: .35rem;
+  }
+
+  .mobileFilterButton {
+    padding-inline: .52rem;
+  }
+
+  .mobileFilterButton span {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .chevronIcon,
-  .controlTrigger { transition: none; }
+  .filters {
+    --duration-considered: 0s;
+    --duration-fast: 0s;
+    --duration-instant: 0s;
+    --duration-spring: 0s;
+    --duration-standard: 0s;
+  }
 }

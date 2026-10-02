@@ -23,6 +23,7 @@ import {
   type AnalyticsSegment,
 } from "@/lib/analytics/filters";
 
+import { AnalyticsFilterInteraction } from "./analytics-filter-interaction";
 import styles from "./analytics-filters.module.css";
 
 type AnalyticsFiltersProps = {
@@ -223,18 +224,13 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
 
       <div className={styles.filterGroup}>
         <span className={styles.controlLabel}>Audience</span>
-        <FilterToolbar
-          addFilter={{
-            fields,
-            label: activeFilters.length ? "Change filter" : "Add filter",
-            align: "start",
-            onAdd: addFilter,
-          }}
+        <AnalyticsFilterInteraction fields={fields} selected={activeFilters[0]} onSelect={addFilter} />
+        {activeFilters.length ? <FilterToolbar
           filters={activeFilters}
           label="Analytics audience filters"
           onClearAll={clearFilter}
           onRemove={clearFilter}
-        />
+        /> : null}
       </div>
     </div>
   );

@@ -242,3 +242,18 @@
     --duration-standard: 0s;
   }
 }
+
+.historyToolbar { align-items: center; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: .75rem; justify-content: space-between; padding: 1rem; }
+.historyToolbar p { color: var(--muted); font-size: .875rem; margin: 0; }
+.historyStats { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 1.25rem 1rem .25rem; }
+.historyStats > div { display: grid; gap: .375rem; }
+.historyStats strong { color: var(--ink); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.historyStats span { color: var(--muted); font-size: .8125rem; line-height: 1.5; }
+.historyReadout { align-items: center; background: var(--surface-subtle); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: .5rem 1rem; min-height: 52px; padding: .75rem 1rem; }
+.historyReadout strong, .historyReadout span { font-size: .8125rem; line-height: 1.5; }
+.historyReadout span { color: var(--muted); }
+.historyReadout button { background: transparent; color: var(--teal-700); font-size: .8125rem; margin-left: auto; min-height: 36px; padding: .5rem; text-decoration: underline; }
+.historyReadout button:hover { background: var(--teal-50); color: var(--ink); }
+.historyReadout button:focus-visible { outline: 3px solid var(--teal-700); outline-offset: 2px; }
+.historyNote { color: var(--muted); font-size: .8125rem; line-height: 1.6; margin: 0; padding: .75rem 1rem 1rem; }
+.historyEmpty { color: var(--muted); font-size: .875rem; line-height: 1.6; padding: 1.5rem 1rem; }

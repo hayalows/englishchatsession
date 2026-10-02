@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ActivityHeatmap } from "../arc/activity-heatmap/activity-heatmap";
 import { DonutChart, type DonutChartDatum } from "../arc/donut-chart/donut-chart";
+import SegmentedControl from "../arc/segmented-control/segmented-control";
 import { Pagination } from "../arc/pagination/pagination";
 import {
   SortableDataTable,
@@ -125,13 +126,23 @@ export function AnalyticsBreakdownVisuals({
 
 export function AnalyticsActivityHistory({ report }: { report: AnalyticsReport }) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const period = report.activityDays.length
-    ? (report.activityDays[0]?.date ?? "") + " to " + (report.activityDays.at(-1)?.date ?? "")
-    : "recorded history";
+  const [historyRange, setHistoryRange] = useState("90");
+  const history = useMemo(() => [...report.activityDays].sort((a, b) => a.date.localeCompare(b.date)), [report.activityDays]);
+  const days = useMemo(() => {
+    if (historyRange === "all" || !history.length) return history;
+    const latest = Date.parse(history.at(-1)!.date + "T00:00:00Z");
+    const cutoff = new Date(latest - (Number(historyRange) - 1) * 86400000).toISOString().slice(0, 10);
+    return history.filter((day) => day.date >= cutoff);
+  }, [history, historyRange]);
+  const formatDay = (value: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value + "T00:00:00Z"));
+  const period = days.length ? formatDay(days[0].date) + " – " + formatDay(days.at(-1)!.date) : "recorded history";
+  const activeDays = days.filter((day) => day.count > 0).length;
+  const busiest = days.reduce<(typeof days)[number] | null>((best, day) => !best || day.count > best.count ? day : best, null);
+  const selected = days.find((day) => day.date === selectedDate);
 
   useEffect(() => {
     setSelectedDate(null);
-  }, [report.filters.segment, report.filters.value]);
+  }, [report.filters.segment, report.filters.value, historyRange]);
 
   return (
     <section className={styles.section + " " + styles.arcTheme} aria-labelledby="activity-history-title">
@@ -140,21 +151,35 @@ export function AnalyticsActivityHistory({ report }: { report: AnalyticsReport }
           <p className={styles.kicker}>History</p>
           <h2 id="activity-history-title">Activity across time</h2>
         </div>
-        <span>All recorded history · daily visitors</span>
+        <span>Daily visitors · {report.filters.segmentLabel}</span>
       </div>
       <article className={styles.heatmapCard}>
+        <div className={styles.historyToolbar}>
+          <p>See busy days and quieter periods.</p>
+          <SegmentedControl label="Activity history window" options={[{value:"30",label:"30 days"},{value:"90",label:"90 days"},{value:"all",label:"All history"}]} value={historyRange} onValueChange={setHistoryRange} />
+        </div>
+        {days.length ? <>
+        <div className={styles.historyStats}>
+          <div><strong>{activeDays.toLocaleString()}</strong><span>days with activity</span></div>
+          <div><strong>{busiest?.count.toLocaleString() ?? "0"}</strong><span>most visitors in a day{busiest && busiest.count > 0 ? " · " + formatDay(busiest.date) : ""}</span></div>
+        </div>
         <div className={styles.arcBody}>
           <ActivityHeatmap
-            days={report.activityDays}
+            days={days}
             label="Daily unique visitor activity"
             locale="en-GB"
             onSelectDate={setSelectedDate}
             period={period}
             selectedDate={selectedDate}
-            unit={{ one: "visitor", other: "visitors" }}
+            unit={{ one: "daily visitor count", other: "daily visitor counts" }}
             weekStartsOn={1}
           />
         </div>
+        <div className={styles.historyReadout} role="status">
+          {selectedDate ? <><strong>{formatDay(selectedDate)}</strong><span>{(selected?.count ?? 0).toLocaleString()} visitors</span><button type="button" onClick={() => setSelectedDate(null)}>Clear day</button></> : <span>Hover, tap, or use arrow keys to inspect a day. Scroll horizontally for earlier weeks.</span>}
+        </div>
+        <p className={styles.historyNote}>Each square counts unique visitors for one UTC day. A returning visitor can count on several days. History is independent of the report date range.</p>
+        </> : <p className={styles.historyEmpty}>No daily activity has been recorded for this audience yet. Try clearing the audience filter.</p>}
       </article>
     </section>
   );

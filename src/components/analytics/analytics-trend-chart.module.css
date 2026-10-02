@@ -297,3 +297,22 @@
   .chartExperience { animation: none; }
   .summaryButton { transition: none; }
 }
+
+.emptyChart { align-content: center; display: grid; gap: .5rem; min-height: 250px; padding: 2rem; text-align: center; }
+.emptyChart strong { font-size: 1rem; }
+.emptyChart p { color: var(--muted); font-size: .875rem; line-height: 1.6; margin: 0 auto; max-width: 44ch; }
+.comparisonHelp { color: var(--muted); font-size: .8125rem; line-height: 1.5; margin: .5rem 1rem; }
+.summaryCell { padding: 1.25rem; gap: .5rem; }
+.summaryLabel { font-size: .875rem; }
+.summaryCell small { font-size: .8125rem; }
+.chartReadout span, .chartReadout small { font-size: .8125rem; }
+.compareButton { font-size: .8125rem; min-height: 44px; }
+.chartHint { font-size: .8125rem; padding-bottom: 1rem; }
+@media (max-width: 560px) {
+  .summaryCell { padding: .875rem .5rem; }
+  .summaryTopline { align-items: start; flex-direction: column; gap: .375rem; }
+  .summaryLabel { font-size: .8125rem; }
+  .summaryCell small { display: block; font-size: .75rem; }
+  .emptyChart { padding: 1.5rem 1rem; }
+}
+.compareButton[aria-pressed="true"]:hover:not(:disabled) { background: #005a62; color: white; }

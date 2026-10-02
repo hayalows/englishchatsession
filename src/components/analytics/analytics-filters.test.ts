@@ -19,7 +19,8 @@ describe("analytics header filters", () => {
 
   it("keeps custom ranges bounded to recorded history through today", () => {
     expect(source).toContain("minDate={new Date(2026, 7, 13)}");
-    expect(source).toContain("maxDate={new Date()}");
+    expect(source).toContain("maxDate={todayUtc}");
+    expect(source).toContain("function utcCalendarToday()");
     expect(source).toContain("onChange={chooseCustom}");
     expect(source).toContain('range: "custom"');
     expect(source).toContain("from: dateKey(range.start)");

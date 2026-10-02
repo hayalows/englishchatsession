@@ -73,6 +73,7 @@ describe("getAnalyticsComparison", () => {
     expect(totalsQuery).toContain("date_trunc('day', now()) - interval '1 day'");
     expect(totalsQuery).toContain("date_trunc('day', now()) AS previous_end");
     expect(trendQuery).toContain("generate_series");
-    expect(trendQuery).toContain("date_trunc('hour', bounds.previous_start)");
+    expect(trendQuery).toContain("date_trunc('hour', bounds.previous_end)");
+    expect(trendQuery).toContain("bounds.previous_end - bounds.previous_start");
   });
 });

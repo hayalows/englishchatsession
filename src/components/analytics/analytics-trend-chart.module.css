@@ -118,64 +118,30 @@
   white-space: nowrap;
 }
 
-.chartFrame {
-  background: transparent;
-  border-radius: 0;
-  min-height: 290px;
-  overflow: hidden;
-  padding: 0 .85rem;
-}
-.chart {
-  display: block;
-  height: 290px;
-  outline: none;
-  touch-action: pan-y;
-  width: 100%;
-}
-.chart:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 16%);
-  outline-offset: -3px;
-}
-.gridLine {
-  stroke: color-mix(in srgb, var(--line), transparent 18%);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-.axisLabel,
-.dayLabel {
-  fill: var(--muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-.areaStopStrong { stop-color: var(--teal-100); stop-opacity: .7; }
-.areaStopSoft { stop-color: var(--surface-subtle); stop-opacity: .04; }
-.trendArea { pointer-events: none; }
-.trendLine {
-  stroke: var(--teal-700);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2.7;
-  vector-effect: non-scaling-stroke;
-}
-.dataPoint {
-  fill: var(--surface);
-  pointer-events: none;
-  stroke: color-mix(in srgb, var(--teal-700), transparent 30%);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-.selectionLine {
-  opacity: .42;
-  stroke: var(--muted-light);
-  stroke-dasharray: 3 5;
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-.trendPoint {
-  fill: var(--surface);
-  stroke: var(--teal-700);
-  stroke-width: 3;
-  vector-effect: non-scaling-stroke;
+.arcChartShell {
+  --accent: var(--teal-700);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --duration-fast: 160ms;
+  --duration-instant: 120ms;
+  --duration-standard: 240ms;
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --ease-spring: cubic-bezier(.2, .8, .2, 1);
+  --ease-standard: cubic-bezier(.22, 1, .36, 1);
+  --font-body: var(--font-ui);
+  --foreground: var(--ink);
+  --leading-body: 1.45;
+  --radius-pill: 999px;
+  --shadow-floating: 0 12px 34px rgba(7, 47, 79, .14);
+  --space-4: 1rem;
+  --surface-raised: var(--surface);
+  --text-muted: var(--muted-light);
+  --text-secondary: var(--muted);
+  --text-sm: .8rem;
+  --text-xs: .7rem;
+  --tracking-body: 0;
+  min-height: 286px;
+  padding: .1rem 1rem .2rem;
 }
 
 .chartHint {
@@ -183,7 +149,7 @@
   font-size: .7rem;
   line-height: 1.45;
   margin: 0;
-  padding: .15rem 1rem .55rem;
+  padding: 0 1rem .58rem;
   text-align: right;
 }
 
@@ -193,7 +159,7 @@
 }
 
 @media (max-width: 560px) {
-  .chartExperience { gap: .5rem; }
+  .chartExperience { gap: .35rem; }
   .summaryStrip { margin: 0; }
   .summaryCell {
     gap: .2rem;
@@ -206,14 +172,18 @@
   .summaryButton > strong { font-size: 1.4rem; }
   .summaryCell small { display: none; }
   .delta { font-size: .62rem; padding: .24rem .29rem; }
-  .baselineNote { font-size: .66rem; justify-content: flex-start; margin-inline: .02rem; }
+  .baselineNote { font-size: .66rem; justify-content: flex-start; margin-inline: .72rem; }
 
-  .chartContext { min-height: 34px; padding: .4rem .75rem .08rem; }
+  .chartContext { min-height: 34px; padding: .28rem .75rem 0; }
   .chartContext span { font-size: .7rem; }
   .chartContext > strong { font-size: .74rem; }
-  .chartFrame { min-height: 180px; padding-inline: .35rem; }
-  .chart { height: 180px; }
-  .axisLabel, .dayLabel { font-size: 10.5px; }
+  .arcChartShell {
+    min-height: 222px;
+    padding: 0 .62rem .12rem;
+    --space-4: .7rem;
+    --text-sm: .75rem;
+    --text-xs: .66rem;
+  }
 
   .chartHint { display: none; }
 }
@@ -224,6 +194,7 @@
   .summaryCell > strong,
   .summaryButton > strong { font-size: 1.3rem; }
   .delta { font-size: .58rem; padding-inline: .24rem; }
+  .arcChartShell { padding-inline: .46rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

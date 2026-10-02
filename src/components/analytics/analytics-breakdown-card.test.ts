@@ -12,6 +12,12 @@ describe("analytics audience breakdown detail rows", () => {
     expect(styles).not.toContain(".dialogRow > * { position: relative;");
     expect(styles).toContain(".dialogRowFill");
     expect(styles).toContain("position: absolute;");
+    expect(source).toContain("<span>Visitors</span>");
+    expect(source).toContain("<span>Views</span>");
+    expect(source).toContain("<span>Scan usage</span>");
+    expect(source).toContain("row.visitors.toLocaleString()");
+    expect(source).toContain("row.pageViews.toLocaleString()");
+    expect(source).toContain("scanUsage(row)");
   });
 
   it("renders country flags from the existing ISO country labels", () => {

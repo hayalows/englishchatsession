@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { ActivityHeatmap } from "../arc/activity-heatmap/activity-heatmap";
-import { BarChart, type BarChartDatum } from "../arc/bar-chart/bar-chart";
 import { DonutChart, type DonutChartDatum } from "../arc/donut-chart/donut-chart";
 import { Pagination } from "../arc/pagination/pagination";
 import {
@@ -11,6 +10,7 @@ import {
   type DataColumn,
   type SortState,
 } from "../arc/sortable-data-table/sortable-data-table";
+import { AnalyticsBreakdownCard } from "./analytics-breakdown-card";
 import type { AnalyticsBreakdownRow, AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 import type { AnalyticsPrimaryMetric } from "./analytics-trend-chart";
@@ -22,10 +22,6 @@ const METRIC_LABELS: Record<AnalyticsPrimaryMetric, string> = {
   pageViews: "Page views",
   scanUsage: "Scan usage",
 };
-
-function scanUsage(row: Pick<AnalyticsBreakdownRow, "visitors" | "scanStarters">) {
-  return row.visitors ? Math.min(100, Math.round((row.scanStarters / row.visitors) * 100)) : 0;
-}
 
 function compositionValue(row: AnalyticsBreakdownRow, metric: AnalyticsPrimaryMetric) {
   if (metric === "pageViews") return row.pageViews;
@@ -44,11 +40,6 @@ function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"
   return new Intl.DateTimeFormat("en-GB", granularity === "hour"
     ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }
     : { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
-}
-
-function shortCountryLabel(label: string) {
-  const name = label.replace(/\s*\([A-Z]{2}\)$/, "");
-  return name.length > 9 ? name.slice(0, 8) + "…" : name;
 }
 
 function SourceComposition({
@@ -100,56 +91,6 @@ function SourceComposition({
   );
 }
 
-function CountryRanking({
-  rows,
-  metric,
-  rangeLabel,
-}: {
-  rows: AnalyticsBreakdownRow[];
-  metric: AnalyticsPrimaryMetric;
-  rangeLabel: string;
-}) {
-  const data = useMemo<BarChartDatum[]>(() => [...rows]
-    .sort((a, b) => {
-      const left = metric === "scanUsage" ? scanUsage(a) : compositionValue(a, metric);
-      const right = metric === "scanUsage" ? scanUsage(b) : compositionValue(b, metric);
-      return right - left;
-    })
-    .slice(0, 8)
-    .map((row) => ({
-      key: row.label,
-      label: row.label.replace(/\s*\([A-Z]{2}\)$/, ""),
-      axisLabel: shortCountryLabel(row.label),
-      value: metric === "scanUsage" ? scanUsage(row) : compositionValue(row, metric),
-    })), [metric, rows]);
-
-  const isRate = metric === "scanUsage";
-  return (
-    <article className={styles.visualCard} aria-labelledby="country-ranking-title">
-      <header className={styles.cardHeader}>
-        <div>
-          <p className={styles.kicker}>Ranking</p>
-          <h3 id="country-ranking-title">{isRate ? "Scan rate by country" : "Top countries"}</h3>
-        </div>
-        <span>{rangeLabel}</span>
-      </header>
-      <div className={styles.arcBody}>
-        <BarChart
-          categoryLabel="Country"
-          data={data}
-          formatValue={(value) => isRate ? Math.round(value) + "%" : Math.round(value).toLocaleString()}
-          height={190}
-          label={isRate ? "Scan usage by country" : METRIC_LABELS[metric] + " by country"}
-          period={rangeLabel}
-          showAverage={false}
-          unit={isRate ? "%" : ""}
-          valueLabel={METRIC_LABELS[metric]}
-        />
-      </div>
-    </article>
-  );
-}
-
 export function AnalyticsBreakdownVisuals({
   report,
   breakdowns,
@@ -170,7 +111,13 @@ export function AnalyticsBreakdownVisuals({
       </div>
       <div className={styles.visualGrid}>
         <SourceComposition metric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} />
-        <CountryRanking metric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} />
+        <AnalyticsBreakdownCard
+          activeMetric={activeMetric}
+          kind="country"
+          rangeLabel={report.filters.rangeLabel}
+          rows={breakdowns.countries}
+          title="Countries"
+        />
       </div>
     </section>
   );

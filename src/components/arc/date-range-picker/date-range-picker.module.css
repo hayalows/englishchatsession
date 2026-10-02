@@ -85,7 +85,7 @@
   -webkit-tap-highlight-color: transparent;
   transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
 }
-.preset[aria-pressed="true"] { color: var(--foreground); font-weight: 500; }
+.preset[aria-pressed="true"] { background: var(--accent); color: var(--accent-foreground); font-weight: 650; }
 
 .calendars { position: relative; padding: 0 2px; }
 .navButton {

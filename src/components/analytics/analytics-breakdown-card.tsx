@@ -307,15 +307,14 @@ export function AnalyticsBreakdownCard({
               <>
                 <div className={styles.dialogTableHeader} aria-hidden="true">
                   <span>{title}</span>
-                  <span>{activeMetric === "scanUsage" ? "Rate" : "Share"}</span>
                   <span>Visitors</span>
                   <span>Views</span>
+                  <span>Scan usage</span>
                 </div>
                 <div aria-label={`${title} details`} className={styles.dialogRows} role="list">
                   {filteredRows.map((row) => {
                     const value = metricValue(row, activeMetric);
                     const fill = activeMetric === "scanUsage" ? value : Math.max(3, (value / max) * 100);
-                    const share = activeMetric === "scanUsage" ? value : total ? Math.round((value / total) * 100) : 0;
                     const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
                     return (
                       <div className={styles.dialogRow} key={row.label} role="listitem">
@@ -324,9 +323,9 @@ export function AnalyticsBreakdownCard({
                           {countryCode ? <CountryFlag code={countryCode} /> : null}
                           <span>{displayLabel(row.label, kind)}</span>
                         </span>
-                        <strong>{`${share}%`}</strong>
                         <strong>{row.visitors.toLocaleString()}</strong>
                         <strong>{row.pageViews.toLocaleString()}</strong>
+                        <strong>{`${scanUsage(row)}%`}</strong>
                       </div>
                     );
                   })}

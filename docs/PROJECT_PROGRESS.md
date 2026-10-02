@@ -18,6 +18,16 @@ The product currently has two deliberately separate surfaces:
 
 The v1.8.0 source was checked locally with `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd test`, and `npm.cmd run build`. The observed result was 86 passing tests across 22 test files and a successful production build.
 
+## Analytics interface refinement — 2026-10-02
+
+**Why:** The private report's right-heavy filter panel and repeated audience display competed with the analytics overview.
+
+**What changed:** A single compact toolbar pairs date controls with the selected audience and a clear action. Mobile filters use the actual UIArc bottom sheet with two heights, drag and keyboard expansion, Done/Close actions, and modal focus management. Chart comparison guidance appears once beneath the chart context. Existing activity controls, contrast fixes, and exact-data disclosure remain available.
+
+**How:** Apply Product Design OS hierarchy and progressive-disclosure guidance, retain the useLayouts audience interaction, and adapt UIArc's Radix/Motion source to the existing design tokens. The student finder and availability engine are unchanged. Source changes are on [`analytics-minimal-toolbar`](https://github.com/hayalows/englishchatsession/tree/analytics-minimal-toolbar).
+
+**Verification:** Populated local browser checks cover 320–1440px, reduced and ordinary motion, nested Escape, selected options, focus restoration, and sheet drag/keyboard controls. The temporary fixture is removed before publishing. Repository lint, type checking, all 143 tests, and the production build pass. Deployment follows the existing main-branch Vercel workflow.
+
 ## Release timeline
 
 ### 2026-07-23 — [v1.0.0](https://github.com/hayalows/englishchatsession/releases/tag/v1.0.0): establish the student-first finder

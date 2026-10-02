@@ -6,13 +6,13 @@ const source = readFileSync(new URL("./analytics-filters.tsx", import.meta.url),
 const styles = readFileSync(new URL("./analytics-filters.module.css", import.meta.url), "utf8");
 
 describe("analytics header filters", () => {
-  it("uses the UIArc range, custom-date, and filter primitives", () => {
+  it("uses the range, custom-date, and audience filter primitives", () => {
     expect(source).toContain('from "../arc/segmented-control/segmented-control"');
     expect(source).toContain('from "../arc/date-range-picker/date-range-picker"');
     expect(source).toContain('from "../arc/filter-toolbar/filter-toolbar"');
     expect(source).toContain("<SegmentedControl");
     expect(source).toContain("<DateRangePicker");
-    expect(source).toContain("<FilterToolbar");
+    expect(source).toContain("<AnalyticsFilterInteraction");
     expect(source).toContain("function rangeHref");
     expect(source).toContain("function audienceHref");
   });
@@ -34,7 +34,7 @@ describe("analytics header filters", () => {
     expect(source).toContain('label: "Device"');
     expect(source).toContain('label: "Browser"');
     expect(source).toContain('label: "Traffic source"');
-    expect(source).toContain("onClearAll={clearFilter}");
+    expect(source).toContain("onClick={clearFilter}");
   });
 
   it("moves secondary controls into a mobile bottom sheet", () => {

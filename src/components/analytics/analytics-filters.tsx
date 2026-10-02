@@ -1,17 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FunnelSimple } from "@phosphor-icons/react";
+import { FunnelSimple, X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 
-import { BottomSheet } from "../arc/bottom-sheet/bottom-sheet";
+import { BottomSheet, BottomSheetClose } from "../arc/bottom-sheet/bottom-sheet";
 import {
   DateRangePicker,
   type DateRange,
 } from "../arc/date-range-picker/date-range-picker";
-import FilterToolbar, {
-  type FilterChip,
-  type FilterField,
+import type {
+  FilterChip,
+  FilterField,
 } from "../arc/filter-toolbar/filter-toolbar";
 import SegmentedControl from "../arc/segmented-control/segmented-control";
 import type { AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types";
@@ -224,13 +224,8 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
 
       <div className={styles.filterGroup}>
         <span className={styles.controlLabel}>Audience</span>
-        <AnalyticsFilterInteraction fields={fields} selected={activeFilters[0]} onSelect={addFilter} />
-        {activeFilters.length ? <FilterToolbar
-          filters={activeFilters}
-          label="Analytics audience filters"
-          onClearAll={clearFilter}
-          onRemove={clearFilter}
-        /> : null}
+        <AnalyticsFilterInteraction fields={fields} selected={activeFilters[0] ? { ...activeFilters[0], value: filters.value ?? undefined } : undefined} onSelect={addFilter} />
+        {activeFilters.length ? <button type="button" className={styles.clearAudience} aria-label="Clear audience filter" onClick={clearFilter}><X size={16} aria-hidden="true" /></button> : null}
       </div>
     </div>
   );
@@ -248,10 +243,17 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
             value={["24h", "7d", "30d", "all"].includes(selectedRange) ? selectedRange : ""}
           />
         </div>
-        <button
+        <BottomSheet
+          className={styles.filters + " " + styles.mobileSheet}
+          description="Choose a time range and audience."
+          onOpenChange={setMobileOpen}
+          open={mobileOpen}
+          detents={[0.65, 0.94]}
+          title="Analytics filters"
+          closeLabel="Close analytics filters"
+          trigger={<button
           aria-expanded={mobileOpen}
           className={styles.mobileFilterButton}
-          onClick={() => setMobileOpen(true)}
           type="button"
         >
           <FunnelSimple aria-hidden="true" size={17} />
@@ -259,17 +261,15 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
           {activeFilters.length || filters.range === "custom" || ["60d", "90d"].includes(filters.range)
             ? <strong>{activeFilters.length + (filters.range === "custom" || ["60d", "90d"].includes(filters.range) ? 1 : 0)}</strong>
             : null}
-        </button>
+        </button>}
+        >
+          {controls}
+          <footer className={styles.sheetFooter}>
+            <BottomSheetClose asChild><button type="button" className={styles.doneButton}>Done</button></BottomSheetClose>
+          </footer>
+        </BottomSheet>
       </div>
-
-      <BottomSheet
-        description="Choose a reporting range or narrow the report to one audience dimension."
-        onOpenChange={setMobileOpen}
-        open={mobileOpen}
-        title="Analytics filters"
-      >
-        {controls}
-      </BottomSheet>
+      <p className={styles.scopeCaption}>{filters.rangeLabel} · {filters.segmentLabel} · UTC</p>
     </section>
   );
 }

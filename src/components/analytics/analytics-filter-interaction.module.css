@@ -28,3 +28,9 @@
 .surface { position: absolute; inset: 0; z-index: -1; background: var(--surface); border: 1px solid var(--line-strong); }
 .trigger:hover .surface { background: var(--teal-50); }
 .root:has(.panel) { z-index: 50; }
+
+.trigger { border-radius: .625rem; min-height: 40px !important; padding: .5rem .75rem; gap: .5rem; font-size: .8125rem; max-width: 100%; }
+.iconPair svg { background: transparent; border: 0; border-radius: 0; padding: 0; }
+.triggerLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel { left: auto; right: 0; }
+@media (max-width: 760px) { .trigger { justify-content: flex-start; width: 100%; min-height: 44px !important; } .triggerLabel { flex: 1; text-align: left; } }

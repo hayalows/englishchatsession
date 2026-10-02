@@ -6,33 +6,44 @@ const source = readFileSync(new URL("./analytics-filters.tsx", import.meta.url),
 const styles = readFileSync(new URL("./analytics-filters.module.css", import.meta.url), "utf8");
 
 describe("analytics header filters", () => {
-  it("keeps time-range links and audience filters in the compact toolbar", () => {
-    expect(source).toContain('from "@phosphor-icons/react"');
+  it("uses the UIArc range, custom-date, and filter primitives", () => {
+    expect(source).toContain('from "../arc/segmented-control/segmented-control"');
+    expect(source).toContain('from "../arc/date-range-picker/date-range-picker"');
+    expect(source).toContain('from "../arc/filter-toolbar/filter-toolbar"');
+    expect(source).toContain("<SegmentedControl");
+    expect(source).toContain("<DateRangePicker");
+    expect(source).toContain("<FilterToolbar");
     expect(source).toContain("function rangeHref");
-    expect(source).toContain('input name="range" type="hidden" value={filters.range}');
-    expect(source).toContain("className={styles.rangePanel}");
-    expect(source).toContain("className={styles.filterPanel}");
-    expect(styles).toContain("min-height: 44px;");
-    expect(styles).toContain(".rangePanel");
-    expect(styles).not.toContain(".filterText { display: none; }");
+    expect(source).toContain("function audienceHref");
   });
 
-  it("submits valid custom dates and blocks reversed or future ranges", () => {
-    expect(source).not.toContain('onSubmit={() => setOpenPanel(null)}');
-    expect(source).toContain("value={customFrom}");
-    expect(source).toContain("min={customFrom || undefined}");
-    expect(source).toContain("disabled={!customRangeValid}");
+  it("keeps custom ranges bounded to recorded history through today", () => {
+    expect(source).toContain("minDate={new Date(2026, 7, 13)}");
+    expect(source).toContain("maxDate={todayUtc}");
+    expect(source).toContain("function utcCalendarToday()");
+    expect(source).toContain("onChange={chooseCustom}");
+    expect(source).toContain('range: "custom"');
+    expect(source).toContain("from: dateKey(range.start)");
+    expect(source).toContain("to: dateKey(range.end)");
   });
 
-  it("keeps the time and traffic panels exclusive and dismissible", () => {
-    expect(source).toContain('type OpenPanel = "range" | "filter" | null;');
-    expect(source).toContain('document.addEventListener("pointerdown", handlePointerDown)');
-    expect(source).toContain('event.key !== "Escape" || !openPanel');
-    expect(source).toContain("aria-expanded={openPanel === \"range\"}");
-    expect(source).toContain("aria-expanded={openPanel === \"filter\"}");
-    expect(styles).toContain('.rangeDisclosure[data-open="true"]');
-    expect(styles).toContain('.filterDisclosure[data-open="true"]');
-    expect(styles).toContain(".filterDisclosure { position: static; }");
-    expect(styles).toContain(".filterPanel { left: 0; right: 0; width: auto; }");
+  it("uses one clear audience-filter chip because the backend supports one dimension at a time", () => {
+    expect(source).toContain("const activeFilters");
+    expect(source).toContain("return [{ id: filters.segment, label, value }]");
+    expect(source).toContain('label: "Country"');
+    expect(source).toContain('label: "Device"');
+    expect(source).toContain('label: "Browser"');
+    expect(source).toContain('label: "Traffic source"');
+    expect(source).toContain("onClearAll={clearFilter}");
+  });
+
+  it("moves secondary controls into a mobile bottom sheet", () => {
+    expect(source).toContain('from "../arc/bottom-sheet/bottom-sheet"');
+    expect(source).toContain("<BottomSheet");
+    expect(source).toContain("Analytics filters");
+    expect(source).toContain("mobileFilterButton");
+    expect(styles).toContain(".desktopControls");
+    expect(styles).toContain(".mobileControls");
+    expect(styles).toContain("@media (max-width: 760px)");
   });
 });

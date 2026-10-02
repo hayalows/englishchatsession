@@ -169,6 +169,7 @@ type TrendRow = {
 };
 
 type CountRow = { label: string | null; total: unknown };
+type ActivityDayRow = { date_label: unknown; visitors: unknown };
 type FrequencyRow = { label: string | null; total: unknown; sort_order: unknown };
 type EngagementRow = { milestone_seconds: unknown; visitors: unknown; sessions: unknown };
 
@@ -233,6 +234,7 @@ function emptyReport(status: AnalyticsDatabaseStatus | "error", filtersInput: An
     engagement: [],
     scanFrequency: [],
     filterOptions: [],
+    activityDays: [],
   };
 }
 
@@ -287,6 +289,7 @@ export type AnalyticsReport = {
   engagement: Array<{ milestoneSeconds: number; visitors: number; sessions: number }>;
   scanFrequency: Array<{ label: string; total: number }>;
   filterOptions: Array<{ label: string; total: number }>;
+  activityDays: Array<{ date: string; count: number }>;
 };
 
 export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}): Promise<AnalyticsReport> {
@@ -299,7 +302,7 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
   const filterOptionsColumn = filters.segment === "all" ? null : SEGMENT_SQL[filters.segment];
 
   try {
-    const [metricRows, trendRows, countryRows, referrerRows, deviceRows, browserRows, scanModeRows, engagementRows, frequencyRows, filterOptionRows] = await Promise.all([
+    const [metricRows, trendRows, activityRows, countryRows, referrerRows, deviceRows, browserRows, scanModeRows, engagementRows, frequencyRows, filterOptionRows] = await Promise.all([
       analyticsQuery<MetricRow>(`
         WITH bounds AS (
           SELECT ${config.startSql} AS start_at
@@ -410,6 +413,33 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
          AND scan_visitor.visitor_id = events.visitor_id
         GROUP BY events.bucket
         ORDER BY events.bucket
+      `, scope.params),
+      analyticsQuery<ActivityDayRow>(`
+        WITH bounds AS (
+          SELECT
+            '2026-08-13T00:00:00Z'::timestamptz AS history_start,
+            date_trunc('day', now()) AS current_day
+        ),
+        days AS (
+          SELECT generate_series(bounds.history_start, bounds.current_day, interval '1 day') AS day
+          FROM bounds
+        ),
+        page_views AS (
+          SELECT events.created_at, events.visitor_id
+          FROM analytics_events events CROSS JOIN bounds
+          WHERE events.event_name = 'page_view'
+            AND events.created_at >= bounds.history_start
+            AND ${scope.clause}
+        )
+        SELECT
+          to_char(days.day, 'YYYY-MM-DD') AS date_label,
+          count(DISTINCT page_views.visitor_id) AS visitors
+        FROM days
+        LEFT JOIN page_views
+          ON page_views.created_at >= days.day
+         AND page_views.created_at < days.day + interval '1 day'
+        GROUP BY days.day
+        ORDER BY days.day
       `, scope.params),
       analyticsQuery<CountRow>(`
         WITH bounds AS (SELECT ${config.startSql} AS start_at)
@@ -570,6 +600,9 @@ export async function getAnalyticsReport(filtersInput: AnalyticsFilterInput = {}
       }),
       scanFrequency: frequencyRows.map((row) => ({ label: row.label ?? "Unknown", total: number(row.total) })),
       filterOptions: filterOptionRows.map((row) => ({ label: row.label ?? "Unknown", total: number(row.total) })),
+      activityDays: activityRows.flatMap((row) => typeof row.date_label === "string"
+        ? [{ date: row.date_label, count: number(row.visitors) }]
+        : []),
     };
   } catch {
     // A database outage must leave the finder and analytics login renderable.

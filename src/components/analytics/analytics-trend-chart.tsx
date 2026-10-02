@@ -7,6 +7,7 @@ import {
   type LineChartDatum,
   type LineChartSeries,
 } from "../arc/line-chart/line-chart";
+import Sparkline from "../arc/sparkline/sparkline";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
@@ -38,6 +39,14 @@ function scanUsage(row: TrendRow) {
 function metricValue(row: TrendRow, metric: AnalyticsPrimaryMetric) {
   if (metric === "scanUsage") return scanUsage(row);
   return row[metric];
+}
+
+function comparisonMetricValue(row: AnalyticsComparison["trend"][number] | undefined, metric: AnalyticsPrimaryMetric) {
+  if (!row) return 0;
+  if (metric === "scanUsage") {
+    return row.visitors ? Math.max(0, Math.min(100, Math.round((row.scanStarters / row.visitors) * 100))) : 0;
+  }
+  return metric === "visitors" ? row.visitors : row.pageViews;
 }
 
 function countDelta(current: number, previous: number, ready: boolean, comparisonLabel: string): Delta {
@@ -161,6 +170,7 @@ export function AnalyticsTrendChart({
   const granularity = report.filters.granularity;
   const metrics = report.metrics;
   const [activeDatum, setActiveDatum] = useState<LineChartDatum | null>(null);
+  const [compareEnabled, setCompareEnabled] = useState(true);
 
   const comparisonDisabled = report.filters.range === "all";
   const visitorsDelta = comparisonDisabled
@@ -181,30 +191,47 @@ export function AnalyticsTrendChart({
 
   const active = METRICS.find((metric) => metric.key === activeMetric) ?? METRICS[0];
 
-  const chartData = useMemo<LineChartDatum[]>(() => rows.map((row) => ({
+  const activeComparisonReady = activeMetric === "scanUsage" ? comparison.scanReady : comparison.audienceReady;
+  const activeComparisonReadyAt = activeMetric === "scanUsage" ? comparison.scanReadyAt : comparison.audienceReadyAt;
+  const canCompare = !comparisonDisabled && activeComparisonReady && comparison.trend.length > 0;
+
+  const chartData = useMemo<LineChartDatum[]>(() => rows.map((row, index) => ({
     key: row.label,
     label: displayTrendLabel(row.label, granularity),
     axisLabel: displayTrendLabel(row.label, granularity, true),
-    values: { value: metricValue(row, activeMetric) },
-  })), [activeMetric, granularity, rows]);
+    values: {
+      current: metricValue(row, activeMetric),
+      previous: comparisonMetricValue(comparison.trend[index], activeMetric),
+    },
+  })), [activeMetric, comparison.trend, granularity, rows]);
 
-  const series = useMemo<LineChartSeries[]>(() => [{
-    key: "value",
-    label: active.label,
-    area: true,
-  }], [active.label]);
+  const series = useMemo<LineChartSeries[]>(() => {
+    const current: LineChartSeries = {
+      key: "current",
+      label: active.label,
+      area: true,
+    };
+    if (!compareEnabled || !canCompare) return [current];
+    return [
+      current,
+      {
+        key: "previous",
+        label: comparison.label,
+        dashed: true,
+        area: false,
+      },
+    ];
+  }, [active.label, canCompare, compareEnabled, comparison.label]);
 
   const selected = activeDatum ?? chartData.at(-1) ?? null;
-  const selectedValue = selected?.values.value ?? 0;
+  const selectedValue = selected?.values.current ?? 0;
+  const selectedPreviousValue = selected?.values.previous ?? 0;
   const selectedValueText = activeMetric === "scanUsage"
     ? `${Math.round(selectedValue)}%`
     : Math.round(selectedValue).toLocaleString();
   const selectedValueWithLabel = activeMetric === "scanUsage"
     ? `${selectedValueText} scan usage`
     : `${selectedValueText} ${active.valueLabel}`;
-  const activeComparisonReady = activeMetric === "scanUsage" ? comparison.scanReady : comparison.audienceReady;
-  const activeComparisonReadyAt = activeMetric === "scanUsage" ? comparison.scanReadyAt : comparison.audienceReadyAt;
-
   function chooseMetric(metric: AnalyticsPrimaryMetric) {
     setActiveDatum(null);
     onMetricChange(metric);
@@ -222,6 +249,7 @@ export function AnalyticsTrendChart({
           <span className={styles.summaryTopline}><span className={styles.summaryLabel}>Visitors</span><DeltaBadge delta={visitorsDelta} /></span>
           <strong>{metrics.visitors.toLocaleString()}</strong>
           <small>Unique anonymous visitors</small>
+          <span className={styles.sparklineSlot} aria-hidden="true"><Sparkline area data={rows.map((row) => metricValue(row, "visitors"))} height={32} interactive={false} label="Visitor trend" width={120} /></span>
         </button>
 
         <button
@@ -233,6 +261,7 @@ export function AnalyticsTrendChart({
           <span className={styles.summaryTopline}><span className={styles.summaryLabel}>Page views</span><DeltaBadge delta={viewsDelta} /></span>
           <strong>{metrics.pageViews.toLocaleString()}</strong>
           <small>Recorded finder opens</small>
+          <span className={styles.sparklineSlot} aria-hidden="true"><Sparkline area data={rows.map((row) => metricValue(row, "pageViews"))} height={32} interactive={false} label="Page view trend" width={120} /></span>
         </button>
 
         <button
@@ -244,6 +273,7 @@ export function AnalyticsTrendChart({
           <span className={styles.summaryTopline}><span className={styles.summaryLabel}>Scan usage</span><DeltaBadge delta={scanUsageDelta} /></span>
           <strong>{metrics.visitors ? `${metrics.scanStartRate}%` : "—"}</strong>
           <small>Visitors who started a scan</small>
+          <span className={styles.sparklineSlot} aria-hidden="true"><Sparkline area data={rows.map((row) => metricValue(row, "scanUsage"))} height={32} interactive={false} label="Scan usage trend" width={120} /></span>
         </button>
       </div>
 
@@ -255,9 +285,26 @@ export function AnalyticsTrendChart({
         </p>
       ) : null}
 
-      <div className={styles.chartContext} aria-live="polite">
-        <span><strong>{active.label}</strong>{selected ? ` · ${selected.label}` : ""}</span>
-        <strong>{selectedValueWithLabel}</strong>
+      <div className={styles.chartContext}>
+        <div className={styles.chartReadout} aria-live="polite">
+          <span><strong>{active.label}</strong>{selected ? " · " + selected.label : ""}</span>
+          <strong>{selectedValueWithLabel}</strong>
+          {compareEnabled && canCompare ? (
+            <small>
+              {comparison.label}: {activeMetric === "scanUsage" ? Math.round(selectedPreviousValue) + "%" : Math.round(selectedPreviousValue).toLocaleString()}
+            </small>
+          ) : null}
+        </div>
+        <button
+          aria-pressed={compareEnabled && canCompare}
+          className={styles.compareButton}
+          disabled={!canCompare}
+          onClick={() => setCompareEnabled((current) => !current)}
+          title={canCompare ? "Overlay the matching previous period" : comparisonDisabled ? "All time has no previous period" : "Previous-period baseline is still building"}
+          type="button"
+        >
+          Compare
+        </button>
       </div>
 
       <div className={styles.arcChartShell}>
@@ -268,8 +315,8 @@ export function AnalyticsTrendChart({
           formatTick={(value) => activeMetric === "scanUsage" ? `${Math.round(value)}%` : compactNumber.format(value)}
           formatValue={(value) => activeMetric === "scanUsage" ? `${Math.round(value)}%` : Math.round(value).toLocaleString()}
           height={250}
-          label={`${active.label} over time`}
-          legend={false}
+          label={active.label + " over time"}
+          legend={compareEnabled && canCompare}
           onActiveChange={(_, datum) => setActiveDatum(datum)}
           series={series}
         />

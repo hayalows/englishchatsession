@@ -8,6 +8,11 @@ import styles from "./analytics-dashboard.module.css";
 import { AnalyticsBreakdownCard } from "@/components/analytics/analytics-breakdown-card";
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { AnalyticsLiveRefresh } from "@/components/analytics/analytics-live-refresh";
+import {
+  AnalyticsActivityHistory,
+  AnalyticsBreakdownVisuals,
+  AnalyticsTrendData,
+} from "@/components/analytics/analytics-insights-suite";
 import { AnalyticsTopNav } from "@/components/analytics/analytics-top-nav";
 import {
   AnalyticsTrendChart,
@@ -20,25 +25,6 @@ import type { AnalyticsReport } from "@/lib/analytics/report";
 const ENGAGEMENT_PREVIEW_MILESTONES = [10, 30, 180] as const;
 
 type ListRow = { label: string; total: number };
-
-const METRIC_LABELS: Record<AnalyticsPrimaryMetric, string> = {
-  visitors: "Visitors",
-  pageViews: "Page views",
-  scanUsage: "Scan usage",
-};
-
-function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"]["granularity"]) {
-  if (granularity === "week") {
-    const [year, week] = value.split("-W");
-    return `Week ${week ?? value}${year ? ` · ${year}` : ""}`;
-  }
-
-  const date = new Date(granularity === "hour" ? `${value.replace(" ", "T")}:00Z` : `${value}T12:00:00Z`);
-  if (Number.isNaN(date.valueOf())) return value;
-  return new Intl.DateTimeFormat("en-GB", granularity === "hour"
-    ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }
-    : { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
-}
 
 function displayMilestone(seconds: number) {
   return seconds >= 60 ? `${seconds / 60} min` : `${seconds} sec`;
@@ -68,37 +54,12 @@ function TrendPanel({
       <h2 className={styles.srOnly} id="trend-title">Finder activity over time</h2>
 
       {rows.length ? (
-        <>
-          <AnalyticsTrendChart
-            activeMetric={activeMetric}
-            comparison={comparison}
-            onMetricChange={onMetricChange}
-            report={report}
-          />
-          <details className={styles.dataDisclosure}>
-            <summary>View exact trend data ({rows.length})</summary>
-            {rows.length > 6 ? (
-              <p className={refinements.tableHint}>{rows.length} periods · scroll inside the table to inspect more without extending the page.</p>
-            ) : null}
-            <div className={refinements.tableViewport} tabIndex={0}>
-              <table>
-                <caption className={styles.srOnly}>Visitors, page views, scan starters, and scan clicks for {report.filters.rangeLabel.toLowerCase()}</caption>
-                <thead><tr><th scope="col">Period</th><th scope="col">Visitors</th><th scope="col">Views</th><th scope="col">Scan starters</th><th scope="col">Scan clicks</th></tr></thead>
-                <tbody>
-                  {rows.map((row, index) => (
-                    <tr key={`${row.label}-${index}`}>
-                      <th scope="row">{displayTrendLabel(row.label, report.filters.granularity)}</th>
-                      <td>{row.visitors.toLocaleString()}</td>
-                      <td>{row.pageViews.toLocaleString()}</td>
-                      <td>{row.scanStarters.toLocaleString()}</td>
-                      <td>{row.scanStarts.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        </>
+        <AnalyticsTrendChart
+          activeMetric={activeMetric}
+          comparison={comparison}
+          onMetricChange={onMetricChange}
+          report={report}
+        />
       ) : (
         <p className={styles.empty}>No finder visits match this view yet.</p>
       )}
@@ -289,25 +250,15 @@ export function AnalyticsDashboard({
   report,
   comparison,
   breakdowns,
+  filterBreakdowns,
 }: {
   report: AnalyticsReport;
   comparison: AnalyticsComparison;
   breakdowns: AnalyticsMetricBreakdowns;
+  filterBreakdowns: AnalyticsMetricBreakdowns;
 }) {
   const metrics = report.metrics;
   const [activeMetric, setActiveMetric] = useState<AnalyticsPrimaryMetric>("visitors");
-  const selectedMetricLabel = METRIC_LABELS[activeMetric];
-  const audienceHeading = activeMetric === "scanUsage"
-    ? "Who starts a scan"
-    : activeMetric === "pageViews"
-      ? "Where views come from"
-      : "Where visitors come from";
-  const sourceCardTitle = activeMetric === "scanUsage"
-    ? "Scan rate by source"
-    : activeMetric === "pageViews"
-      ? "Views by source"
-      : "Visitors by source";
-
   return (
     <div className={styles.page}>
       <AnalyticsTopNav />
@@ -320,7 +271,7 @@ export function AnalyticsDashboard({
           </div>
           <div className={styles.headerTools}>
             <div className={styles.controlRow}>
-              <AnalyticsFilters filters={report.filters} options={report.filterOptions} />
+              <AnalyticsFilters breakdowns={filterBreakdowns} filters={report.filters} />
               <AnalyticsLiveRefresh />
             </div>
             <div className={styles.statusRow}>
@@ -343,16 +294,17 @@ export function AnalyticsDashboard({
           />
         </div>
 
+        <AnalyticsBreakdownVisuals activeMetric={activeMetric} breakdowns={breakdowns} report={report} />
+
         <section className={styles.breakdownSection} aria-labelledby="audience-breakdown-title">
           <div className={styles.sectionHeading}>
             <div>
-              <p className={styles.eyebrow}>Audience</p>
-              <h2 id="audience-breakdown-title">{audienceHeading}</h2>
+              <p className={styles.eyebrow}>Audience detail</p>
+              <h2 id="audience-breakdown-title">Devices and browsers</h2>
             </div>
             <small>{report.filters.rangeLabel}</small>
           </div>
-          <div className={styles.breakdownGrid} aria-label={`${selectedMetricLabel} breakdowns`}>
-            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="country" rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} title="Countries" />
+          <div className={`${styles.breakdownGrid} ${styles.breakdownGridTwo}`}>
             <AnalyticsBreakdownCard activeMetric={activeMetric} kind="device" rangeLabel={report.filters.rangeLabel} rows={breakdowns.devices} title="Devices" />
             <AnalyticsBreakdownCard activeMetric={activeMetric} kind="browser" rangeLabel={report.filters.rangeLabel} rows={breakdowns.browsers} title="Browsers" />
           </div>
@@ -372,19 +324,21 @@ export function AnalyticsDashboard({
           </div>
         </section>
 
-        <section className={styles.secondarySection} aria-labelledby="traffic-behavior-title">
+        <section className={styles.secondarySection} aria-labelledby="scan-method-title">
           <div className={styles.sectionHeading}>
             <div>
               <p className={styles.eyebrow}>Explore</p>
-              <h2 id="traffic-behavior-title">Sources &amp; scan behavior</h2>
+              <h2 id="scan-method-title">How scans are started</h2>
             </div>
             <small>{report.filters.rangeLabel}</small>
           </div>
-          <div className={styles.detailGrid}>
-            <AnalyticsBreakdownCard activeMetric={activeMetric} kind="source" rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} title={sourceCardTitle} />
-            <ListPanel caption={`${report.metrics.scanStarts.toLocaleString()} scan actions · ${report.filters.rangeLabel}`} rows={report.scanModes} title="How scans were started" />
+          <div className={styles.singleDetail}>
+            <ListPanel caption={report.metrics.scanStarts.toLocaleString() + " scan actions · " + report.filters.rangeLabel} rows={report.scanModes} title="Scan modes" />
           </div>
         </section>
+
+        <AnalyticsActivityHistory report={report} />
+        <AnalyticsTrendData report={report} />
 
         <details className={styles.definitions}>
           <summary>Metric notes</summary>

@@ -52,7 +52,7 @@
   flex: 0 0 auto;
   gap: .5rem;
   justify-items: end;
-  max-width: 30rem;
+  max-width: 40rem;
 }
 .controlRow {
   align-items: center;
@@ -339,6 +339,12 @@
   gap: .75rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.breakdownGridTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.singleDetail {
+  max-width: min(100%, 34rem);
+}
 
 .insightsGrid {
   align-items: stretch;
@@ -380,6 +386,7 @@
 
 @media (max-width: 980px) {
   .breakdownGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .breakdownGridTwo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .insightsGrid { grid-template-columns: 1fr; }
 }
 

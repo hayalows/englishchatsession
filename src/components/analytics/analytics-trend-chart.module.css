@@ -19,7 +19,7 @@
   display: grid;
   font: inherit;
   gap: .26rem;
-  min-height: 94px;
+  min-height: 124px;
   padding: .82rem 1rem .74rem;
   position: relative;
   text-align: left;
@@ -75,6 +75,38 @@
   font-size: .72rem;
   line-height: 1.4;
 }
+.sparklineSlot {
+  --accent: var(--teal-700);
+  --accent-strong: var(--teal-700);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --danger: var(--red-700);
+  --duration-standard: 180ms;
+  --ease-standard: cubic-bezier(.22, 1, .36, 1);
+  --focus-ring: var(--gold-500);
+  --foreground: var(--ink);
+  --radius-control: .45rem;
+  --success: #167647;
+  --text-lg: .82rem;
+  --text-secondary: var(--muted);
+  --text-sm: .72rem;
+  --text-xs: .65rem;
+  --tracking-body: 0;
+  --warning: var(--amber-800);
+  display: block;
+  height: 32px;
+  margin-top: .16rem;
+  opacity: .88;
+  overflow: hidden;
+  pointer-events: none;
+  width: min(100%, 9rem);
+}
+.sparklineSlot > figure {
+  gap: 0;
+}
+.sparklineSlot > figure > figcaption {
+  display: none;
+}
 .delta {
   border-radius: .42rem;
   flex: 0 0 auto;
@@ -105,17 +137,57 @@
 .chartContext {
   align-items: center;
   display: flex;
-  gap: .7rem;
+  gap: .8rem;
   justify-content: space-between;
-  min-height: 40px;
-  padding: .48rem 1rem .18rem;
+  min-height: 48px;
+  padding: .52rem 1rem .18rem;
 }
-.chartContext span { color: var(--muted); font-size: .74rem; }
-.chartContext span strong { color: var(--ink); }
-.chartContext > strong {
+.chartReadout {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .34rem .58rem;
+  min-width: 0;
+}
+.chartReadout span { color: var(--muted); font-size: .74rem; }
+.chartReadout span strong { color: var(--ink); }
+.chartReadout > strong {
   font-size: .82rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.chartReadout small {
+  color: var(--muted-light);
+  font-size: .68rem;
+  font-variant-numeric: tabular-nums;
+}
+.compareButton {
+  appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: .48rem;
+  box-shadow: none;
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: .69rem;
+  font-weight: 700;
+  min-height: 34px;
+  padding: .38rem .62rem;
+}
+.compareButton:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
+  box-shadow: none;
+  color: var(--ink);
+}
+.compareButton[aria-pressed="true"] {
+  background: var(--teal-50);
+  border-color: color-mix(in srgb, var(--teal-700), var(--line) 54%);
+  color: var(--teal-700);
+}
+.compareButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
+  outline-offset: 2px;
 }
 
 .arcChartShell {
@@ -163,7 +235,7 @@
   .summaryStrip { margin: 0; }
   .summaryCell {
     gap: .2rem;
-    min-height: 80px;
+    min-height: 104px;
     padding: .66rem .52rem .58rem;
   }
   .summaryTopline { gap: .2rem; }
@@ -171,12 +243,16 @@
   .summaryCell > strong,
   .summaryButton > strong { font-size: 1.4rem; }
   .summaryCell small { display: none; }
+  .sparklineSlot { height: 26px; margin-top: .08rem; width: 100%; }
   .delta { font-size: .62rem; padding: .24rem .29rem; }
   .baselineNote { font-size: .66rem; justify-content: flex-start; margin-inline: .72rem; }
 
-  .chartContext { min-height: 34px; padding: .28rem .75rem 0; }
-  .chartContext span { font-size: .7rem; }
-  .chartContext > strong { font-size: .74rem; }
+  .chartContext { align-items: flex-start; min-height: 40px; padding: .34rem .75rem 0; }
+  .chartReadout { gap: .2rem .45rem; }
+  .chartReadout span { font-size: .7rem; }
+  .chartReadout > strong { font-size: .74rem; }
+  .chartReadout small { flex-basis: 100%; font-size: .64rem; }
+  .compareButton { min-height: 32px; padding: .3rem .5rem; }
   .arcChartShell {
     min-height: 222px;
     padding: 0 .62rem .12rem;

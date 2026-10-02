@@ -70,6 +70,11 @@ function parseDate(value: string | null) {
   return new Date(parts[0], parts[1] - 1, parts[2]);
 }
 
+function utcCalendarToday() {
+  const now = new Date();
+  return new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+}
+
 function rawCountryValue(label: string) {
   return label.match(/\(([A-Z]{2})\)$/)?.[1] ?? label;
 }
@@ -133,6 +138,7 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const selectedRange = filters.range === "custom" ? "" : filters.range;
+  const todayUtc = utcCalendarToday();
 
   const customValue = filters.range === "custom"
     ? (() => {
@@ -204,7 +210,7 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
           />
           <DateRangePicker
             label="Custom analytics date range"
-            maxDate={new Date()}
+            maxDate={todayUtc}
             minDate={new Date(2026, 7, 13)}
             months="auto"
             onChange={chooseCustom}

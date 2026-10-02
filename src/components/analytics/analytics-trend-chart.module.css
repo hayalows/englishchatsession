@@ -48,6 +48,10 @@
 .summaryButton[aria-pressed="true"] small {
   color: white;
 }
+.summaryButton[aria-pressed="true"] .delta {
+  background: color-mix(in srgb, white, transparent 84%);
+  color: white;
+}
 .summaryButton[aria-pressed="true"] .sparklineSlot {
   --accent: white;
   --accent-strong: white;

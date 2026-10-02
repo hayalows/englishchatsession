@@ -250,10 +250,12 @@ export function AnalyticsDashboard({
   report,
   comparison,
   breakdowns,
+  filterBreakdowns,
 }: {
   report: AnalyticsReport;
   comparison: AnalyticsComparison;
   breakdowns: AnalyticsMetricBreakdowns;
+  filterBreakdowns: AnalyticsMetricBreakdowns;
 }) {
   const metrics = report.metrics;
   const [activeMetric, setActiveMetric] = useState<AnalyticsPrimaryMetric>("visitors");
@@ -269,7 +271,7 @@ export function AnalyticsDashboard({
           </div>
           <div className={styles.headerTools}>
             <div className={styles.controlRow}>
-              <AnalyticsFilters breakdowns={breakdowns} filters={report.filters} />
+              <AnalyticsFilters breakdowns={filterBreakdowns} filters={report.filters} />
               <AnalyticsLiveRefresh />
             </div>
             <div className={styles.statusRow}>

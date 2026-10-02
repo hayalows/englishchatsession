@@ -361,7 +361,7 @@ function Sheet({ title, description, detents = [.45, .92], initialDetent = 0, on
       onOpenAutoFocus={event => { event.preventDefault(); sheetRef.current?.focus({ preventScroll: true }); }}
       // Let an open nested filter consume Escape before dismissing the sheet.
       onEscapeKeyDown={event => {
-        if (sheetRef.current?.querySelector('[data-sheet-escape-priority][aria-expanded="true"]')) event.preventDefault();
+        if (sheetRef.current?.querySelector('[data-sheet-escape-priority][aria-expanded="true"], [data-sheet-escape-priority="true"]')) event.preventDefault();
       }}
       // Radix waits for the click before treating a press as outside. A press on the trigger while the sheet leaves reopens it first, so that press must not close it again.
       onPointerDownOutside={event => { const { present, at } = presenceChange.current; if (!present || event.detail.originalEvent.timeStamp < at) event.preventDefault(); }}

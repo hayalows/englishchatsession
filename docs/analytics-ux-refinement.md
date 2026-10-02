@@ -43,3 +43,11 @@ Consolidate the duplicate preset strip and Custom picker into one control labele
 Local verification covers preset/current-range labels, rolling and calendar navigation, audience preservation, UTC Today from a Honolulu context at 00:30 UTC, Cancel/focus return, exact-date selection at 320×568, one mobile modal, ordinary/reduced motion, keyboard preset navigation, All time, and layout widths 320, 390, 768, 980, and 1440px. The fixture contains sample data and is removed before publication.
 
 Final repository checks for the unified picker: ESLint, TypeScript, all 143 tests across 37 files, and the production build pass.
+
+## Stable audience selection
+
+The owner reported jumping/disappearing audience panels. Remove the shared-layout surface transition between the trigger and popup; keep a stable bordered trigger, while Radix Popover handles desktop anchoring, collision constraints, dismissal, and focus return. Retain the useLayouts row/icon/selection vocabulary. Show navigation arrows on dimension rows and checkmarks on selectable values. Include All traffic and reset actions; clearing closes the mobile sheet and preserves the report's selected date range.
+
+Render choices directly in a 94% UIArc mobile sheet rather than expanding a second menu beneath All traffic. One sheet body scrolls long lists; Back remains visible, and Done stays reachable. Escape goes back from values to dimensions before dismissing the sheet. Browser checks cover 47 options, selected GH, reset with exact date preservation, desktop/mobile routing, 980×360 and 320×568 viewports, touch, stable trigger bounds over eight rapid interaction cycles in each motion mode, outside dismissal, empty options, and focus return. No browser runtime errors observed. The sample fixture is removed before publication.
+
+Final repository checks for stable audience selection: ESLint, TypeScript, all 143 tests, and the production build pass.

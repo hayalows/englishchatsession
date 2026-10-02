@@ -197,6 +197,7 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
 
   function clearFilter() {
     router.push(audienceHref(filters, "all", null));
+    setMobileOpen(false);
   }
 
   const datePicker = (inline = false) => <DateRangePicker
@@ -215,15 +216,15 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
     weekStartsOn={1}
   />;
 
-  const audienceControls = <div className={styles.filterGroup}>
-    <span className={styles.controlLabel}>Audience</span>
-    <AnalyticsFilterInteraction fields={fields} selected={activeFilters[0] ? { ...activeFilters[0], value: filters.value ?? undefined } : undefined} onSelect={addFilter} />
-    {activeFilters.length ? <button type="button" className={styles.clearAudience} aria-label="Clear audience filter" onClick={clearFilter}><X size={16} aria-hidden="true" /></button> : null}
+  const audienceControls = (inline = false) => <div className={styles.filterGroup}>
+    {!inline ? <span className={styles.controlLabel}>Audience</span> : null}
+    <AnalyticsFilterInteraction fields={fields} selected={activeFilters[0] ? { ...activeFilters[0], value: filters.value ?? undefined } : undefined} onSelect={addFilter} onClear={clearFilter} inline={inline} />
+    {!inline && activeFilters.length ? <button type="button" className={styles.clearAudience} aria-label="Clear audience filter" onClick={clearFilter}><X size={16} aria-hidden="true" /></button> : null}
   </div>;
 
   const controls = <div className={styles.controlStack}>
     <div className={styles.rangeGroup}>{datePicker()}</div>
-    {audienceControls}
+    {audienceControls()}
   </div>;
 
   return (
@@ -245,7 +246,7 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
           description="Narrow the report to one audience."
           onOpenChange={setMobileOpen}
           open={mobileOpen && mobileTab === "audience"}
-          detents={[0.65, 0.94]}
+          detents={[0.94]}
           title="Audience"
           closeLabel="Close analytics filters"
           trigger={<button
@@ -259,7 +260,7 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
           {activeFilters.length ? <strong>{activeFilters.length}</strong> : null}
         </button>}
         >
-          {audienceControls}
+          {audienceControls(true)}
           <footer className={styles.sheetFooter}>
             <BottomSheetClose asChild><button type="button" className={styles.doneButton}>Done</button></BottomSheetClose>
           </footer>

@@ -6,7 +6,7 @@ import {
   LineChart,
   type LineChartDatum,
   type LineChartSeries,
-} from "@/components/arc/line-chart/line-chart";
+} from "../arc/line-chart/line-chart";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 

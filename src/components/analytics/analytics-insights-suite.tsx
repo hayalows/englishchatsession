@@ -42,11 +42,6 @@ function displayTrendLabel(value: string, granularity: AnalyticsReport["filters"
     : { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
 }
 
-function shortCountryLabel(label: string) {
-  const name = label.replace(/\s*\([A-Z]{2}\)$/, "");
-  return name.length > 9 ? name.slice(0, 8) + "…" : name;
-}
-
 function SourceComposition({
   rows,
   metric,

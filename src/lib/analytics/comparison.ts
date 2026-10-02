@@ -183,14 +183,17 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
   const boundsSql = filters.range === "24h"
     ? `SELECT
         date_trunc('day', now()) - interval '1 day' AS previous_start,
-        date_trunc('day', now()) AS previous_end`
+        date_trunc('day', now()) AS previous_end,
+        now() AS current_reference`
     : filters.range === "custom" && filters.from && filters.to
       ? `SELECT
           '${filters.from}T00:00:00Z'::timestamptz - (('${filters.to}T00:00:00Z'::timestamptz + interval '1 day') - '${filters.from}T00:00:00Z'::timestamptz) AS previous_start,
-          '${filters.from}T00:00:00Z'::timestamptz AS previous_end`
+          '${filters.from}T00:00:00Z'::timestamptz AS previous_end,
+          '${filters.to}T00:00:00Z'::timestamptz AS current_reference`
       : `SELECT
           now() - interval '${config.interval}' AS previous_end,
-          now() - (interval '${config.interval}' * 2) AS previous_start`;
+          now() - (interval '${config.interval}' * 2) AS previous_start,
+          now() AS current_reference`;
 
   try {
     const [rows, trendRows] = await Promise.all([
@@ -228,13 +231,23 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
         WITH bounds AS (
           ${boundsSql}
         ),
+        aligned AS (
+          SELECT
+            bounds.*,
+            bounds.previous_end - bounds.previous_start AS period_shift,
+            date_trunc('${bucket.granularity}', bounds.previous_end)
+              - (bounds.previous_end - bounds.previous_start) AS first_bucket,
+            date_trunc('${bucket.granularity}', bounds.current_reference)
+              - (bounds.previous_end - bounds.previous_start) AS last_bucket
+          FROM bounds
+        ),
         buckets AS (
           SELECT generate_series(
-            date_trunc('${bucket.granularity}', bounds.previous_start),
-            date_trunc('${bucket.granularity}', bounds.previous_end - interval '1 second'),
+            aligned.first_bucket,
+            aligned.last_bucket,
             interval '${bucket.bucketInterval}'
           ) AS bucket
-          FROM bounds
+          FROM aligned
         ),
         previous_events AS (
           SELECT events.*

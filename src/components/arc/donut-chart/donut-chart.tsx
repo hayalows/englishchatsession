@@ -308,7 +308,7 @@ export function DonutChart({ data, label, unit = "", formatValue = value => grou
       animate(segment.end, to.end, { ...settle, onComplete: leaving ? () => drop(item.key) : undefined });
     });
     schedule();
-  }, [shown, signature, reduced, schedule]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shown, signature, reduced, schedule]);
 
   // The active segment slides out along its middle and thickens a little; the one it replaces settles back at the same time.
   useEffect(() => {

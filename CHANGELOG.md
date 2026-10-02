@@ -14,6 +14,8 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 
 ### Changed
 
+- Simplified analytics report scope into one compact desktop toolbar and replaced mobile filters with the UIArc bottom sheet, including dragging, expandable height, keyboard access, explicit dismissal, and focus restoration.
+
 - Kept analytics best-effort and privacy-bounded: scan starts are recorded once per user request rather than per calendar, active time uses coarse milestones, and missing storage, rate limits, or browser privacy restrictions cannot interrupt a finder scan.
 - Made the analytics view summary-first with a sticky navigation bar, refresh/sign-out controls, adaptive hourly/daily/weekly trends, progressive breakdowns, and an attribution footer.
 - Added the database schema and setup boundary for the optional Neon analytics store.

@@ -4,7 +4,7 @@
 // Keeps its expanding filter, icon rows, and selection marks; uses analytics data and native controls.
 import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, Check, Desktop, FunnelSimple, Globe, LinkSimple, Browsers } from "@phosphor-icons/react";
+import { ArrowLeft, Check, Desktop, FunnelSimple, Globe, LinkSimple, Browsers, CaretDown } from "@phosphor-icons/react";
 import type { FilterChip, FilterField } from "../arc/filter-toolbar/filter-toolbar";
 import styles from "./analytics-filter-interaction.module.css";
 
@@ -23,6 +23,8 @@ export function AnalyticsFilterInteraction({ fields, selected, onSelect }: {
   const panelId = useId();
   const reduced = useReducedMotion();
   const field = fields.find((item) => item.id === fieldId);
+  const selectedOption = fields.find((item) => item.id === selected?.id)?.options.find((option) => typeof option !== "string" && option.value === selected?.value);
+  const audienceLabel = selected ? selected.label + ": " + (typeof selectedOption === "object" ? selectedOption.label ?? selected.value : selected.value) : "All traffic";
   const SelectedIcon = ICONS[selected?.id as keyof typeof ICONS] ?? Globe;
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export function AnalyticsFilterInteraction({ fields, selected, onSelect }: {
 
   return <div className={styles.root} ref={root} onKeyDown={(event) => {
     if (event.key === "Escape" && open) {
+      event.preventDefault();
       event.stopPropagation();
       setOpen(false);
       trigger.current?.focus();
@@ -44,11 +47,11 @@ export function AnalyticsFilterInteraction({ fields, selected, onSelect }: {
   }} onBlur={(event) => {
     if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false);
   }}>
-    <button className={styles.trigger} ref={trigger} type="button" aria-expanded={open} aria-controls={panelId}
+    <button className={styles.trigger} ref={trigger} type="button" data-sheet-escape-priority aria-expanded={open} aria-controls={panelId}
       onClick={() => { setFieldId(null); setOpen((value) => !value); }}>
       {!open ? <motion.span aria-hidden="true" layoutId={panelId + "-surface"} className={styles.surface} style={{ borderRadius: 999 }} transition={{ duration: reduced ? 0 : .3 }} /> : null}
-      <span className={styles.iconPair}><FunnelSimple size={19} aria-hidden="true" /><SelectedIcon size={19} aria-hidden="true" /></span>
-      {selected ? "Change audience" : "Filter audience"}
+      <span className={styles.iconPair}>{selected ? <SelectedIcon size={18} aria-hidden="true" /> : <FunnelSimple size={18} aria-hidden="true" />}</span>
+      <span className={styles.triggerLabel}>{audienceLabel}</span><CaretDown size={14} aria-hidden="true" />
     </button>
     <AnimatePresence>
       {open ? <motion.div ref={panel} id={panelId} layoutId={panelId + "-surface"} style={{ borderRadius: 16 }} className={styles.panel} role="group" aria-label="Choose an audience filter"

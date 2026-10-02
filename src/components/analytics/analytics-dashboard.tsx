@@ -275,10 +275,6 @@ export function AnalyticsDashboard({
         </header>
 
         <section className={styles.filterBar} aria-label="Report scope">
-          <div className={styles.scopeSummary}>
-            <strong>{report.filters.rangeLabel}</strong>
-            <span>{report.filters.segmentLabel} · UTC</span>
-          </div>
           <AnalyticsFilters breakdowns={filterBreakdowns} filters={report.filters} />
         </section>
 

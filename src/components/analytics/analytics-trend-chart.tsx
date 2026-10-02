@@ -277,14 +277,6 @@ export function AnalyticsTrendChart({
         </button>
       </div>
 
-      {!comparisonDisabled && !activeComparisonReady ? (
-        <p className={styles.baselineNote} role="status">
-          <span>Baseline building</span>
-          <span aria-hidden="true">·</span>
-          <span>Comparison begins {displayReadyAt(activeComparisonReadyAt)}</span>
-        </p>
-      ) : null}
-
       <div className={styles.chartContext}>
         <div className={styles.chartReadout} aria-live="polite">
           <span><strong>{active.label}</strong>{selected ? " · " + selected.label : ""}</span>
@@ -308,7 +300,15 @@ export function AnalyticsTrendChart({
         </button>
       </div>
 
-      {!canCompare ? <p id="comparison-unavailable" className={styles.comparisonHelp}>
+      {!comparisonDisabled && !activeComparisonReady ? (
+        <p className={styles.baselineNote} id="comparison-unavailable" role="status">
+          <span>Baseline building</span>
+          <span aria-hidden="true">·</span>
+          <span>Comparison begins {displayReadyAt(activeComparisonReadyAt)}</span>
+        </p>
+      ) : null}
+
+      {!canCompare && (comparisonDisabled || activeComparisonReady) ? <p id="comparison-unavailable" className={styles.comparisonHelp}>
         {comparisonDisabled ? "Choose a date range to compare with a previous period." : "Comparison becomes available when enough previous-period data is recorded."}
       </p> : null}
 

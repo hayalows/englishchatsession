@@ -316,3 +316,6 @@
   .emptyChart { padding: 1.5rem 1rem; }
 }
 .compareButton[aria-pressed="true"]:hover:not(:disabled) { background: #005a62; color: white; }
+
+.summaryButton, .summaryButton:hover { box-shadow: none; }
+.baselineNote { justify-content: flex-start; margin: .625rem 1rem; font-size: .8125rem; }

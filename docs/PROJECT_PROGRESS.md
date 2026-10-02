@@ -18,6 +18,16 @@ The product currently has two deliberately separate surfaces:
 
 The v1.8.0 source was checked locally with `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd test`, and `npm.cmd run build`. The observed result was 86 passing tests across 22 test files and a successful production build.
 
+## Unified analytics date picker — 2026-10-02
+
+**Why:** The preset strip and Custom control exposed overlapping date choices and occupied unnecessary toolbar space.
+
+**What changed:** One date control displays the current reporting period and contains all presets, calendar shortcuts, and exact-date selection. The mobile calendar sits directly in the UIArc sheet, with a two-column preset list and visible Apply/Cancel actions. Audience filtering has its own compact control.
+
+**How:** Follow Product Design OS guidance to consolidate related decisions and reveal details when requested. Preserve existing rolling-report routes for 7/30/60/90 days and All time; calendar selections retain inclusive UTC-day bounds. Preset identity travels through Apply separately from the calendar preview, preventing a rolling period from silently becoming a fixed date range. Today and calendar presets use UTC, including across viewer time zones. Source changes are on [`analytics-unified-date-picker`](https://github.com/hayalows/englishchatsession/tree/analytics-unified-date-picker).
+
+**Verification:** Local browser checks cover 320–1440px, selected preset state, Cancel/focus return, UTC Today in Honolulu at the previous local date, rolling versus calendar URLs, preserved audience filters, exact dates on a 320×568 screen, a single mobile dialog, ordinary/reduced motion, grid keyboard navigation, and All time. No overflow or runtime errors observed. The temporary fixture is removed. ESLint, TypeScript, all 143 tests, and the production build pass.
+
 ## Analytics interface refinement — 2026-10-02
 
 **Why:** The private report's right-heavy filter panel and repeated audience display competed with the analytics overview.

@@ -1,19 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FunnelSimple, X } from "@phosphor-icons/react";
+import { FunnelSimple, X, CalendarBlank, CaretDown } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 
 import { BottomSheet, BottomSheetClose } from "../arc/bottom-sheet/bottom-sheet";
 import {
   DateRangePicker,
   type DateRange,
+  type DateRangePreset,
+  defaultDateRangePresets,
 } from "../arc/date-range-picker/date-range-picker";
 import type {
   FilterChip,
   FilterField,
 } from "../arc/filter-toolbar/filter-toolbar";
-import SegmentedControl from "../arc/segmented-control/segmented-control";
 import type { AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types";
 import {
   ANALYTICS_RANGE_OPTIONS,
@@ -40,22 +41,24 @@ type AnalyticsFiltersProps = {
   breakdowns: AnalyticsMetricBreakdowns;
 };
 
-const SEGMENTED_RANGES = ANALYTICS_RANGE_OPTIONS
-  .filter((option) => option.value !== "custom")
-  .map((option) => ({
-    value: option.value,
-    label: option.value === "24h"
-      ? "Today"
-      : option.value === "7d"
-        ? "7D"
-        : option.value === "30d"
-          ? "30D"
-          : option.value === "60d"
-            ? "60D"
-            : option.value === "90d"
-              ? "90D"
-              : "All",
-  }));
+const HISTORY_START = new Date(2026, 7, 13);
+const shiftDays = (date: Date, days: number) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+const DATE_PRESETS: DateRangePreset[] = [
+  ...ANALYTICS_RANGE_OPTIONS.filter(option => option.value !== "custom").map(option => ({
+    id: option.value,
+    label: option.label,
+    description: option.value === "24h" ? "Today so far · UTC" : option.value === "all" ? "All recorded history · UTC" : "Rolling period · ends now",
+    range: (today: Date) => ({ start: option.value === "all" ? HISTORY_START : option.value === "24h" ? today : shiftDays(today, -Number(option.value.slice(0, -1))), end: today }),
+  })),
+  ...defaultDateRangePresets.filter(preset => !["Today", "Last 7 days", "Last 30 days"].includes(preset.label)).map(preset => ({
+    ...preset,
+    description: "Whole calendar days · UTC",
+    range: (today: Date) => {
+      const range = preset.range(today);
+      return { start: range.start < HISTORY_START ? HISTORY_START : range.start, end: range.end };
+    },
+  })),
+];
 
 function dateKey(date: Date) {
   const year = date.getFullYear();
@@ -138,16 +141,18 @@ function optionRows(
 export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const selectedRange = filters.range === "custom" ? "" : filters.range;
-  const todayUtc = utcCalendarToday();
+  const [mobileTab, setMobileTab] = useState<"dates" | "audience">("dates");
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayUtc = useMemo(utcCalendarToday, [todayKey]);
 
-  const customValue = filters.range === "custom"
+  const customValue = useMemo(() => filters.range === "custom"
     ? (() => {
       const start = parseDate(filters.from);
       const end = parseDate(filters.to);
       return start && end ? { start, end } : null;
     })()
-    : null;
+    : DATE_PRESETS.find(preset => preset.id === filters.range)?.range(todayUtc) ?? null,
+    [filters.range, filters.from, filters.to, todayUtc]);
 
   const activeFilters = useMemo<FilterChip[]>(() => {
     if (filters.segment === "all" || !filters.value) return [];
@@ -179,12 +184,8 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
     },
   ], [breakdowns]);
 
-  function chooseRange(value: string) {
-    router.push(rangeHref(filters, value as AnalyticsRange));
-  }
-
-  function chooseCustom(range: DateRange) {
-    router.push(customHref(filters, range));
+  function chooseCustom(range: DateRange, preset?: DateRangePreset) {
+    router.push(preset?.id ? rangeHref(filters, preset.id as AnalyticsRange) : customHref(filters, range));
     setMobileOpen(false);
   }
 
@@ -198,72 +199,67 @@ export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps)
     router.push(audienceHref(filters, "all", null));
   }
 
-  const controls = (
-    <div className={styles.controlStack}>
-      <div className={styles.rangeGroup}>
-        <span className={styles.controlLabel}>Time range</span>
-        <div className={styles.rangeControls}>
-          <SegmentedControl
-            label="Analytics time range"
-            onValueChange={chooseRange}
-            options={SEGMENTED_RANGES}
-            value={selectedRange}
-          />
-          <DateRangePicker
-            label="Custom analytics date range"
-            maxDate={todayUtc}
-            minDate={new Date(2026, 7, 13)}
-            months="auto"
-            onChange={chooseCustom}
-            placeholder={filters.range === "custom" ? filters.rangeLabel : "Custom"}
-            value={customValue}
-            weekStartsOn={1}
-          />
-        </div>
-      </div>
+  const datePicker = (inline = false) => <DateRangePicker
+    label="Analytics date range"
+    maxDate={todayUtc}
+    minDate={HISTORY_START}
+    months={inline ? 1 : "auto"}
+    onChange={chooseCustom}
+    onCancel={() => setMobileOpen(false)}
+    displayLabel={filters.rangeLabel}
+    selectedPreset={filters.range === "custom" ? "" : filters.range}
+    presets={DATE_PRESETS}
+    timeZone="UTC"
+    inline={inline}
+    value={customValue}
+    weekStartsOn={1}
+  />;
 
-      <div className={styles.filterGroup}>
-        <span className={styles.controlLabel}>Audience</span>
-        <AnalyticsFilterInteraction fields={fields} selected={activeFilters[0] ? { ...activeFilters[0], value: filters.value ?? undefined } : undefined} onSelect={addFilter} />
-        {activeFilters.length ? <button type="button" className={styles.clearAudience} aria-label="Clear audience filter" onClick={clearFilter}><X size={16} aria-hidden="true" /></button> : null}
-      </div>
-    </div>
-  );
+  const audienceControls = <div className={styles.filterGroup}>
+    <span className={styles.controlLabel}>Audience</span>
+    <AnalyticsFilterInteraction fields={fields} selected={activeFilters[0] ? { ...activeFilters[0], value: filters.value ?? undefined } : undefined} onSelect={addFilter} />
+    {activeFilters.length ? <button type="button" className={styles.clearAudience} aria-label="Clear audience filter" onClick={clearFilter}><X size={16} aria-hidden="true" /></button> : null}
+  </div>;
+
+  const controls = <div className={styles.controlStack}>
+    <div className={styles.rangeGroup}>{datePicker()}</div>
+    {audienceControls}
+  </div>;
 
   return (
     <section className={styles.filters} aria-label="Analytics controls">
       <div className={styles.desktopControls}>{controls}</div>
 
       <div className={styles.mobileControls}>
-        <div className={styles.mobileRange}>
-          <SegmentedControl
-            label="Analytics time range"
-            onValueChange={chooseRange}
-            options={SEGMENTED_RANGES.filter((option) => ["24h", "7d", "30d", "all"].includes(option.value))}
-            value={["24h", "7d", "30d", "all"].includes(selectedRange) ? selectedRange : ""}
-          />
-        </div>
+        <BottomSheet className={styles.filters + " " + styles.mobileSheet}
+          description="Presets or exact dates, in UTC." title="Date range" closeLabel="Close date range"
+          detents={[0.94]} open={mobileOpen && mobileTab === "dates"}
+          onOpenChange={open => { setMobileOpen(open); if (open) setMobileTab("dates"); }}
+          trigger={<button type="button" className={styles.mobileDateButton} aria-haspopup="dialog">
+            <CalendarBlank size={17} aria-hidden="true" /><span>{filters.rangeLabel}</span><CaretDown size={14} aria-hidden="true" />
+          </button>}>
+          {datePicker(true)}
+        </BottomSheet>
         <BottomSheet
           className={styles.filters + " " + styles.mobileSheet}
-          description="Choose a time range and audience."
+          description="Narrow the report to one audience."
           onOpenChange={setMobileOpen}
-          open={mobileOpen}
+          open={mobileOpen && mobileTab === "audience"}
           detents={[0.65, 0.94]}
-          title="Analytics filters"
+          title="Audience"
           closeLabel="Close analytics filters"
           trigger={<button
-          aria-expanded={mobileOpen}
+          aria-expanded={mobileOpen && mobileTab === "audience"}
+          onClick={() => setMobileTab("audience")}
           className={styles.mobileFilterButton}
           type="button"
         >
           <FunnelSimple aria-hidden="true" size={17} />
-          <span>Filters</span>
-          {activeFilters.length || filters.range === "custom" || ["60d", "90d"].includes(filters.range)
-            ? <strong>{activeFilters.length + (filters.range === "custom" || ["60d", "90d"].includes(filters.range) ? 1 : 0)}</strong>
-            : null}
+          <span>Audience</span>
+          {activeFilters.length ? <strong>{activeFilters.length}</strong> : null}
         </button>}
         >
-          {controls}
+          {audienceControls}
           <footer className={styles.sheetFooter}>
             <BottomSheetClose asChild><button type="button" className={styles.doneButton}>Done</button></BottomSheetClose>
           </footer>

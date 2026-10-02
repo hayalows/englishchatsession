@@ -35,3 +35,11 @@ Use the actual UIArc bottom sheet registry source (https://uiarc.dev/components/
 Browser validation uses a temporary populated fixture and confirms no horizontal overflow at 320, 390, 768, 980, 1273, and 1440px; selected Chrome marks, mobile country options, nested Escape handling, focus restoration, Done, Close, keyboard expansion, and drag expansion. Check both reduced motion and ordinary motion, including a 320×568 viewport. No browser runtime errors were observed. Remove the fixture before publishing. Production data and screen-reader task completion remain outside these checks.
 
 Final checks for this refinement: ESLint, TypeScript, all 143 tests across 37 files, and the production build pass.
+
+## One date control
+
+Consolidate the duplicate preset strip and Custom picker into one control labeled with the current range. Keep all reporting presets plus Yesterday, month/quarter shortcuts, and the calendar inside that picker. Preset identity survives Apply, preserving rolling report queries; clicking calendar dates clears that identity and applies inclusive UTC dates. Use UTC for the picker clock and preset calculations, and label the distinction between rolling periods and whole calendar days. On mobile, place the calendar inline in the existing UIArc sheet, with a visible two-column preset list and sticky Apply/Cancel footer. Keep the audience sheet separate, with each sheet returning focus to its own trigger. The single-height sheet's grabber dismisses it rather than announcing a nonexistent collapse action.
+
+Local verification covers preset/current-range labels, rolling and calendar navigation, audience preservation, UTC Today from a Honolulu context at 00:30 UTC, Cancel/focus return, exact-date selection at 320×568, one mobile modal, ordinary/reduced motion, keyboard preset navigation, All time, and layout widths 320, 390, 768, 980, and 1440px. The fixture contains sample data and is removed before publication.
+
+Final repository checks for the unified picker: ESLint, TypeScript, all 143 tests across 37 files, and the production build pass.

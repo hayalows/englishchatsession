@@ -37,7 +37,15 @@ describe("getAnalyticsComparison", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-15T12:00:00Z"));
     analyticsDatabaseStatusMock.mockReturnValue("configured");
-    analyticsQueryMock.mockResolvedValue([{ visitors: 8, page_views: 12, scan_starts: 5, scan_starters: 4 }]);
+    analyticsQueryMock
+      .mockResolvedValueOnce([{ visitors: 8, page_views: 12, scan_starts: 5, scan_starters: 4 }])
+      .mockResolvedValueOnce([{
+        bucket_label: "2026-08-14 00:00:00+00",
+        visitors: 2,
+        page_views: 3,
+        scan_starts: 1,
+        scan_starters: 1,
+      }]);
 
     const comparison = await getAnalyticsComparison({ range: "24h", segment: "country", value: "GH" });
 
@@ -50,10 +58,21 @@ describe("getAnalyticsComparison", () => {
       scanStarters: 4,
       scanStartRate: 50,
     });
-    expect(analyticsQueryMock).toHaveBeenCalledTimes(1);
+    expect(comparison.trend).toEqual([{
+      label: "2026-08-14 00:00:00+00",
+      visitors: 2,
+      pageViews: 3,
+      scanStarts: 1,
+      scanStarters: 1,
+    }]);
+    expect(analyticsQueryMock).toHaveBeenCalledTimes(2);
     expect(analyticsQueryMock.mock.calls[0]?.[1]).toEqual(["GH"]);
-    const query = String(analyticsQueryMock.mock.calls[0]?.[0]);
-    expect(query).toContain("date_trunc('day', now()) - interval '1 day'");
-    expect(query).toContain("date_trunc('day', now()) AS previous_end");
+    expect(analyticsQueryMock.mock.calls[1]?.[1]).toEqual(["GH"]);
+    const totalsQuery = String(analyticsQueryMock.mock.calls[0]?.[0]);
+    const trendQuery = String(analyticsQueryMock.mock.calls[1]?.[0]);
+    expect(totalsQuery).toContain("date_trunc('day', now()) - interval '1 day'");
+    expect(totalsQuery).toContain("date_trunc('day', now()) AS previous_end");
+    expect(trendQuery).toContain("generate_series");
+    expect(trendQuery).toContain("date_trunc('hour', bounds.previous_start)");
   });
 });

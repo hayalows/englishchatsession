@@ -558,6 +558,18 @@
     padding-inline: .8rem;
   }
 
+  .heatmap {
+    gap: 5px;
+    grid-auto-columns: 24px;
+    grid-template-rows: repeat(7, 24px);
+  }
+
+  .heatCell {
+    border-radius: 4px;
+    height: 24px;
+    width: 24px;
+  }
+
   .heatLegend {
     padding-inline: .8rem;
   }

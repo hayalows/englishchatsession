@@ -39,8 +39,24 @@
   position: absolute;
   right: 0;
 }
-.summaryButton[aria-pressed="true"] { background: color-mix(in srgb, var(--surface-subtle), transparent 56%); }
-.summaryButton[aria-pressed="true"]::after { background: var(--ink); }
+.summaryButton[aria-pressed="true"] {
+  background: var(--teal-700);
+  color: white;
+}
+.summaryButton[aria-pressed="true"] .summaryLabel,
+.summaryButton[aria-pressed="true"] > strong,
+.summaryButton[aria-pressed="true"] small {
+  color: white;
+}
+.summaryButton[aria-pressed="true"] .sparklineSlot {
+  --accent: white;
+  --accent-strong: white;
+  --border: color-mix(in srgb, white, transparent 72%);
+  --border-strong: color-mix(in srgb, white, transparent 55%);
+  --foreground: white;
+  --text-secondary: color-mix(in srgb, white, transparent 18%);
+}
+.summaryButton[aria-pressed="true"]::after { background: var(--gold-500); }
 .summaryButton:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);
   outline-offset: -4px;
@@ -181,9 +197,9 @@
   color: var(--ink);
 }
 .compareButton[aria-pressed="true"] {
-  background: var(--teal-50);
-  border-color: color-mix(in srgb, var(--teal-700), var(--line) 54%);
-  color: var(--teal-700);
+  background: var(--teal-700);
+  border-color: var(--teal-700);
+  color: white;
 }
 .compareButton:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--gold-500), transparent 18%);

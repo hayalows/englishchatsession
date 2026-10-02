@@ -361,7 +361,7 @@ function TrendTable({ report }: { report: AnalyticsReport }) {
   );
 }
 
-export function AnalyticsInsightsSuite({
+export function AnalyticsBreakdownVisuals({
   report,
   breakdowns,
   activeMetric,
@@ -371,42 +371,48 @@ export function AnalyticsInsightsSuite({
   activeMetric: AnalyticsPrimaryMetric;
 }) {
   return (
-    <>
-      <section className={styles.section} aria-labelledby="analytics-breakdown-visuals-title">
-        <div className={styles.sectionHeading}>
-          <div>
-            <p className={styles.kicker}>Breakdowns</p>
-            <h2 id="analytics-breakdown-visuals-title">Where activity comes from</h2>
-          </div>
-          <span>{METRIC_LABELS[activeMetric]} · {report.filters.rangeLabel}</span>
+    <section className={styles.section} aria-labelledby="analytics-breakdown-visuals-title">
+      <div className={styles.sectionHeading}>
+        <div>
+          <p className={styles.kicker}>Breakdowns</p>
+          <h2 id="analytics-breakdown-visuals-title">Where activity comes from</h2>
         </div>
-        <div className={styles.visualGrid}>
-          <DonutCard metric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} />
-          <BarCard metric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} />
-        </div>
-      </section>
+        <span>{METRIC_LABELS[activeMetric]} · {report.filters.rangeLabel}</span>
+      </div>
+      <div className={styles.visualGrid}>
+        <DonutCard metric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.referrers} />
+        <BarCard metric={activeMetric} rangeLabel={report.filters.rangeLabel} rows={breakdowns.countries} />
+      </div>
+    </section>
+  );
+}
 
-      <section className={styles.section} aria-labelledby="activity-history-title">
-        <div className={styles.sectionHeading}>
-          <div>
-            <p className={styles.kicker}>History</p>
-            <h2 id="activity-history-title">Activity across time</h2>
-          </div>
-          <span>Daily visitor rhythm</span>
+export function AnalyticsActivityHistory({ report }: { report: AnalyticsReport }) {
+  return (
+    <section className={styles.section} aria-labelledby="activity-history-title">
+      <div className={styles.sectionHeading}>
+        <div>
+          <p className={styles.kicker}>History</p>
+          <h2 id="activity-history-title">Activity across time</h2>
         </div>
-        <ActivityHeatmap report={report} />
-      </section>
+        <span>Daily visitor rhythm</span>
+      </div>
+      <ActivityHeatmap report={report} />
+    </section>
+  );
+}
 
-      <section className={styles.section} aria-labelledby="trend-data-section-title">
-        <div className={styles.sectionHeading}>
-          <div>
-            <p className={styles.kicker}>Inspect</p>
-            <h2 id="trend-data-section-title">Exact trend data</h2>
-          </div>
-          <span>Sortable · paginated</span>
+export function AnalyticsTrendData({ report }: { report: AnalyticsReport }) {
+  return (
+    <section className={styles.section} aria-labelledby="trend-data-section-title">
+      <div className={styles.sectionHeading}>
+        <div>
+          <p className={styles.kicker}>Inspect</p>
+          <h2 id="trend-data-section-title">Exact trend data</h2>
         </div>
-        <TrendTable report={report} />
-      </section>
-    </>
+        <span>Sortable · paginated</span>
+      </div>
+      <TrendTable report={report} />
+    </section>
   );
 }

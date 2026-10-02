@@ -1,7 +1,12 @@
 "use client";
 
-import { useId, useMemo, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useMemo, useState } from "react";
 
+import {
+  LineChart,
+  type LineChartDatum,
+  type LineChartSeries,
+} from "@/components/arc/line-chart/line-chart";
 import type { AnalyticsComparison } from "@/lib/analytics/comparison";
 import type { AnalyticsReport } from "@/lib/analytics/report";
 
@@ -13,20 +18,16 @@ export type AnalyticsPrimaryMetric = "visitors" | "pageViews" | "scanUsage";
 type DeltaTone = "positive" | "negative" | "neutral" | "pending";
 type Delta = { text: string; tone: DeltaTone; title: string };
 
-type Point = TrendRow & {
-  x: number;
-  y: number;
-};
-
-const WIDTH = 880;
-const HEIGHT = 270;
-const PADDING = { top: 22, right: 22, bottom: 40, left: 40 };
-
 const METRICS: Array<{ key: AnalyticsPrimaryMetric; label: string; valueLabel: string }> = [
   { key: "visitors", label: "Visitors", valueLabel: "visitors" },
   { key: "pageViews", label: "Page views", valueLabel: "page views" },
   { key: "scanUsage", label: "Scan usage", valueLabel: "scan usage" },
 ];
+
+const compactNumber = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 function scanUsage(row: TrendRow) {
   return row.visitors
@@ -115,24 +116,26 @@ function displayTrendLabel(value: string, granularity: Granularity, compact = fa
   const date = new Date(granularity === "hour" ? `${value.replace(" ", "T")}:00Z` : `${value}T12:00:00Z`);
   if (Number.isNaN(date.valueOf())) return value;
 
+  if (compact && granularity === "hour") {
+    return new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "UTC",
+    }).format(date);
+  }
+
   return new Intl.DateTimeFormat("en-GB", granularity === "hour"
     ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }
-    : { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
-}
-
-function linePath(points: Array<{ x: number; y: number }>) {
-  if (!points.length) return "";
-  return points.map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`).join(" ");
+    : compact
+      ? { day: "numeric", month: "short", timeZone: "UTC" }
+      : { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
 }
 
 function displayReadyAt(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return value;
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
-}
-
-function uniqueTicks(max: number) {
-  return Array.from(new Set([max, Math.round(max / 2), 0])).sort((a, b) => b - a);
 }
 
 function DeltaBadge({ delta }: { delta: Delta }) {
@@ -157,88 +160,54 @@ export function AnalyticsTrendChart({
   const rows = report.trend;
   const granularity = report.filters.granularity;
   const metrics = report.metrics;
-  const gradientId = useId().replaceAll(":", "");
-  const [selectedIndex, setSelectedIndex] = useState(Math.max(0, rows.length - 1));
+  const [activeDatum, setActiveDatum] = useState<LineChartDatum | null>(null);
 
   const comparisonDisabled = report.filters.range === "all";
-  const visitorsDelta = comparisonDisabled ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" } : countDelta(metrics.visitors, comparison.previous.visitors, comparison.audienceReady, comparison.label);
-  const viewsDelta = comparisonDisabled ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" } : countDelta(metrics.pageViews, comparison.previous.pageViews, comparison.audienceReady, comparison.label);
-  const scanUsageDelta = comparisonDisabled ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" } : rateDelta(
-    metrics.scanStartRate,
-    comparison.previous.scanStartRate,
-    comparison.previous.visitors,
-    comparison.scanReady,
-    comparison.label,
-  );
+  const visitorsDelta = comparisonDisabled
+    ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" }
+    : countDelta(metrics.visitors, comparison.previous.visitors, comparison.audienceReady, comparison.label);
+  const viewsDelta = comparisonDisabled
+    ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" }
+    : countDelta(metrics.pageViews, comparison.previous.pageViews, comparison.audienceReady, comparison.label);
+  const scanUsageDelta = comparisonDisabled
+    ? { text: "—", tone: "pending" as const, title: "No prior-period comparison for All time" }
+    : rateDelta(
+      metrics.scanStartRate,
+      comparison.previous.scanStartRate,
+      comparison.previous.visitors,
+      comparison.scanReady,
+      comparison.label,
+    );
 
-  const geometry = useMemo(() => {
-    const maxValue = activeMetric === "scanUsage"
-      ? 100
-      : Math.max(1, ...rows.map((row) => metricValue(row, activeMetric)));
-    const chartWidth = WIDTH - PADDING.left - PADDING.right;
-    const chartHeight = HEIGHT - PADDING.top - PADDING.bottom;
-    const points: Point[] = rows.map((row, index) => {
-      const x = rows.length === 1
-        ? PADDING.left + chartWidth / 2
-        : PADDING.left + (index / (rows.length - 1)) * chartWidth;
-      return {
-        ...row,
-        x,
-        y: PADDING.top + chartHeight - (metricValue(row, activeMetric) / maxValue) * chartHeight,
-      };
-    });
-
-    const path = linePath(points.map((point) => ({ x: point.x, y: point.y })));
-    const baseline = PADDING.top + chartHeight;
-    const area = points.length
-      ? `${path} L ${points.at(-1)?.x ?? PADDING.left} ${baseline} L ${points[0].x} ${baseline} Z`
-      : "";
-
-    return { maxValue, chartHeight, points, path, area, baseline };
-  }, [activeMetric, rows]);
-
-  if (!rows.length) return null;
-
-  const clampedIndex = Math.min(selectedIndex, rows.length - 1);
-  const selected = geometry.points[clampedIndex] ?? geometry.points.at(-1)!;
   const active = METRICS.find((metric) => metric.key === activeMetric) ?? METRICS[0];
-  const selectedValue = metricValue(selected, activeMetric);
+
+  const chartData = useMemo<LineChartDatum[]>(() => rows.map((row) => ({
+    key: row.label,
+    label: displayTrendLabel(row.label, granularity),
+    axisLabel: displayTrendLabel(row.label, granularity, true),
+    values: { value: metricValue(row, activeMetric) },
+  })), [activeMetric, granularity, rows]);
+
+  const series = useMemo<LineChartSeries[]>(() => [{
+    key: "value",
+    label: active.label,
+    area: true,
+  }], [active.label]);
+
+  const selected = activeDatum ?? chartData.at(-1) ?? null;
+  const selectedValue = selected?.values.value ?? 0;
   const selectedValueText = activeMetric === "scanUsage"
-    ? `${selectedValue}%`
-    : selectedValue.toLocaleString();
-  const labelEvery = rows.length > 12 ? Math.ceil(rows.length / 6) : rows.length > 7 ? 2 : 1;
+    ? `${Math.round(selectedValue)}%`
+    : Math.round(selectedValue).toLocaleString();
+  const selectedValueWithLabel = activeMetric === "scanUsage"
+    ? `${selectedValueText} scan usage`
+    : `${selectedValueText} ${active.valueLabel}`;
   const activeComparisonReady = activeMetric === "scanUsage" ? comparison.scanReady : comparison.audienceReady;
   const activeComparisonReadyAt = activeMetric === "scanUsage" ? comparison.scanReadyAt : comparison.audienceReadyAt;
 
   function chooseMetric(metric: AnalyticsPrimaryMetric) {
+    setActiveDatum(null);
     onMetricChange(metric);
-    setSelectedIndex(Math.max(0, rows.length - 1));
-  }
-
-  function selectFromPointer(event: PointerEvent<SVGSVGElement>) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const svgX = ((event.clientX - rect.left) / Math.max(1, rect.width)) * WIDTH;
-    let nearestIndex = 0;
-    let nearestDistance = Number.POSITIVE_INFINITY;
-    geometry.points.forEach((point, index) => {
-      const distance = Math.abs(point.x - svgX);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = index;
-      }
-    });
-    setSelectedIndex(nearestIndex);
-  }
-
-  function handleKeyDown(event: KeyboardEvent<SVGSVGElement>) {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") return;
-    event.preventDefault();
-    if (event.key === "Home") return setSelectedIndex(0);
-    if (event.key === "End") return setSelectedIndex(rows.length - 1);
-    setSelectedIndex((current) => {
-      const next = event.key === "ArrowLeft" ? current - 1 : current + 1;
-      return Math.max(0, Math.min(rows.length - 1, next));
-    });
   }
 
   return (
@@ -287,58 +256,23 @@ export function AnalyticsTrendChart({
       ) : null}
 
       <div className={styles.chartContext} aria-live="polite">
-        <span><strong>{active.label}</strong> · {displayTrendLabel(selected.label, granularity)}</span>
-        <strong>{selectedValueText}{activeMetric === "scanUsage" ? "" : ` ${active.valueLabel}`}</strong>
+        <span><strong>{active.label}</strong>{selected ? ` · ${selected.label}` : ""}</span>
+        <strong>{selectedValueWithLabel}</strong>
       </div>
 
-      <div className={styles.chartFrame}>
-        <svg
-          aria-label={`Interactive ${active.label.toLowerCase()} line chart. ${displayTrendLabel(selected.label, granularity)} has ${selectedValueText}${activeMetric === "scanUsage" ? " scan usage" : ` ${active.valueLabel}`}. Use left and right arrow keys to inspect other periods.`}
-          className={styles.chart}
-          onKeyDown={handleKeyDown}
-          onPointerDown={selectFromPointer}
-          onPointerMove={selectFromPointer}
-          role="img"
-          tabIndex={0}
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-              <stop className={styles.areaStopStrong} offset="0%" />
-              <stop className={styles.areaStopSoft} offset="100%" />
-            </linearGradient>
-          </defs>
-
-          {uniqueTicks(geometry.maxValue).map((tick) => {
-            const y = PADDING.top + geometry.chartHeight - (tick / geometry.maxValue) * geometry.chartHeight;
-            return (
-              <g key={tick}>
-                <line className={styles.gridLine} x1={PADDING.left} x2={WIDTH - PADDING.right} y1={y} y2={y} />
-                <text className={styles.axisLabel} textAnchor="end" x={PADDING.left - 10} y={y + 4}>
-                  {activeMetric === "scanUsage" ? `${tick}%` : tick}
-                </text>
-              </g>
-            );
-          })}
-
-          <path className={styles.trendArea} d={geometry.area} fill={`url(#${gradientId})`} />
-          <path className={styles.trendLine} d={geometry.path} fill="none" pathLength="1" />
-
-          {geometry.points.map((point, index) => (
-            <circle aria-hidden="true" className={styles.dataPoint} cx={point.x} cy={point.y} key={`${point.label}-point-${index}`} r="2.4" />
-          ))}
-
-          <line className={styles.selectionLine} x1={selected.x} x2={selected.x} y1={PADDING.top} y2={geometry.baseline} />
-          <circle className={styles.trendPoint} cx={selected.x} cy={selected.y} r="5" />
-
-          {geometry.points.map((point, index) => (
-            index % labelEvery === 0 || index === rows.length - 1 ? (
-              <text className={styles.dayLabel} key={`${point.label}-${index}`} textAnchor="middle" x={point.x} y={HEIGHT - 13}>
-                {displayTrendLabel(point.label, granularity, true)}
-              </text>
-            ) : null
-          ))}
-        </svg>
+      <div className={styles.arcChartShell}>
+        <LineChart
+          categoryLabel={granularity === "hour" ? "Hour" : granularity === "week" ? "Week" : "Date"}
+          curve="smooth"
+          data={chartData}
+          formatTick={(value) => activeMetric === "scanUsage" ? `${Math.round(value)}%` : compactNumber.format(value)}
+          formatValue={(value) => activeMetric === "scanUsage" ? `${Math.round(value)}%` : Math.round(value).toLocaleString()}
+          height={250}
+          label={`${active.label} over time`}
+          legend={false}
+          onActiveChange={(_, datum) => setActiveDatum(datum)}
+          series={series}
+        />
       </div>
 
       <p className={styles.chartHint}>Hover, tap, or use arrow keys for exact values.</p>

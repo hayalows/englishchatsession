@@ -14,15 +14,22 @@ const PAGE_VIEW_PRODUCTION_START = Date.parse("2026-08-14T06:45:34Z");
 const SCAN_PRODUCTION_START = Date.parse("2026-08-14T07:37:18Z");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+type TrendGranularity = "hour" | "day" | "week";
 
-const RANGE_CONFIG: Record<AnalyticsRange, { interval: string; durationMs: number; label: string }> = {
-  "24h": { interval: "24 hours", durationMs: DAY_MS, label: "yesterday" },
-  "7d": { interval: "7 days", durationMs: 7 * DAY_MS, label: "previous 7 days" },
-  "30d": { interval: "30 days", durationMs: 30 * DAY_MS, label: "previous 30 days" },
-  "60d": { interval: "60 days", durationMs: 60 * DAY_MS, label: "previous 60 days" },
-  "90d": { interval: "90 days", durationMs: 90 * DAY_MS, label: "previous 90 days" },
-  all: { interval: "0 days", durationMs: 0, label: "all time" },
-  custom: { interval: "0 days", durationMs: 0, label: "previous period" },
+const RANGE_CONFIG: Record<AnalyticsRange, {
+  interval: string;
+  durationMs: number;
+  label: string;
+  granularity: TrendGranularity;
+  bucketInterval: string;
+}> = {
+  "24h": { interval: "24 hours", durationMs: DAY_MS, label: "yesterday", granularity: "hour", bucketInterval: "1 hour" },
+  "7d": { interval: "7 days", durationMs: 7 * DAY_MS, label: "previous 7 days", granularity: "day", bucketInterval: "1 day" },
+  "30d": { interval: "30 days", durationMs: 30 * DAY_MS, label: "previous 30 days", granularity: "day", bucketInterval: "1 day" },
+  "60d": { interval: "60 days", durationMs: 60 * DAY_MS, label: "previous 60 days", granularity: "week", bucketInterval: "1 week" },
+  "90d": { interval: "90 days", durationMs: 90 * DAY_MS, label: "previous 90 days", granularity: "week", bucketInterval: "1 week" },
+  all: { interval: "0 days", durationMs: 0, label: "all time", granularity: "week", bucketInterval: "1 week" },
+  custom: { interval: "0 days", durationMs: 0, label: "previous period", granularity: "day", bucketInterval: "1 day" },
 };
 
 const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
@@ -33,6 +40,14 @@ const SEGMENT_SQL: Record<Exclude<AnalyticsSegment, "all">, string> = {
 };
 
 type PreviousRow = {
+  visitors: unknown;
+  page_views: unknown;
+  scan_starts: unknown;
+  scan_starters: unknown;
+};
+
+type PreviousTrendRow = {
+  bucket_label: unknown;
   visitors: unknown;
   page_views: unknown;
   scan_starts: unknown;
@@ -52,6 +67,13 @@ export type AnalyticsComparison = {
     scanStarters: number;
     scanStartRate: number;
   };
+  trend: Array<{
+    label: string;
+    visitors: number;
+    pageViews: number;
+    scanStarts: number;
+    scanStarters: number;
+  }>;
 };
 
 function number(value: unknown) {
@@ -78,8 +100,6 @@ function readiness(range: AnalyticsRange, nowMs = Date.now()) {
     };
   }
   if (range === "24h") {
-    // Today is a UTC/Ghana calendar day. Compare day-to-date with the last
-    // completed calendar day so a useful daily baseline exists from midnight.
     const audienceReadyAtMs = utcDayStart(PAGE_VIEW_PRODUCTION_START) + DAY_MS;
     const scanReadyAtMs = utcDayStart(SCAN_PRODUCTION_START) + DAY_MS;
     return {
@@ -101,6 +121,20 @@ function readiness(range: AnalyticsRange, nowMs = Date.now()) {
   };
 }
 
+function comparisonBuckets(filters: ReturnType<typeof normalizeAnalyticsFilters>) {
+  const configured = RANGE_CONFIG[filters.range];
+  if (filters.range !== "custom" || !filters.from || !filters.to) {
+    return { granularity: configured.granularity, bucketInterval: configured.bucketInterval };
+  }
+
+  const start = Date.parse(`${filters.from}T00:00:00Z`);
+  const end = Date.parse(`${filters.to}T00:00:00Z`);
+  const days = Math.max(1, Math.round((end - start) / DAY_MS) + 1);
+  return days > 45
+    ? { granularity: "week" as const, bucketInterval: "1 week" }
+    : { granularity: "day" as const, bucketInterval: "1 day" };
+}
+
 export function emptyAnalyticsComparison(filtersInput: AnalyticsFilterInput = {}): AnalyticsComparison {
   const filters = normalizeAnalyticsFilters(filtersInput);
   const ready = readiness(filters.range);
@@ -114,6 +148,7 @@ export function emptyAnalyticsComparison(filtersInput: AnalyticsFilterInput = {}
       scanStarters: 0,
       scanStartRate: 0,
     },
+    trend: [],
   };
 }
 
@@ -139,6 +174,7 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
   if (!comparison.audienceReady && !comparison.scanReady) return comparison;
 
   const config = RANGE_CONFIG[filters.range];
+  const bucket = comparisonBuckets(filters);
   const column = filters.segment === "all" ? null : SEGMENT_SQL[filters.segment];
   const scope = column && filters.value
     ? { clause: `${column} = $1`, params: [filters.value] as unknown[] }
@@ -157,36 +193,86 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
           now() - (interval '${config.interval}' * 2) AS previous_start`;
 
   try {
-    const rows = await analyticsQuery<PreviousRow>(`
-      WITH bounds AS (
-        ${boundsSql}
-      ),
-      previous_events AS (
-        SELECT events.*
-        FROM analytics_events events CROSS JOIN bounds
-        WHERE events.created_at >= bounds.previous_start
-          AND events.created_at < bounds.previous_end
-          AND ${scope.clause}
-      ),
-      previous_page_views AS (
-        SELECT * FROM previous_events WHERE event_name = 'page_view'
-      ),
-      previous_page_view_visitors AS (
-        SELECT DISTINCT visitor_id FROM previous_page_views
-      ),
-      previous_scan_frequency AS (
-        SELECT events.visitor_id, count(*)::int AS scan_starts
-        FROM previous_events events
-        INNER JOIN previous_page_view_visitors visitors ON visitors.visitor_id = events.visitor_id
-        WHERE events.event_name = 'scan_started'
-        GROUP BY events.visitor_id
-      )
-      SELECT
-        (SELECT count(DISTINCT visitor_id) FROM previous_page_views) AS visitors,
-        (SELECT count(*) FROM previous_page_views) AS page_views,
-        (SELECT count(*) FROM previous_events WHERE event_name = 'scan_started') AS scan_starts,
-        (SELECT count(*) FROM previous_scan_frequency) AS scan_starters
-    `, scope.params);
+    const [rows, trendRows] = await Promise.all([
+      analyticsQuery<PreviousRow>(`
+        WITH bounds AS (
+          ${boundsSql}
+        ),
+        previous_events AS (
+          SELECT events.*
+          FROM analytics_events events CROSS JOIN bounds
+          WHERE events.created_at >= bounds.previous_start
+            AND events.created_at < bounds.previous_end
+            AND ${scope.clause}
+        ),
+        previous_page_views AS (
+          SELECT * FROM previous_events WHERE event_name = 'page_view'
+        ),
+        previous_page_view_visitors AS (
+          SELECT DISTINCT visitor_id FROM previous_page_views
+        ),
+        previous_scan_frequency AS (
+          SELECT events.visitor_id, count(*)::int AS scan_starts
+          FROM previous_events events
+          INNER JOIN previous_page_view_visitors visitors ON visitors.visitor_id = events.visitor_id
+          WHERE events.event_name = 'scan_started'
+          GROUP BY events.visitor_id
+        )
+        SELECT
+          (SELECT count(DISTINCT visitor_id) FROM previous_page_views) AS visitors,
+          (SELECT count(*) FROM previous_page_views) AS page_views,
+          (SELECT count(*) FROM previous_events WHERE event_name = 'scan_started') AS scan_starts,
+          (SELECT count(*) FROM previous_scan_frequency) AS scan_starters
+      `, scope.params),
+      analyticsQuery<PreviousTrendRow>(`
+        WITH bounds AS (
+          ${boundsSql}
+        ),
+        buckets AS (
+          SELECT generate_series(
+            date_trunc('${bucket.granularity}', bounds.previous_start),
+            date_trunc('${bucket.granularity}', bounds.previous_end - interval '1 second'),
+            interval '${bucket.bucketInterval}'
+          ) AS bucket
+          FROM bounds
+        ),
+        previous_events AS (
+          SELECT events.*
+          FROM analytics_events events CROSS JOIN bounds
+          WHERE events.created_at >= bounds.previous_start
+            AND events.created_at < bounds.previous_end
+            AND ${scope.clause}
+        ),
+        bucketed_events AS (
+          SELECT buckets.bucket, events.*
+          FROM buckets
+          LEFT JOIN previous_events events
+            ON events.created_at >= buckets.bucket
+           AND events.created_at < buckets.bucket + interval '${bucket.bucketInterval}'
+        ),
+        bucket_page_view_visitors AS (
+          SELECT DISTINCT bucket, visitor_id
+          FROM bucketed_events
+          WHERE event_name = 'page_view'
+        )
+        SELECT
+          buckets.bucket::text AS bucket_label,
+          count(DISTINCT events.visitor_id) FILTER (WHERE events.event_name = 'page_view') AS visitors,
+          count(*) FILTER (WHERE events.event_name = 'page_view') AS page_views,
+          count(DISTINCT events.visitor_id) FILTER (
+            WHERE events.event_name = 'scan_started'
+              AND scan_visitor.visitor_id IS NOT NULL
+          ) AS scan_starters,
+          count(*) FILTER (WHERE events.event_name = 'scan_started') AS scan_starts
+        FROM buckets
+        LEFT JOIN bucketed_events events ON events.bucket = buckets.bucket
+        LEFT JOIN bucket_page_view_visitors scan_visitor
+          ON scan_visitor.bucket = buckets.bucket
+         AND scan_visitor.visitor_id = events.visitor_id
+        GROUP BY buckets.bucket
+        ORDER BY buckets.bucket
+      `, scope.params),
+    ]);
 
     const row = rows[0];
     const visitors = number(row?.visitors);
@@ -200,6 +286,13 @@ export async function getAnalyticsComparison(filtersInput: AnalyticsFilterInput 
         scanStarters,
         scanStartRate: visitors ? Math.round((scanStarters / visitors) * 100) : 0,
       },
+      trend: trendRows.map((trendRow, index) => ({
+        label: typeof trendRow.bucket_label === "string" ? trendRow.bucket_label : String(index),
+        visitors: number(trendRow.visitors),
+        pageViews: number(trendRow.page_views),
+        scanStarts: number(trendRow.scan_starts),
+        scanStarters: number(trendRow.scan_starters),
+      })),
     };
   } catch {
     return comparison;

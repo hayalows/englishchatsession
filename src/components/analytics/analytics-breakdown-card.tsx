@@ -315,7 +315,6 @@ export function AnalyticsBreakdownCard({
                   {filteredRows.map((row) => {
                     const value = metricValue(row, activeMetric);
                     const fill = activeMetric === "scanUsage" ? value : Math.max(3, (value / max) * 100);
-                    const share = activeMetric === "scanUsage" ? value : total ? Math.round((value / total) * 100) : 0;
                     const countryCode = kind === "country" ? countryCodeFromLabel(row.label) : null;
                     return (
                       <div className={styles.dialogRow} key={row.label} role="listitem">

@@ -52,6 +52,7 @@ const report: AnalyticsReport = {
   engagement: [],
   scanFrequency: [],
   filterOptions: [],
+  activityDays: [],
 };
 
 function comparison(overrides: Partial<{
@@ -78,6 +79,7 @@ function comparison(overrides: Partial<{
       scanStarters: 0,
       scanStartRate: 0,
     },
+    trend: [],
     ...overrides,
   };
 }

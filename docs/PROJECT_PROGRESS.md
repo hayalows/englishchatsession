@@ -18,6 +18,16 @@ The product currently has two deliberately separate surfaces:
 
 The v1.8.0 source was checked locally with `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd test`, and `npm.cmd run build`. The observed result was 86 passing tests across 22 test files and a successful production build.
 
+## Stable analytics audience filter — 2026-10-02
+
+**Why:** The owner reported the All traffic panel jumping or disappearing. Its shared-surface animation replaced the trigger background when opening, and its expanding mobile menu could run below a collapsed sheet's clipped body.
+
+**What changed:** Keep a stable, bordered desktop trigger and let Radix Popover anchor and constrain its menu to the viewport. Mobile shows audience choices directly inside a full-height UIArc sheet with one scrolling body, a persistent Back action, and reachable Done. Add All traffic/reset actions inside the picker and preserve dates when clearing the audience. Dimension rows use navigation arrows rather than empty selection circles.
+
+**How:** Retain the useLayouts audience rows and selected-option marks while separating the stable trigger from the panel animation. Use existing Radix/Motion conventions, modal focus restoration, nested Escape/back behavior, and responsive viewport constraints. Adds the Radix Popover dependency. Report queries, tracking, the public finder, and availability behavior remain unchanged. Source changes are on [`analytics-audience-interactions`](https://github.com/hayalows/englishchatsession/tree/analytics-audience-interactions).
+
+**Verification:** Local browser checks cover desktop selection/reset, current-country marks, preserved custom dates, a 980×360 viewport, 47-row lists at 320/390px, mobile touch selection, and a single mobile dialog. Eight rapid open/change/back/empty-state/Escape cycles pass with both reduced and ordinary motion; trigger bounds stay fixed. Outside dismissal, focus restoration, and mobile Back/Escape work without runtime errors. The sample fixture is removed. ESLint, TypeScript, all 143 tests, and the production build pass.
+
 ## Unified analytics date picker — 2026-10-02
 
 **Why:** The preset strip and Custom control exposed overlapping date choices and occupied unnecessary toolbar space.

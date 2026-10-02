@@ -242,3 +242,6 @@
 .mobileDateButton svg { flex: none; }
 .mobileDateButton:hover { background: var(--surface-subtle); color: var(--ink); }
 .mobileDateButton:focus-visible { outline: 3px solid var(--teal-700); outline-offset: 2px; }
+
+.mobileSheet .filterGroup { display: block; }
+.mobileSheet .sheetFooter { position: sticky; bottom: 0; background: var(--surface); padding-block: .75rem; z-index: 2; }

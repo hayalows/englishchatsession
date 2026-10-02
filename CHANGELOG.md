@@ -14,6 +14,8 @@ This project follows [Semantic Versioning](https://semver.org/). Dates use ISO `
 
 ### Changed
 
+- Stabilized the analytics audience filter with an anchored desktop popover, direct mobile sheet choices, reachable long lists, and an All traffic reset that preserves the selected dates.
+
 - Consolidated analytics time presets and custom dates into one labeled date picker, with UTC calendar shortcuts, preserved rolling-period semantics, and a single mobile sheet with visible Apply/Cancel actions.
 
 - Simplified analytics report scope into one compact desktop toolbar and replaced mobile filters with the UIArc bottom sheet, including dragging, expandable height, keyboard access, explicit dismissal, and focus restoration.

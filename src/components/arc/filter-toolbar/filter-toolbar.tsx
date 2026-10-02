@@ -337,7 +337,7 @@ export function FilterMenu({ fields, onSelect, active = [], label = "Add filter"
   }
   function chooseValue(row: Row, keyboard: boolean) {
     if (!field) return;
-    onSelect({ id: field.id, label: field.label, value: row.label }, field);
+    onSelect({ id: field.id, label: field.label, value: row.key }, field);
     closeMenu(keyboard ? "keyboard" : "pointer");
   }
 

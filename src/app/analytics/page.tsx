@@ -36,15 +36,21 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: An
   let report = emptyAnalyticsReport("error", filters);
   let comparison = emptyAnalyticsComparison(filters);
   let breakdowns = EMPTY_ANALYTICS_METRIC_BREAKDOWNS;
+  let filterBreakdowns = EMPTY_ANALYTICS_METRIC_BREAKDOWNS;
+  const unscopedFilters = { ...filters, segment: "all" as const, value: null };
 
-  const [reportResult, comparisonResult, breakdownResult] = await Promise.allSettled([
+  const [reportResult, comparisonResult, breakdownResult, filterBreakdownResult] = await Promise.allSettled([
     getAnalyticsReport(filters),
     getAnalyticsComparison(filters),
     getAnalyticsMetricBreakdowns(filters),
+    filters.segment === "all" ? Promise.resolve(null) : getAnalyticsMetricBreakdowns(unscopedFilters),
   ]);
   if (reportResult.status === "fulfilled") report = reportResult.value;
   if (comparisonResult.status === "fulfilled") comparison = comparisonResult.value;
   if (breakdownResult.status === "fulfilled") breakdowns = breakdownResult.value;
+  filterBreakdowns = filterBreakdownResult.status === "fulfilled" && filterBreakdownResult.value
+    ? filterBreakdownResult.value
+    : breakdowns;
 
   const displayReport = {
     ...report,
@@ -61,6 +67,20 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: An
       label: displayCountryLabel(row.label),
     })),
   };
+  const displayFilterBreakdowns = {
+    ...filterBreakdowns,
+    countries: filterBreakdowns.countries.map((row) => ({
+      ...row,
+      label: displayCountryLabel(row.label),
+    })),
+  };
 
-  return <AnalyticsDashboard breakdowns={displayBreakdowns} comparison={comparison} report={displayReport} />;
+  return (
+    <AnalyticsDashboard
+      breakdowns={displayBreakdowns}
+      comparison={comparison}
+      filterBreakdowns={displayFilterBreakdowns}
+      report={displayReport}
+    />
+  );
 }

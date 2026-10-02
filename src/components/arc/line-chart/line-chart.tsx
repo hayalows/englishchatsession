@@ -203,7 +203,7 @@ export function LineChart({ data, series, label, unit = "", height = 220, format
 
   // Each series becomes a dense curve in data units; the scale fits only the series on show.
   const signature = `${curve}|${series.map(item => item.key).join(",")}|${data.map(item => `${item.key}:${series.map(line => item.values[line.key] ?? 0).join(",")}`).join(";")}`;
-  const targets = useMemo(() => new Map(series.map(line => [line.key, curveFor(data.map(item => item.values[line.key] ?? 0), curve === "smooth")])), [signature]); // eslint-disable-line react-hooks/exhaustive-deps
+  const targets = useMemo(() => new Map(series.map(line => [line.key, curveFor(data.map(item => item.values[line.key] ?? 0), curve === "smooth")])), [signature]);
   let low = Infinity, high = -Infinity;
   for (const line of visible) for (const item of data) { const value = item.values[line.key] ?? 0; low = Math.min(low, value); high = Math.max(high, value); }
   const range = Number.isFinite(low) ? niceScale(low, high) : null;
@@ -314,7 +314,7 @@ export function LineChart({ data, series, label, unit = "", height = 220, format
       update(track, { fade: animate(track.presence, to, { ...settle, onUpdate: value => { update(track, { presence: value }); paint(); } }) });
     }
     paint();
-  }, [hiddenKey, paint, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hiddenKey, paint, reduced]);
 
   useEffect(() => {
     if (reduced) { scale.min.jump(steady.min); scale.max.jump(steady.max); return; }
@@ -345,7 +345,7 @@ export function LineChart({ data, series, label, unit = "", height = 220, format
 
   const onActive = useRef(onActiveChange);
   useLayoutEffect(() => { onActive.current = onActiveChange; });
-  useEffect(() => { onActive.current?.(index, index === null ? null : data[index] ?? null); }, [index]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onActive.current?.(index, index === null ? null : data[index] ?? null); }, [index]);
 
   const pointAt = (clientX: number) => {
     const rect = plot.current?.getBoundingClientRect();

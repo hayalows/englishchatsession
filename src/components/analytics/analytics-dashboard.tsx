@@ -47,22 +47,16 @@ function TrendPanel({
   activeMetric: AnalyticsPrimaryMetric;
   onMetricChange: (metric: AnalyticsPrimaryMetric) => void;
 }) {
-  const rows = report.trend;
-
   return (
     <section className={`${styles.panel} ${styles.trendPanel}`} aria-labelledby="trend-title">
       <h2 className={styles.srOnly} id="trend-title">Finder activity over time</h2>
 
-      {rows.length ? (
-        <AnalyticsTrendChart
-          activeMetric={activeMetric}
-          comparison={comparison}
-          onMetricChange={onMetricChange}
-          report={report}
-        />
-      ) : (
-        <p className={styles.empty}>No finder visits match this view yet.</p>
-      )}
+      <AnalyticsTrendChart
+        activeMetric={activeMetric}
+        comparison={comparison}
+        onMetricChange={onMetricChange}
+        report={report}
+      />
     </section>
   );
 }
@@ -270,10 +264,7 @@ export function AnalyticsDashboard({
             <p>Reach, scan intent, and repeat use at a glance.</p>
           </div>
           <div className={styles.headerTools}>
-            <div className={styles.controlRow}>
-              <AnalyticsFilters breakdowns={filterBreakdowns} filters={report.filters} />
-              <AnalyticsLiveRefresh />
-            </div>
+            <AnalyticsLiveRefresh />
             <div className={styles.statusRow}>
               <span className={styles.activeNow} aria-live="polite">
                 <i aria-hidden="true" className={styles.activeDot} />
@@ -283,9 +274,24 @@ export function AnalyticsDashboard({
           </div>
         </header>
 
+        <section className={styles.filterBar} aria-label="Report scope">
+          <div className={styles.scopeSummary}>
+            <strong>{report.filters.rangeLabel}</strong>
+            <span>{report.filters.segmentLabel} · UTC</span>
+          </div>
+          <AnalyticsFilters breakdowns={filterBreakdowns} filters={report.filters} />
+        </section>
+
         <StatusNotice report={report} />
 
-        <div className={styles.primaryGrid}>
+        <nav className={styles.sectionNav} aria-label="Analytics sections">
+          <a href="#overview">Overview</a>
+          <a href="#audience">Audience</a>
+          <a href="#behavior">Behavior</a>
+          <a href="#activity">Activity & data</a>
+        </nav>
+
+        <div className={styles.primaryGrid} id="overview">
           <TrendPanel
             activeMetric={activeMetric}
             comparison={comparison}
@@ -294,7 +300,9 @@ export function AnalyticsDashboard({
           />
         </div>
 
-        <AnalyticsBreakdownVisuals activeMetric={activeMetric} breakdowns={breakdowns} report={report} />
+        <div id="audience" className={styles.anchorSection}>
+          <AnalyticsBreakdownVisuals activeMetric={activeMetric} breakdowns={breakdowns} report={report} />
+        </div>
 
         <section className={styles.breakdownSection} aria-labelledby="audience-breakdown-title">
           <div className={styles.sectionHeading}>
@@ -310,7 +318,7 @@ export function AnalyticsDashboard({
           </div>
         </section>
 
-        <section className={styles.insightsSection} aria-labelledby="visitor-behavior-title">
+        <section className={styles.insightsSection} id="behavior" aria-labelledby="visitor-behavior-title">
           <div className={styles.sectionHeading}>
             <div>
               <p className={styles.eyebrow}>Behavior</p>
@@ -337,8 +345,13 @@ export function AnalyticsDashboard({
           </div>
         </section>
 
-        <AnalyticsActivityHistory report={report} />
-        <AnalyticsTrendData report={report} />
+        <section id="activity" className={styles.anchorSection} aria-label="Activity and detailed data">
+          <AnalyticsActivityHistory report={report} />
+          <details className={styles.exactData}>
+            <summary>Explore exact trend data <span>{report.trend.length.toLocaleString()} periods · sortable table</span></summary>
+            <AnalyticsTrendData report={report} />
+          </details>
+        </section>
 
         <details className={styles.definitions}>
           <summary>Metric notes</summary>

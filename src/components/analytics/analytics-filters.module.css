@@ -89,7 +89,7 @@
 
 .controlLabel {
   color: var(--muted-light);
-  font-size: .62rem;
+  font-size: .75rem;
   font-weight: 720;
   letter-spacing: .035em;
   text-transform: uppercase;
@@ -137,7 +137,7 @@
   border-radius: 999px;
   color: white;
   display: inline-flex;
-  font-size: .62rem;
+  font-size: .75rem;
   height: 1.18rem;
   justify-content: center;
   min-width: 1.18rem;
@@ -182,7 +182,7 @@
   }
 
   .controlLabel {
-    font-size: .66rem;
+    font-size: .75rem;
   }
 
   .filters {
@@ -202,7 +202,7 @@
   }
 
   .mobileFilterButton span {
-    display: none;
+    display: inline;
   }
 }
 

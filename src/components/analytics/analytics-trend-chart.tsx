@@ -300,6 +300,7 @@ export function AnalyticsTrendChart({
           className={styles.compareButton}
           disabled={!canCompare}
           onClick={() => setCompareEnabled((current) => !current)}
+          aria-describedby={!canCompare ? "comparison-unavailable" : undefined}
           title={canCompare ? "Overlay the matching previous period" : comparisonDisabled ? "All time has no previous period" : "Previous-period baseline is still building"}
           type="button"
         >
@@ -307,7 +308,11 @@ export function AnalyticsTrendChart({
         </button>
       </div>
 
-      <div className={styles.arcChartShell}>
+      {!canCompare ? <p id="comparison-unavailable" className={styles.comparisonHelp}>
+        {comparisonDisabled ? "Choose a date range to compare with a previous period." : "Comparison becomes available when enough previous-period data is recorded."}
+      </p> : null}
+
+      {rows.length ? <div className={styles.arcChartShell}>
         <LineChart
           categoryLabel={granularity === "hour" ? "Hour" : granularity === "week" ? "Week" : "Date"}
           curve="smooth"
@@ -322,7 +327,12 @@ export function AnalyticsTrendChart({
         />
       </div>
 
-      <p className={styles.chartHint}>Hover, tap, or use arrow keys for exact values.</p>
+      : <div className={styles.emptyChart} role="status">
+          <strong>No activity in this view yet</strong>
+          <p>Try a wider date range or clear the audience filter to explore recorded visits.</p>
+        </div>}
+
+      {rows.length ? <p className={styles.chartHint}>Hover, tap, or use arrow keys for exact values.</p> : null}
     </div>
   );
 }

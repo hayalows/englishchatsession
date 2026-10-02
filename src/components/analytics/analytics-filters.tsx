@@ -1,25 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { CalendarBlank, CaretDown, Check, FunnelSimple } from "@phosphor-icons/react";
+import { useMemo, useState } from "react";
+import { FunnelSimple } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 
+import { BottomSheet } from "../arc/bottom-sheet/bottom-sheet";
+import {
+  DateRangePicker,
+  type DateRange,
+} from "../arc/date-range-picker/date-range-picker";
+import FilterToolbar, {
+  type FilterChip,
+  type FilterField,
+} from "../arc/filter-toolbar/filter-toolbar";
+import SegmentedControl from "../arc/segmented-control/segmented-control";
+import type { AnalyticsMetricBreakdowns } from "@/lib/analytics/breakdown-types";
 import {
   ANALYTICS_RANGE_OPTIONS,
-  ANALYTICS_SEGMENT_OPTIONS,
+  ANALYTICS_SEGMENT_LABELS,
   displayCountryLabel,
   type AnalyticsRange,
   type AnalyticsSegment,
 } from "@/lib/analytics/filters";
 
 import styles from "./analytics-filters.module.css";
-
-const SEGMENT_PLURALS: Record<AnalyticsSegment, string> = {
-  all: "traffic",
-  country: "countries",
-  device: "devices",
-  browser: "browsers",
-  source: "sources",
-};
 
 type AnalyticsFiltersProps = {
   filters: {
@@ -32,207 +36,238 @@ type AnalyticsFiltersProps = {
     segmentLabel: string;
     trendLabel: string;
   };
-  options: Array<{ label: string; total: number }>;
+  breakdowns: AnalyticsMetricBreakdowns;
 };
 
-type OpenPanel = "range" | "filter" | null;
+const SEGMENTED_RANGES = ANALYTICS_RANGE_OPTIONS
+  .filter((option) => option.value !== "custom")
+  .map((option) => ({
+    value: option.value,
+    label: option.value === "24h"
+      ? "Today"
+      : option.value === "7d"
+        ? "7D"
+        : option.value === "30d"
+          ? "30D"
+          : option.value === "60d"
+            ? "60D"
+            : option.value === "90d"
+              ? "90D"
+              : "All",
+  }));
 
-function submitOnChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-  const control = event.currentTarget;
-  const form = control.form;
-  if (control.name === "segment" && form) {
-    const valueField = form.elements.namedItem("value");
-    if (valueField instanceof HTMLSelectElement) valueField.value = "";
-  }
-  form?.requestSubmit();
+function dateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
 }
 
-function displayOptionLabel(segment: AnalyticsSegment, value: string) {
-  return segment === "country" ? displayCountryLabel(value) : value;
+function parseDate(value: string | null) {
+  if (!value) return null;
+  const parts = value.split("-").map(Number);
+  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function rawCountryValue(label: string) {
+  return label.match(/\(([A-Z]{2})\)$/)?.[1] ?? label;
+}
+
+function baseParams(filters: AnalyticsFiltersProps["filters"]) {
+  const params = new URLSearchParams({ range: filters.range });
+  if (filters.range === "custom" && filters.from && filters.to) {
+    params.set("from", filters.from);
+    params.set("to", filters.to);
+  }
+  return params;
 }
 
 function rangeHref(filters: AnalyticsFiltersProps["filters"], range: AnalyticsRange) {
   const params = new URLSearchParams({ range });
-  if (filters.segment !== "all") {
+  if (filters.segment !== "all" && filters.value) {
     params.set("segment", filters.segment);
-    if (filters.value) params.set("value", filters.value);
+    params.set("value", filters.value);
   }
-  return `/analytics?${params.toString()}`;
+  return "/analytics?" + params.toString();
 }
 
-export function AnalyticsFilters({ filters, options }: AnalyticsFiltersProps) {
-  const initialPanel: OpenPanel = filters.segment !== "all" && !filters.value ? "filter" : null;
-  const today = new Date().toISOString().slice(0, 10);
-  const [openPanel, setOpenPanel] = useState<OpenPanel>(initialPanel);
-  const [customFrom, setCustomFrom] = useState(filters.from ?? today);
-  const [customTo, setCustomTo] = useState(filters.to ?? today);
-  const filtersRef = useRef<HTMLElement>(null);
-  const rangeTriggerRef = useRef<HTMLButtonElement>(null);
-  const filterTriggerRef = useRef<HTMLButtonElement>(null);
-  const filterKey = `${filters.range}:${filters.from ?? ""}:${filters.to ?? ""}:${filters.segment}:${filters.value ?? ""}`;
-  const previousFilterKey = useRef(filterKey);
-
-  useEffect(() => {
-    if (previousFilterKey.current === filterKey) return;
-    previousFilterKey.current = filterKey;
-    setOpenPanel(null);
-    setCustomFrom(filters.from ?? today);
-    setCustomTo(filters.to ?? today);
-  }, [filterKey, filters.from, filters.to, today]);
-
-  useEffect(() => {
-    function handlePointerDown(event: PointerEvent) {
-      if (event.target instanceof Node && !filtersRef.current?.contains(event.target)) {
-        setOpenPanel(null);
-      }
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, []);
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || !openPanel) return;
-      event.preventDefault();
-      const trigger = openPanel === "range" ? rangeTriggerRef : filterTriggerRef;
-      setOpenPanel(null);
-      requestAnimationFrame(() => trigger.current?.focus());
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [openPanel]);
-
-  const customRangeValid = Boolean(customFrom && customTo && customFrom <= customTo && customTo <= today);
-  const hasCurrentValue = Boolean(filters.value && !options.some((option) => option.label === filters.value));
-  const segmentName = filters.segment === "source" ? "traffic source" : filters.segment;
-  const hasActiveFilter = Boolean(filters.value);
-  const clearParams = new URLSearchParams({ range: filters.range });
-  if (filters.range === "custom" && filters.from && filters.to) {
-    clearParams.set("from", filters.from);
-    clearParams.set("to", filters.to);
+function audienceHref(
+  filters: AnalyticsFiltersProps["filters"],
+  segment: AnalyticsSegment,
+  value: string | null,
+) {
+  const params = baseParams(filters);
+  if (segment !== "all" && value) {
+    params.set("segment", segment);
+    params.set("value", value);
   }
-  const clearHref = `/analytics?${clearParams.toString()}`;
+  return "/analytics?" + params.toString();
+}
 
-  function handleFilterChange(event: ChangeEvent<HTMLSelectElement>) {
-    submitOnChange(event);
+function customHref(filters: AnalyticsFiltersProps["filters"], range: DateRange) {
+  const params = new URLSearchParams({
+    range: "custom",
+    from: dateKey(range.start),
+    to: dateKey(range.end),
+  });
+  if (filters.segment !== "all" && filters.value) {
+    params.set("segment", filters.segment);
+    params.set("value", filters.value);
+  }
+  return "/analytics?" + params.toString();
+}
+
+function optionRows(
+  rows: AnalyticsMetricBreakdowns["countries"],
+  segment: Exclude<AnalyticsSegment, "all">,
+) {
+  return rows.map((row) => ({
+    value: segment === "country" ? rawCountryValue(row.label) : row.label,
+    label: row.label,
+    hint: row.visitors.toLocaleString(),
+  }));
+}
+
+export function AnalyticsFilters({ filters, breakdowns }: AnalyticsFiltersProps) {
+  const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const selectedRange = filters.range === "custom" ? "" : filters.range;
+
+  const customValue = filters.range === "custom"
+    ? (() => {
+      const start = parseDate(filters.from);
+      const end = parseDate(filters.to);
+      return start && end ? { start, end } : null;
+    })()
+    : null;
+
+  const activeFilters = useMemo<FilterChip[]>(() => {
+    if (filters.segment === "all" || !filters.value) return [];
+    const label = ANALYTICS_SEGMENT_LABELS[filters.segment];
+    const value = filters.segment === "country" ? displayCountryLabel(filters.value) : filters.value;
+    return [{ id: filters.segment, label, value }];
+  }, [filters.segment, filters.value]);
+
+  const fields = useMemo<FilterField[]>(() => [
+    {
+      id: "country",
+      label: "Country",
+      options: optionRows(breakdowns.countries, "country"),
+    },
+    {
+      id: "device",
+      label: "Device",
+      options: optionRows(breakdowns.devices, "device"),
+    },
+    {
+      id: "browser",
+      label: "Browser",
+      options: optionRows(breakdowns.browsers, "browser"),
+    },
+    {
+      id: "source",
+      label: "Traffic source",
+      options: optionRows(breakdowns.referrers, "source"),
+    },
+  ], [breakdowns]);
+
+  function chooseRange(value: string) {
+    router.push(rangeHref(filters, value as AnalyticsRange));
   }
 
-  return (
-    <section ref={filtersRef} className={styles.filters} aria-label="Analytics controls">
-      <div className={styles.toolbar}>
-        <div className={styles.rangeDisclosure} data-open={openPanel === "range" ? "true" : undefined}>
-          <button
-            aria-controls="analytics-range-panel"
-            aria-expanded={openPanel === "range"}
-            aria-label={`Time range: ${filters.rangeLabel}`}
-            className={styles.controlTrigger}
-            onClick={() => setOpenPanel((current) => current === "range" ? null : "range")}
-            ref={rangeTriggerRef}
-            type="button"
-          >
-            <CalendarBlank aria-hidden="true" className={styles.controlIcon} size={18} />
-            <span className={styles.rangeSummaryLabel}>{filters.rangeLabel}</span>
-            <CaretDown aria-hidden="true" className={`${styles.controlIcon} ${styles.chevronIcon}`} size={16} />
-          </button>
-          {openPanel === "range" ? <div className={styles.rangePanel} id="analytics-range-panel" role="group" aria-label="Time range options">
-            <span className={styles.rangePanelLabel}>Time range</span>
-            {ANALYTICS_RANGE_OPTIONS.filter((option) => option.value !== "custom").map((option) => (
-              <a
-                aria-current={filters.range === option.value ? "true" : undefined}
-                className={styles.rangeOption}
-                href={rangeHref(filters, option.value)}
-                key={option.value}
-                onClick={() => setOpenPanel(null)}
-              >
-                <span>{option.label}</span>
-                {filters.range === option.value ? <Check aria-hidden="true" className={styles.checkIcon} size={16} /> : null}
-              </a>
-            ))}
-            <form action="/analytics" className={styles.form} method="get">
-              <input name="range" type="hidden" value="custom" />
-              {filters.segment !== "all" ? <input name="segment" type="hidden" value={filters.segment} /> : null}
-              {filters.value ? <input name="value" type="hidden" value={filters.value} /> : null}
-              <label className={styles.field}>
-                <span>From</span>
-                <input max={customTo || today} name="from" onChange={(event) => setCustomFrom(event.currentTarget.value)} required type="date" value={customFrom} />
-              </label>
-              <label className={styles.field}>
-                <span>To</span>
-                <input max={today} min={customFrom || undefined} name="to" onChange={(event) => setCustomTo(event.currentTarget.value)} required type="date" value={customTo} />
-              </label>
-              <button className={styles.rangeOption} disabled={!customRangeValid} type="submit">
-                <span>Apply custom range</span>
-                {filters.range === "custom" ? <Check aria-hidden="true" className={styles.checkIcon} size={16} /> : null}
-              </button>
-            </form>
-          </div> : null}
-        </div>
+  function chooseCustom(range: DateRange) {
+    router.push(customHref(filters, range));
+    setMobileOpen(false);
+  }
 
-        <div className={styles.filterDisclosure} data-open={openPanel === "filter" ? "true" : undefined}>
-          <button
-            aria-controls="analytics-filter-panel"
-            aria-expanded={openPanel === "filter"}
-            className={styles.controlTrigger}
-            onClick={() => setOpenPanel((current) => current === "filter" ? null : "filter")}
-            ref={filterTriggerRef}
-            title="Filter traffic"
-            type="button"
-          >
-            <FunnelSimple aria-hidden="true" className={styles.controlIcon} size={18} />
-            <span className={styles.filterText}>Filter</span>
-            {hasActiveFilter ? <span className={styles.filterBadge} aria-label="1 active filter">1</span> : null}
-          </button>
-          {openPanel === "filter" ? <div className={styles.filterPanel} id="analytics-filter-panel" role="group" aria-label="Traffic filter options">
-            <form action="/analytics" className={styles.form} method="get">
-              <input name="range" type="hidden" value={filters.range} />
-              {filters.range === "custom" && filters.from ? <input name="from" type="hidden" value={filters.from} /> : null}
-              {filters.range === "custom" && filters.to ? <input name="to" type="hidden" value={filters.to} /> : null}
-              <div className={styles.filterPanelHeader}>
-                <div>
-                  <strong>Filter traffic</strong>
-                  <span>Narrow the report by audience.</span>
-                </div>
-                {hasActiveFilter ? <a className={styles.clearLink} href={clearHref}>Clear</a> : null}
-              </div>
+  function addFilter(filter: FilterChip, field: FilterField) {
+    const segment = field.id as AnalyticsSegment;
+    router.push(audienceHref(filters, segment, filter.value ?? null));
+    setMobileOpen(false);
+  }
 
-              <label className={styles.field}>
-                <span>Dimension</span>
-                <select defaultValue={filters.segment} name="segment" onChange={handleFilterChange}>
-                  {ANALYTICS_SEGMENT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
+  function clearFilter() {
+    router.push(audienceHref(filters, "all", null));
+  }
 
-              {filters.segment !== "all" ? (
-                <label className={styles.field}>
-                  <span>Choose {segmentName}</span>
-                  <select defaultValue={filters.value ?? ""} disabled={!options.length} name="value" onChange={handleFilterChange}>
-                    <option value="">All {SEGMENT_PLURALS[filters.segment]}</option>
-                    {hasCurrentValue ? (
-                      <option value={filters.value ?? ""}>{displayOptionLabel(filters.segment, filters.value ?? "")}</option>
-                    ) : null}
-                    {options.map((option) => (
-                      <option key={option.label} value={option.label}>
-                        {displayOptionLabel(filters.segment, option.label)} · {option.total.toLocaleString()}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-            </form>
-          </div> : null}
+  const controls = (
+    <div className={styles.controlStack}>
+      <div className={styles.rangeGroup}>
+        <span className={styles.controlLabel}>Time range</span>
+        <div className={styles.rangeControls}>
+          <SegmentedControl
+            label="Analytics time range"
+            onValueChange={chooseRange}
+            options={SEGMENTED_RANGES}
+            value={selectedRange}
+          />
+          <DateRangePicker
+            label="Custom analytics date range"
+            maxDate={new Date()}
+            minDate={new Date(2026, 7, 13)}
+            months="auto"
+            onChange={chooseCustom}
+            placeholder={filters.range === "custom" ? filters.rangeLabel : "Custom"}
+            value={customValue}
+            weekStartsOn={1}
+          />
         </div>
       </div>
 
-      {hasActiveFilter ? (
-        <div className={styles.activeFilter} aria-live="polite">
-          <span>{filters.segmentLabel}</span>
-          <a aria-label={`Clear ${filters.segmentLabel} filter`} href={clearHref}>×</a>
+      <div className={styles.filterGroup}>
+        <span className={styles.controlLabel}>Audience</span>
+        <FilterToolbar
+          addFilter={{
+            fields,
+            label: activeFilters.length ? "Change filter" : "Add filter",
+            align: "start",
+            onAdd: addFilter,
+          }}
+          filters={activeFilters}
+          label="Analytics audience filters"
+          onClearAll={clearFilter}
+          onRemove={clearFilter}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <section className={styles.filters} aria-label="Analytics controls">
+      <div className={styles.desktopControls}>{controls}</div>
+
+      <div className={styles.mobileControls}>
+        <div className={styles.mobileRange}>
+          <SegmentedControl
+            label="Analytics time range"
+            onValueChange={chooseRange}
+            options={SEGMENTED_RANGES.filter((option) => ["24h", "7d", "30d", "all"].includes(option.value))}
+            value={["24h", "7d", "30d", "all"].includes(selectedRange) ? selectedRange : ""}
+          />
         </div>
-      ) : null}
+        <button
+          aria-expanded={mobileOpen}
+          className={styles.mobileFilterButton}
+          onClick={() => setMobileOpen(true)}
+          type="button"
+        >
+          <FunnelSimple aria-hidden="true" size={17} />
+          <span>Filters</span>
+          {activeFilters.length || filters.range === "custom" || ["60d", "90d"].includes(filters.range)
+            ? <strong>{activeFilters.length + (filters.range === "custom" || ["60d", "90d"].includes(filters.range) ? 1 : 0)}</strong>
+            : null}
+        </button>
+      </div>
+
+      <BottomSheet
+        description="Choose a reporting range or narrow the report to one audience dimension."
+        onOpenChange={setMobileOpen}
+        open={mobileOpen}
+        title="Analytics filters"
+      >
+        {controls}
+      </BottomSheet>
     </section>
   );
 }

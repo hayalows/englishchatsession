@@ -42,9 +42,9 @@
     "cheerio": "^1.2.0",
     "country-flag-icons": "^1.6.20",
     "motion": "^13.5.0",
-    "next": "16.2.12",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "next": "16.4.1",
+    "react": "19.2.9",
+    "react-dom": "19.2.9"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
@@ -55,5 +55,11 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.34.0",
     "vitest": "^5.0.2"
+  },
+  "overrides": {
+    "postcss": "8.5.28",
+    "source-map-js": "1.2.2",
+    "vite": "8.3.5",
+    "sharp": "0.35.5"
   }
 }

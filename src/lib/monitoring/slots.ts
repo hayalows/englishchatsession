@@ -23,7 +23,11 @@ export class LegacyBookingLandingError extends Error {
 export function isTrustedBookingUrl(value: string) {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && CALENDAR_HOSTS.has(url.hostname);
+    return url.protocol === "https:"
+      && CALENDAR_HOSTS.has(url.hostname)
+      && !url.username
+      && !url.password
+      && !url.port;
   } catch {
     return false;
   }
@@ -48,15 +52,32 @@ function isLegacyBookingLandingUrl(value: string) {
 export async function resolveScheduleId(bookingUrl: string, signal?: AbortSignal) {
   const directId = scheduleIdFromUrl(bookingUrl);
   if (directId) return directId;
-  const response = await fetch(bookingUrl, { redirect: "follow", signal });
-  if (!response.ok) throw new Error(`Booking link returned HTTP ${response.status}.`);
-  if (!isTrustedBookingUrl(response.url)) {
-    throw new InvalidBookingUrlError("The booking link redirected outside Google Calendar.");
+  // Validate each redirect *before* sending its request. A final-URL check after
+  // redirect: "follow" is too late to prevent server-side requests elsewhere.
+  let currentUrl = bookingUrl;
+  const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+  for (let hop = 0; hop <= 5; hop += 1) {
+    if (!isTrustedBookingUrl(currentUrl)) {
+      throw new InvalidBookingUrlError("The booking link redirected outside Google Calendar.");
+    }
+    const response = await fetch(currentUrl, { redirect: "manual", signal });
+    if (redirectStatuses.has(response.status)) {
+      const location = response.headers.get("location");
+      if (!location) throw new Error("Google Calendar redirect has no location.");
+      currentUrl = new URL(location, currentUrl).href;
+      continue;
+    }
+    if (!response.ok) throw new Error(`Booking link returned HTTP ${response.status}.`);
+    const resolvedUrl = response.url || currentUrl;
+    if (!isTrustedBookingUrl(resolvedUrl)) {
+      throw new InvalidBookingUrlError("The booking link redirected outside Google Calendar.");
+    }
+    const resolvedId = scheduleIdFromUrl(resolvedUrl);
+    if (!resolvedId && isLegacyBookingLandingUrl(resolvedUrl)) throw new LegacyBookingLandingError();
+    if (!resolvedId) throw new Error("Google did not resolve this booking link to an appointment schedule.");
+    return resolvedId;
   }
-  const resolvedId = scheduleIdFromUrl(response.url);
-  if (!resolvedId && isLegacyBookingLandingUrl(response.url)) throw new LegacyBookingLandingError();
-  if (!resolvedId) throw new Error("Google did not resolve this booking link to an appointment schedule.");
-  return resolvedId;
+  throw new InvalidBookingUrlError("The booking link has too many redirects.");
 }
 
 export function extractSlotTimestamps(value: unknown): number[] {

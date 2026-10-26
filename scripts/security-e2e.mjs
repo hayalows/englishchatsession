@@ -2,6 +2,7 @@
 // Run: npm ci && npm run build && node scripts/security-e2e.mjs
 // No live credentials, student records, or external calendar fetches are used.
 import assert from "node:assert/strict";
+import process from "node:process";
 import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -26,7 +27,7 @@ for (const stream of [server.stdout, server.stderr]) {
 }
 
 async function get(path, options = {}) {
-  return fetch(base + path, { redirect: "manual", signal: AbortSignal.timeout(8_000), ...options });
+  return globalThis.fetch(base + path, { redirect: "manual", signal: globalThis.AbortSignal.timeout(8_000), ...options });
 }
 
 async function ready() {
@@ -111,7 +112,7 @@ try {
   report.result = report.scenarios.some(entry => entry.status === "fail") || report.error ? "fail" : "pass";
   await mkdir("reports", { recursive: true });
   await writeFile("reports/security-e2e.json", JSON.stringify(report, null, 2) + "\n");
-  console.log(JSON.stringify(report, null, 2));
-  if (process.exitCode) console.error("Last server output:", log);
+  globalThis.console.log(JSON.stringify(report, null, 2));
+  if (process.exitCode) globalThis.console.error("Last server output:", log);
   server.kill("SIGTERM");
 }

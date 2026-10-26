@@ -46,3 +46,17 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Production-route security smoke
+        run: node scripts/security-e2e.mjs
+
+      - name: Preserve security smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-smoke-${{ github.run_id }}
+          path: reports/security-e2e.json
+          if-no-files-found: ignore
+
+      - name: Audit all dependencies
+        run: npm audit --audit-level=moderate

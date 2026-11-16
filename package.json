@@ -42,7 +42,7 @@
     "cheerio": "^1.2.0",
     "country-flag-icons": "^1.6.20",
     "motion": "^13.5.0",
-    "next": "16.4.1",
+    "next": "16.4.6",
     "react": "19.2.9",
     "react-dom": "19.2.9"
   },
